@@ -1,6 +1,6 @@
 package dev.flammky.valorantcompanion.auth.ex
 
-class UnexpectedResponseException(
+class CredentialExpiredException(
     override val message: String?
-) : Exception() {
+): Exception() {
 }

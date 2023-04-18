@@ -1,5 +1,5 @@
 package dev.flammky.valorantcompanion.auth.ex
 
-class AuthFailureException : Exception() {
+class AuthFailureException(override val message: String?) : Exception() {
 
 }
