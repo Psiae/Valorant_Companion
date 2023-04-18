@@ -28,6 +28,8 @@ android {
         composeOptions.kotlinCompilerExtensionVersion = "1.4.0"
     }
     packagingOptions {
+        resources.pickFirsts.add("META-INF/INDEX.LIST")
+        resources.pickFirsts.add("META-INF/io.netty.*")
     }
 }
 
@@ -39,12 +41,5 @@ dependencies {
     implementation(libs.androidx.activity.activity.compose)
     implementation(libs.androidx.compose.ui.ui.asProvider())
     implementation(libs.androidx.compose.ui.ui.tooling.preview)
-
-    val compose_ui_version = "1.4.0"
-
-    implementation("androidx.core:core-ktx:1.9.0")
-    implementation("androidx.activity:activity-compose:1.6.1")
-    implementation("androidx.compose.ui:ui:$compose_ui_version")
-    implementation("androidx.compose.ui:ui-tooling-preview:$compose_ui_version")
     implementation("androidx.compose.material:material:1.3.1")
 }

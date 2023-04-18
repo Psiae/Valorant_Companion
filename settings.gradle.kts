@@ -66,6 +66,21 @@ dependencyResolutionManagement {
                 "io.ktor",
                 "ktor-server-netty"
             ).version("2.2.4")
+            library(
+                "io.ktor.ktor-client.android",
+                "io.ktor",
+                "ktor-client-android"
+            ).version("2.2.4")
+            library(
+                "io.ktor.ktor-client.okhttp",
+                "io.ktor",
+                "ktor-client-okhttp"
+            ).version("2.2.4")
+            library(
+                "io.ktor.ktor-client.serialization",
+                "io.ktor",
+                "ktor-client-serialization"
+            ).version("2.2.4")
         }
     }
 }

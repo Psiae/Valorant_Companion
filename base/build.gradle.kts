@@ -25,6 +25,9 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    packagingOptions {
+        resources.pickFirsts.add("META-INF/INDEX.LIST")
+    }
 }
 
 dependencies {

@@ -1,4 +1,4 @@
 package dev.flammky.valorantcompanion.auth
 
-interface RiotAuthEndpoints {
+object C {
 }

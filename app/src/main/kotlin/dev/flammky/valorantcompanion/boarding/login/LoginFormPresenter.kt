@@ -4,9 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import dev.flammky.valorantcompanion.auth.RiotAuthService
 import kotlinx.coroutines.CoroutineScope
-import org.koin.androidx.compose.get
 
 @Composable
 fun rememberLoginFormPresenter(): LoginFormPresenter {

@@ -2,8 +2,7 @@ package dev.flammky.valorantcompanion.boarding.login
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import dev.flammky.valorantcompanion.auth.RiotAuthService
+import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

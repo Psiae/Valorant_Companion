@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -21,9 +22,18 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    packagingOptions {
+        resources.pickFirsts.add("META-INF/INDEX.LIST")
+        resources.pickFirsts.add("META-INF/io.netty.*")
+    }
 }
 
 dependencies {
     implementation(libs.androidx.core.core.ktx)
     implementation(libs.koin.android)
+    implementation(libs.io.ktor.ktor.client.android)
+    implementation(libs.io.ktor.ktor.client.okhttp)
+    implementation(libs.io.ktor.ktor.client.serialization)
+    implementation(libs.io.ktor.ktor.server.core)
+    implementation(libs.io.ktor.ktor.server.netty)
 }
