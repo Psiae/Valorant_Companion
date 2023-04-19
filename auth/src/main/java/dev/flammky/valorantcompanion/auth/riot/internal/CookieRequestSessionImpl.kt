@@ -23,5 +23,5 @@ internal class CookieRequestSessionImpl : CookieRequestSession {
     }
 
     override val firstException: Exception?
-        get() = _firstEx.valueOrNull()
+        get() = runCatching { _firstEx.valueOrNull() }.getOrNull()
 }

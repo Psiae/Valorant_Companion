@@ -1,11 +1,12 @@
 package dev.flammky.valorantcompanion.boarding.login
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import dev.flammky.valorantcompanion.auth.riot.RiotLoginRequest
+import kotlinx.coroutines.*
+import kotlin.math.log
 
 @Composable
 fun rememberLoginScreenPresenter(
@@ -22,11 +23,30 @@ class LoginScreenPresenter(
 
     private val coroutineDispatchScope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Composable
     fun present(): LoginScreenState {
         return remember {
             LoginScreenState(
-                intents = LoginScreenIntents.mock(coroutineDispatchScope, 1000)
+                intents = LoginScreenIntents(
+                    loginRiotID = { username, password, retain ->
+                        coroutineDispatchScope.async(SupervisorJob()) {
+                            val login = riotAuthService.loginAsync(
+                                RiotLoginRequest(username, password)
+                            )
+                            suspendCancellableCoroutine { ucont ->
+                                login.invokeOnCompletion {
+                                    ucont.resume(Unit) {}
+                                }
+                            }
+                            login.ex?.let {
+                                it.printStackTrace()
+                                throw it
+                            }
+                            login.userInfo.data != null
+                        }
+                    }
+                )
             )
         }
     }

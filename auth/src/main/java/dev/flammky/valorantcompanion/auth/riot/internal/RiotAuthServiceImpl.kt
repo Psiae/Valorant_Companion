@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.auth.riot.internal
 
+import android.util.Log
 import dev.flammky.valorantcompanion.auth.ex.*
 import dev.flammky.valorantcompanion.auth.ext.jsonObjectOrNull
 import dev.flammky.valorantcompanion.auth.ext.jsonPrimitiveOrNull
@@ -7,17 +8,37 @@ import dev.flammky.valorantcompanion.auth.riot.*
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.okhttp.*
+import io.ktor.client.plugins.auth.*
+import io.ktor.client.plugins.auth.providers.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.cookies.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.*
 
 internal class RiotAuthServiceImpl(
-    private val httpClient: HttpClient = HttpClient(OkHttp),
     private val repository: RiotAuthRepository
 ) : RiotAuthService {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
+
+    private val httpClient: HttpClient = HttpClient(OkHttp) {
+        install(ContentNegotiation) {
+            json()
+        }
+        install(HttpCookies) {
+
+        }
+        install(Auth) {
+            bearer {
+                sendWithoutRequest { true }
+            }
+        }
+    }
 
     override fun loginAsync(
         request: RiotLoginRequest
@@ -26,27 +47,30 @@ internal class RiotAuthServiceImpl(
         coroutineScope.launch(Dispatchers.IO) {
 
             run cookie@ {
+                val body = buildJsonObject {
+                    put("client_id", JsonPrimitive("play-valorant-web-prod"))
+                    put("nonce", JsonPrimitive("1"))
+                    put("redirect_uri", JsonPrimitive("https://playvalorant.com/opt_in"))
+                    put("response_type", JsonPrimitive("token id_token"))
+                    put("scope", JsonPrimitive("account openid"))
+                }.toString()
+
                 val cookieRequest = HttpRequestBuilder()
                     .apply {
                         method = HttpMethod.Post
                         url("https://auth.riotgames.com/api/v1/authorization")
-                        header("Content-Type", "application/json")
-                        setBody(
-                            body = buildJsonObject {
-                                put("client_id", JsonPrimitive("play-valorant-web-prod"))
-                                put("nonce", JsonPrimitive("1"))
-                                put("redirect_uri", JsonPrimitive("https://playvalorant.com/"))
-                                put("response_type", JsonPrimitive("token id_token"))
-                                put("scope", JsonPrimitive("account openid"))
-                            }
-                        )
+                        header(HttpHeaders.ContentType, ContentType.Application.Json)
+                        header(HttpHeaders.Accept, ContentType.Application.Json)
+                        setBody(body)
                     }
 
                 val cookieResponse = httpClient.request(cookieRequest)
+                val str = cookieResponse.bodyAsText()
+                Log.d("RiotAuthServiceImpl", "body=$body\ncookieResponseStr=$str")
 
                 session.provideCookieResponse(
                     cookieResponse.status.value,
-                    Json.encodeToJsonElement(cookieResponse.body<String>())
+                    Json.encodeToJsonElement(str)
                 )
             }
 
@@ -56,7 +80,8 @@ internal class RiotAuthServiceImpl(
                     .apply {
                         method = HttpMethod.Put
                         url("https://auth.riotgames.com/api/v1/authorization")
-                        header("Content-Type", "application/json")
+                        header(HttpHeaders.ContentType, ContentType.Application.Json)
+                        header(HttpHeaders.Accept, ContentType.Application.Json)
                         setBody(
                             body = buildJsonObject {
                                 put("type", JsonPrimitive("auth"))
@@ -70,12 +95,24 @@ internal class RiotAuthServiceImpl(
                     }
 
                 val authResponse = httpClient.request(authRequest)
-                val obj = Json.encodeToJsonElement(authResponse.body<String>()).jsonObject
+                val str = authResponse.body<String>()
+                val encode = Json.decodeFromString<JsonElement>(str)
+                val obj = encode.jsonObject
                 session.provideAuthResponse(authResponse.status.value, obj)
 
-                if (obj["error"]?.jsonPrimitive?.toString() == "auth_failure") {
+                Log.d("RiotAuthServiceImpl", "authResponseStr=$str\nencode=$encode\nobj=${obj["error"]?.jsonPrimitive?.toString()}")
+
+                if (obj["error"]?.jsonPrimitive?.toString() == "\"auth_failure\"") {
                     session.authException(
                         AuthFailureException("auth_failure")
+                    )
+                    throw CancellationException()
+                }
+
+
+                if (obj["error"]?.jsonPrimitive?.toString() == "\"invalid_session_id\"") {
+                    session.authException(
+                        InvalidSessionException("invalid_session_id")
                     )
                     throw CancellationException()
                 }
@@ -86,8 +123,12 @@ internal class RiotAuthServiceImpl(
                     ?.jsonPrimitiveOrNull
                     ?.takeIf { it.isString }
                     ?.toString()?.run {
-                        drop(indexOf("access_token=") + 1).takeWhile { it != '&' }
+                        indexOf("access_token=").takeIf { it >= 0 }?.let { i ->
+                            drop(i + "access_token=".length).takeWhile { it != '&' }
+                        }
                     }
+
+                Log.d("RiotAuthServiceImpl", "access_token=$access_token")
 
                 if (access_token == null || access_token.isEmpty()) {
                     session.authException(
@@ -96,6 +137,11 @@ internal class RiotAuthServiceImpl(
                     throw CancellationException()
                 }
 
+                session.provideAuthResponseData(
+                    AuthRequestResponseData(access_token)
+                )
+
+                access_token
             }
 
             run entitlement@ {
@@ -110,7 +156,7 @@ internal class RiotAuthServiceImpl(
                     }
 
                 val entitlementResponse = httpClient.request(entitlementRequest)
-                val obj = Json.encodeToJsonElement(entitlementResponse.body<String>()).jsonObject
+                val obj = Json.decodeFromString<JsonElement>(entitlementResponse.body<String>()).jsonObject
 
                 session.provideEntitlementResponse(
                     entitlementResponse.status.value,
@@ -119,12 +165,12 @@ internal class RiotAuthServiceImpl(
 
                 when(val code = obj["errorCode"]?.jsonPrimitive?.toString()) {
                     null, "" -> Unit
-                    "BAD_AUTHORIZATION_PARAM" -> {
+                    "\"BAD_AUTHORIZATION_PARAM\"" -> {
                         val msg = obj["message"]?.jsonPrimitive?.toString()
                         val ex = BadAuthorizationParamException(msg)
                         session.entitlementException(ex)
                     }
-                    "CREDENTIALS_EXPIRED" -> {
+                    "\"CREDENTIALS_EXPIRED\"" -> {
                         val msg = obj["message"]?.jsonPrimitive?.toString()
                         val ex = CredentialExpiredException(msg)
                         session.entitlementException(ex)
@@ -162,7 +208,7 @@ internal class RiotAuthServiceImpl(
 
                 val userInfoResponse = httpClient.request(userInfoRequest)
                 val str = userInfoResponse.body<String>()
-                val encode = Json.encodeToJsonElement(str)
+                val encode = Json.decodeFromString<JsonElement>(str)
                 val obj = encode.jsonObjectOrNull
 
                 session.provideUserInfoResponse(userInfoResponse.status.value, encode)
@@ -226,6 +272,19 @@ internal class RiotAuthServiceImpl(
 
                 session.provideUserInfoData(
                     UserInfoRequestResponseData(puuid, name, tag)
+                )
+            }
+
+            run applyRepo@ {
+                repository.registerActiveAccount(
+                    RiotAuthenticatedAccount(
+                        model = RiotAccountModel(
+                            puuid = session.userInfo.data!!.puuid,
+                            username = request.username,
+                            game_name = session.userInfo.data!!.name,
+                            tagline = session.userInfo.data!!.tag
+                        )
+                    )
                 )
             }
 

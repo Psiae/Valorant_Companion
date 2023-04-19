@@ -9,10 +9,10 @@ internal class RiotLoginSessionImpl : RiotLoginSession {
 
     private val lock = Any()
     private var completed = false
-    private val auth = AuthRequestSessionImpl()
-    private val cookie = CookieRequestSessionImpl()
-    private val entitlement = EntitlementRequestSessionImpl()
-    private val userInfo = UserInfoRequestSessionImpl()
+    private val _auth = AuthRequestSessionImpl()
+    private val _cookie = CookieRequestSessionImpl()
+    private val _entitlement = EntitlementRequestSessionImpl()
+    private val _userInfo = UserInfoRequestSessionImpl()
     private val completionEx = LazyConstructor<Exception?>()
     private val invokeOnCompletion = mutableListOf<() -> Unit>()
 
@@ -22,7 +22,15 @@ internal class RiotLoginSessionImpl : RiotLoginSession {
         json: JsonElement,
     ) = synchronized(lock) {
         check(!completed)
-        auth.onResponse(AuthHttpRequestResponse(status, json))
+        _auth.onResponse(AuthHttpRequestResponse(status, json))
+    }
+
+    @kotlin.jvm.Throws(IllegalStateException::class)
+    fun provideAuthResponseData(
+        data: AuthRequestResponseData
+    ) = synchronized(lock) {
+        check(!completed)
+        _auth.onParse(data)
     }
 
     @kotlin.jvm.Throws(IllegalStateException::class)
@@ -31,7 +39,7 @@ internal class RiotLoginSessionImpl : RiotLoginSession {
         json: JsonElement
     ) = synchronized(lock) {
         check(!completed)
-        cookie.onResponse(CookieHttpRequestResponse(status, json))
+        _cookie.onResponse(CookieHttpRequestResponse(status, json))
     }
 
     @kotlin.jvm.Throws(IllegalStateException::class)
@@ -40,14 +48,14 @@ internal class RiotLoginSessionImpl : RiotLoginSession {
         json: JsonElement
     ) = synchronized(lock) {
         check(!completed)
-        entitlement.onResponse(EntitlementHttpRequestResponse(status, json))
+        _entitlement.onResponse(EntitlementHttpRequestResponse(status, json))
     }
 
     fun provideEntitlementData(
         data: EntitlementRequestResponseData
     ) = synchronized(lock) {
         check(!completed)
-        entitlement.onParse(data)
+        _entitlement.onParse(data)
     }
 
     @kotlin.jvm.Throws(IllegalStateException::class)
@@ -56,7 +64,7 @@ internal class RiotLoginSessionImpl : RiotLoginSession {
         json: JsonElement
     ) = synchronized(lock) {
         check(!completed)
-        userInfo.onResponse(UserInfoHttpRequestResponse(status, json))
+        _userInfo.onResponse(UserInfoHttpRequestResponse(status, json))
     }
 
     @kotlin.jvm.Throws(IllegalStateException::class)
@@ -64,27 +72,27 @@ internal class RiotLoginSessionImpl : RiotLoginSession {
         data: UserInfoRequestResponseData
     ) = synchronized(lock) {
         check(!completed)
-        userInfo.onParse(data)
+        _userInfo.onParse(data)
     }
 
     fun authException(ex: Exception) = synchronized(lock) {
         check(!completed)
-        auth.onException(ex)
+        _auth.onException(ex)
     }
 
     fun cookieException(ex: Exception) = synchronized(lock) {
         check(!completed)
-        cookie.onException(ex)
+        _cookie.onException(ex)
     }
 
     fun entitlementException(ex: Exception) = synchronized(lock) {
         check(!completed)
-        entitlement.onException(ex)
+        _entitlement.onException(ex)
     }
 
     fun provideUserInfoException(ex: Exception) = synchronized(lock) {
         check(!completed)
-        userInfo.onException(ex)
+        _userInfo.onException(ex)
     }
 
     fun makeCompleting(
@@ -97,20 +105,29 @@ internal class RiotLoginSessionImpl : RiotLoginSession {
         invokeOnCompletion.clear()
     }
 
-    override val authException: Exception?
-        get() = auth.firstException
-
-    override val cookieException: Exception?
+    override val cookie: CookieRequestSession
+        get() = _cookie
+    override val auth: AuthRequestSession
+        get() = _auth
+    override val entitlement: EntitlementRequestSession
+        get() = _entitlement
+    override val userInfo: UserInfoRequestSession
+        get() = _userInfo
+    override val ex: Exception?
         get() = cookie.firstException
-
-    override val completionException: Exception?
-        get() = completionEx.value
+            ?: auth.firstException
+            ?: entitlement.firstException
+            ?: userInfo.firstException
 
     override fun invokeOnCompletion(block: () -> Unit) {
-        if (completed) return block()
-        synchronized(lock) {
-            if (completed) return block()
-            invokeOnCompletion.add(block)
+        if (!completed) {
+            synchronized(lock) {
+                if (!completed) {
+                    invokeOnCompletion.add(block)
+                    return
+                }
+            }
         }
+        block()
     }
 }

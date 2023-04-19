@@ -8,7 +8,7 @@ import kotlinx.coroutines.*
 import kotlin.math.log
 
 data class LoginScreenIntents(
-    val loginRiotID: (username: String, password: String, retain: Boolean) -> Deferred<Result<Boolean>>,
+    val loginRiotID: (username: String, password: String, retain: Boolean) -> Deferred<*>,
 ) {
     companion object {
         fun mock(coroutineScope: CoroutineScope, timeMs: Long): LoginScreenIntents = LoginScreenIntents(

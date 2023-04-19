@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import dev.flammky.valorantcompanion.auth.ex.AuthFailureException
 import kotlinx.coroutines.CoroutineScope
 
 @Composable
@@ -36,8 +37,15 @@ class LoginFormPresenter() {
         login = { self, username: String, password: String, retain: Boolean ->
             val def = screenState.intents.loginRiotID(username, password, retain)
             screenState.onLogin(def)
-            def.invokeOnCompletion {
-                self.resetSlotPasswordWithExceptionMessage("Your username or password may be incorrect")
+            def.invokeOnCompletion { ex ->
+                self.resetSlotPasswordWithExceptionMessage(
+                    if (ex is AuthFailureException) {
+                        "Your username or password may be incorrect"
+                    } else {
+                        ex?.printStackTrace()
+                        "Unexpected Error: $ex"
+                    }
+                )
             }
         }
     )

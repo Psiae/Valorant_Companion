@@ -8,7 +8,12 @@ import kotlinx.coroutines.Deferred
 
 internal class RiotAuthRepositoryImpl() : RiotAuthRepository {
 
+
+
     override var activeAccount: RiotAuthenticatedAccount? = null
         private set
 
+    override fun registerActiveAccount(account: RiotAuthenticatedAccount) {
+        this.activeAccount = account
+    }
 }

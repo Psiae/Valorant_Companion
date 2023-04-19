@@ -4,6 +4,7 @@ import dev.flammky.valorantcompanion.auth.LazyConstructor
 import dev.flammky.valorantcompanion.auth.LazyConstructor.Companion.constructOrThrow
 import dev.flammky.valorantcompanion.auth.LazyConstructor.Companion.valueOrNull
 import dev.flammky.valorantcompanion.auth.riot.EntitlementHttpRequestResponse
+import dev.flammky.valorantcompanion.auth.riot.EntitlementRequestResponseData
 import dev.flammky.valorantcompanion.auth.riot.EntitlementRequestSession
 
 class EntitlementRequestSessionImpl : EntitlementRequestSession {
@@ -30,5 +31,8 @@ class EntitlementRequestSessionImpl : EntitlementRequestSession {
     }
 
     override val firstException: Exception?
-        get() = _firstEx.valueOrNull()
+        get() = runCatching { _firstEx.valueOrNull() }.getOrNull()
+
+    override val data: EntitlementRequestResponseData?
+        get() = _data.valueOrNull()
 }

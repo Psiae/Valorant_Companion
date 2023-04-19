@@ -34,6 +34,10 @@ dependencies {
     implementation(libs.io.ktor.ktor.client.android)
     implementation(libs.io.ktor.ktor.client.okhttp)
     implementation(libs.io.ktor.ktor.client.serialization)
-    implementation(libs.io.ktor.ktor.server.core)
-    implementation(libs.io.ktor.ktor.server.netty)
+    implementation(libs.io.ktor.ktor.client.auth)
+    implementation(libs.io.ktor.ktor.client.logging)
+    implementation(libs.io.ktor.ktor.client.content.negotiation)
+    implementation(libs.io.ktor.ktor.serialization)
+    implementation(libs.io.ktor.ktor.serialization.kotlinx.json)
+
 }

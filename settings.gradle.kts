@@ -57,16 +57,6 @@ dependencyResolutionManagement {
 
             // KTOR
             library(
-                "io.ktor.ktor-server-core",
-                "io.ktor",
-                "ktor-server-core"
-            ).version("2.2.4")
-            library(
-                "io.ktor.ktor-server-netty",
-                "io.ktor",
-                "ktor-server-netty"
-            ).version("2.2.4")
-            library(
                 "io.ktor.ktor-client.android",
                 "io.ktor",
                 "ktor-client-android"
@@ -80,6 +70,31 @@ dependencyResolutionManagement {
                 "io.ktor.ktor-client.serialization",
                 "io.ktor",
                 "ktor-client-serialization"
+            ).version("2.2.4")
+            library(
+                "io.ktor.ktor-client-content-negotiation",
+                "io.ktor",
+                "ktor-client-content-negotiation",
+            ).version("2.2.4")
+            library(
+                "io.ktor.ktor-serialization",
+                "io.ktor",
+                "ktor-serialization"
+            ).version("2.2.4")
+            library(
+                "io.ktor.ktor-serialization-kotlinx-json",
+                "io.ktor",
+                "ktor-serialization-kotlinx-json"
+            ).version("2.2.4")
+            library(
+                "io.ktor.ktor-client-auth",
+                "io.ktor",
+                "ktor-client-auth"
+            ).version("2.2.4")
+            library(
+                "io.ktor.ktor-client-logging",
+                "io.ktor",
+                "ktor-client-logging"
             ).version("2.2.4")
         }
     }

@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.auth.riot.internal
 
+import android.util.Log
 import dev.flammky.valorantcompanion.auth.LazyConstructor
 import dev.flammky.valorantcompanion.auth.LazyConstructor.Companion.constructOrThrow
 import dev.flammky.valorantcompanion.auth.LazyConstructor.Companion.valueOrNull
@@ -33,5 +34,8 @@ class UserInfoRequestSessionImpl(
     }
 
     override val firstException: Exception?
-        get() = _firstEx.valueOrNull()
+        get() = runCatching { _firstEx.valueOrNull() }.getOrNull()
+
+    override val data: UserInfoRequestResponseData?
+        get() = runCatching { _data.valueOrNull() }.getOrNull()
 }
