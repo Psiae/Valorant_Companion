@@ -30,7 +30,7 @@ internal class RiotLoginSessionImpl : RiotLoginSession {
         data: AuthRequestResponseData
     ) = synchronized(lock) {
         check(!completed)
-        _auth.onParse(data)
+        _auth.parsedData(data)
     }
 
     @kotlin.jvm.Throws(IllegalStateException::class)
@@ -105,13 +105,13 @@ internal class RiotLoginSessionImpl : RiotLoginSession {
         invokeOnCompletion.clear()
     }
 
-    override val cookie: CookieRequestSession
+    override val cookie: CookieRequestSessionImpl
         get() = _cookie
-    override val auth: AuthRequestSession
+    override val auth: AuthRequestSessionImpl
         get() = _auth
-    override val entitlement: EntitlementRequestSession
+    override val entitlement: EntitlementRequestSessionImpl
         get() = _entitlement
-    override val userInfo: UserInfoRequestSession
+    override val userInfo: UserInfoRequestSessionImpl
         get() = _userInfo
     override val ex: Exception?
         get() = cookie.firstException

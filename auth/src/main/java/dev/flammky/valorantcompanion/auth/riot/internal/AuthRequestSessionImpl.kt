@@ -25,12 +25,17 @@ class AuthRequestSessionImpl : AuthRequestSession {
         _firstEx.construct { ex }
     }
 
-    fun onParse(
+    fun parsedData(
         data: AuthRequestResponseData
     ) {
         _data.construct { data }
     }
 
+    // I'm not really sure why the IllegalCastException is not caught in-place and needs to be caught here
+
     override val firstException: Exception?
-        get() = runCatching { _firstEx.valueOrNull() }.getOrNull()
+        get() = runCatching { _firstEx.value }.getOrNull()
+
+    val data: AuthRequestResponseData?
+        get() = runCatching { _data.value }.getOrNull()
 }

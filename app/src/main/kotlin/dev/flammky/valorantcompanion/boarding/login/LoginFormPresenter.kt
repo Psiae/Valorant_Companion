@@ -39,12 +39,16 @@ class LoginFormPresenter() {
             screenState.onLogin(def)
             def.invokeOnCompletion { ex ->
                 self.resetSlotPasswordWithExceptionMessage(
-                    if (ex is AuthFailureException) {
-                        "Your username or password may be incorrect"
-                    } else {
-                        ex?.printStackTrace()
-                        "Unexpected Error: $ex"
-                    }
+                    ex
+                        ?.let {
+                            it.printStackTrace()
+                            if (ex is AuthFailureException) {
+                                "Your username or password may be incorrect"
+                            } else {
+                                "Unexpected Error: $ex"
+                            }
+                        }
+                        ?: ""
                 )
             }
         }
