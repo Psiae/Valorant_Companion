@@ -6,5 +6,5 @@ import androidx.compose.runtime.setValue
 
 class RootNavigationState() {
 
-    var showBoarding by mutableStateOf(false)
+    var showBoarding by mutableStateOf<Boolean?>(null)
 }

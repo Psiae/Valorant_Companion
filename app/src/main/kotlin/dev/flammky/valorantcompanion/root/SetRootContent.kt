@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -17,7 +18,7 @@ import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundColorAsState
 import dev.flammky.valorantcompanion.base.theme.material3.primaryColorAsState
 import dev.flammky.valorantcompanion.base.theme.material3.surfaceColorAsState
-import dev.flammky.valorantcompanion.main.MainActivity
+import dev.flammky.valorantcompanion.MainActivity
 import kotlin.math.ln
 
 fun MainActivity.setRootContent() = setContent {
@@ -40,7 +41,7 @@ private fun RootLayout() {
         },
         navigation = {
             RootNavigation(
-                state = remember { RootNavigationPresenter() }.present()
+                state = rememberRootNavigationPresenter().present()
             )
         }
     )
@@ -58,6 +59,9 @@ private fun ApplySystemUI() {
                     tone.copy(alpha = alpha).compositeOver(surface)
                 }
             }
+        )
+        setNavigationBarColor(
+            color = Color.Transparent
         )
         WindowCompat.setDecorFitsSystemWindows((LocalContext.current as Activity).window, false)
     }

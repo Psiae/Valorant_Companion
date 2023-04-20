@@ -9,6 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -22,11 +24,13 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.R
 import dev.flammky.valorantcompanion.base.runRemember
@@ -43,6 +47,12 @@ fun LoginForm(
     val slot = state.inputSlot
     LoginFormPlacements(
         modifier = modifier,
+        header = { modifier ->
+            LoginFormHeader(
+                modifier = modifier,
+                inputSlot = slot
+            )
+        },
         textFields = { modifier ->
             LoginFormTextFields(
                 modifier,
@@ -62,10 +72,13 @@ fun LoginForm(
 @Composable
 private fun LoginFormPlacements(
     modifier: Modifier,
+    header: @Composable (Modifier) -> Unit,
     textFields: @Composable (Modifier) -> Unit,
     loginButton: @Composable (Modifier) -> Unit
 ) = Column(modifier = modifier.fillMaxSize()) {
     Spacer(modifier = Modifier.height(100.dp))
+    header(Modifier.align(Alignment.CenterHorizontally))
+    Spacer(modifier = Modifier.height(10.dp))
     textFields(Modifier.align(Alignment.CenterHorizontally))
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -91,23 +104,6 @@ private fun LoginFormTextFields(
     inputSlot: LoginFormInputSlot
 ) {
     Column(modifier = modifier) {
-        Text(
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            text = "Sign in",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-            color = Material3Theme.backgroundContentColorAsState().value
-        )
-        Spacer(modifier = Modifier.height(30.dp))
-        Text(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .fillMaxWidth(0.8f),
-            text = inputSlot.exceptionMessage,
-            style = MaterialTheme.typography.labelMedium,
-            color = remember { Color(0xFFBE29CC) },
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(10.dp))
         UsernameTextField(
             value = inputSlot.username,
             onValueChange = inputSlot::usernameInput
@@ -259,6 +255,11 @@ private fun PasswordTextField(
             },
             focusedBorderColor = Color.Transparent,
             unfocusedBorderColor = Color.Transparent
+        ),
+        keyboardOptions = KeyboardOptions(
+            autoCorrect = false,
+            keyboardType = KeyboardType.Password,
+            imeAction = ImeAction.Done
         )
     )
 }

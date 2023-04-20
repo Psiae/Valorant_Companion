@@ -2,6 +2,7 @@ package dev.flammky.valorantcompanion.auth.riot.internal
 
 import dev.flammky.valorantcompanion.auth.LazyConstructor
 import dev.flammky.valorantcompanion.auth.LazyConstructor.Companion.constructOrThrow
+import dev.flammky.valorantcompanion.auth.LazyConstructor.Companion.valueOrNull
 import dev.flammky.valorantcompanion.auth.riot.*
 import kotlinx.serialization.json.JsonElement
 
@@ -114,11 +115,7 @@ internal class RiotLoginSessionImpl : RiotLoginSession {
     override val userInfo: UserInfoRequestSessionImpl
         get() = _userInfo
     override val ex: Exception?
-        get() = cookie.firstException
-            ?: auth.firstException
-            ?: entitlement.firstException
-            ?: userInfo.firstException
-
+        get() = completionEx.valueOrNull()
     override fun invokeOnCompletion(block: () -> Unit) {
         if (!completed) {
             synchronized(lock) {

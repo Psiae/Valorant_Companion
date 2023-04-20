@@ -1,7 +1,6 @@
 package dev.flammky.valorantcompanion.auth.riot
 
-abstract class AccountModel(
-    val id: String,
-    val username: String
-) {
+abstract class AccountModel() {
+    abstract val id: String
+    abstract val username: String
 }

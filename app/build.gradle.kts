@@ -41,5 +41,5 @@ dependencies {
     implementation(libs.androidx.activity.activity.compose)
     implementation(libs.androidx.compose.ui.ui.asProvider())
     implementation(libs.androidx.compose.ui.ui.tooling.preview)
-    implementation("androidx.compose.material:material:1.3.1")
+    implementation(libs.androidx.compose.material.material)
 }

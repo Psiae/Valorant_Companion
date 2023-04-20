@@ -31,8 +31,9 @@ class LoginScreenPresenter(
                 intents = LoginScreenIntents(
                     loginRiotID = { username, password, retain ->
                         coroutineDispatchScope.async(SupervisorJob()) {
-                            val login = riotAuthService.loginAsync(
-                                RiotLoginRequest(username, password)
+                            val login = riotAuthService.createLoginClient().login(
+                                RiotLoginRequest(username, password),
+                                true
                             )
                             suspendCancellableCoroutine { ucont ->
                                 login.invokeOnCompletion {
@@ -43,7 +44,6 @@ class LoginScreenPresenter(
                                 it.printStackTrace()
                                 throw it
                             }
-                            login.userInfo.data != null
                         }
                     }
                 )

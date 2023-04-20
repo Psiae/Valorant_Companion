@@ -1,10 +1,26 @@
 package dev.flammky.valorantcompanion.auth.riot
 
+import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
+
 interface RiotAuthRepository {
 
-    val activeAccount: RiotAuthenticatedAccount?
+    val activeAccount: AuthenticatedAccount?
 
-    fun registerActiveAccount(
-        account: RiotAuthenticatedAccount
+    fun registerAuthenticatedAccount(
+        account: RiotAuthenticatedAccount,
+        setActive: Boolean
     )
+
+    fun setActiveAccount(
+        puuid: String
+    )
+
+    fun registerActiveAccountChangeListener(handler: ActiveAccountListener)
+
+    fun unRegisterActiveAccountListener(handler: ActiveAccountListener)
+}
+
+fun interface ActiveAccountListener {
+
+    fun onChange(old: AuthenticatedAccount?, new: AuthenticatedAccount?)
 }

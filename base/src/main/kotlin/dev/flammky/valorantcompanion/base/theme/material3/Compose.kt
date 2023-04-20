@@ -31,3 +31,23 @@ fun Material3Theme.primaryColorAsState(): State<Color> {
 fun Material3Theme.surfaceColorAsState(): State<Color> {
     return rememberUpdatedState(newValue = colorScheme.surface)
 }
+
+@Composable
+fun Material3Theme.surfaceVariantColorAsState(): State<Color> {
+    return rememberUpdatedState(newValue = colorScheme.surfaceVariant)
+}
+
+@Composable
+fun Material3Theme.surfaceVariantContentColorAsState(): State<Color> {
+    return rememberUpdatedState(newValue = colorScheme.onSurfaceVariant)
+}
+
+@Composable
+fun Material3Theme.secondaryContainerColorAsState(): State<Color> {
+    return rememberUpdatedState(newValue = colorScheme.secondaryContainer)
+}
+
+@Composable
+fun Material3Theme.secondaryContainerContentColorAsState(): State<Color> {
+    return rememberUpdatedState(newValue = colorScheme.onSecondaryContainer)
+}

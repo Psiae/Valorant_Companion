@@ -1,6 +1,7 @@
 package dev.flammky.valorantcompanion.base.theme.material3
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme as Material3Theme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
@@ -30,8 +31,12 @@ fun DefaultMaterial3Theme(
         LocalIsThemeDark provides dark,
         LocalDarkColorScheme provides darkColors,
         LocalLightColorScheme provides lightColors,
-        LocalColorScheme provides if (dark) darkColors else lightColors
+        LocalColorScheme provides if (dark) darkColors else lightColors,
     ) {
-        content()
+        Material3Theme(
+            colorScheme = if (dark) darkColors else lightColors
+        ) {
+            content()
+        }
     }
 }

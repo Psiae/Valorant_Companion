@@ -31,5 +31,11 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.9.0")
+    implementation(project(":base"))
+    implementation(project(":auth"))
+    implementation(libs.androidx.core.core.ktx)
+    implementation(libs.androidx.activity.activity.compose)
+    implementation(libs.androidx.compose.ui.ui.asProvider())
+    implementation(libs.androidx.compose.ui.ui.tooling.preview)
+    implementation(libs.androidx.compose.material.material)
 }

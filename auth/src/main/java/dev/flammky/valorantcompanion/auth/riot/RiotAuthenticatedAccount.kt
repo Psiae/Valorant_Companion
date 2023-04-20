@@ -1,7 +1,9 @@
 package dev.flammky.valorantcompanion.auth.riot
 
+import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
+
 data class RiotAuthenticatedAccount(
-    val model: RiotAccountModel
-)
+    override val model: RiotAccountModel,
+): AuthenticatedAccount()
 
 

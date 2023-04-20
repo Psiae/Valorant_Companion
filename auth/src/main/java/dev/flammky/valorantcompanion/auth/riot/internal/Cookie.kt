@@ -11,7 +11,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 
-internal suspend fun initiateAuthCookieWithKtor(
+internal suspend fun initiateAuthCookie(
     httpClient: KtorHttpClient,
     session: CookieRequestSessionImpl
 ) {

@@ -1,4 +1,4 @@
-package dev.flammky.valorantcompanion.main
+package dev.flammky.valorantcompanion
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

@@ -12,7 +12,7 @@ val KoinAuthModule = module {
     }
     single<RiotAuthService> {
         RiotAuthServiceImpl(
-            repository = get()
+            repository = get<RiotAuthRepository>() as RiotAuthRepositoryImpl
         )
     }
 
