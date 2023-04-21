@@ -75,7 +75,7 @@ internal class KtorRiotLoginClient(
                                 data.puuid,
                                 request.username,
                                 data.name,
-                                data.puuid
+                                data.tag
                             )
                         )
                     },

@@ -29,23 +29,21 @@ fun MainActivity.setRootContent() = setContent {
 }
 
 @Composable
-private fun RootLayout() {
-    RootLayoutPlacement(
-        background = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Material3Theme.backgroundColorAsState().value)
-                    .pointerInput(Unit) {}
-            )
-        },
-        navigation = {
-            RootNavigation(
-                state = rememberRootNavigationPresenter().present()
-            )
-        }
-    )
-}
+private fun RootLayout() = RootLayoutPlacement(
+    background = {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Material3Theme.backgroundColorAsState().value)
+                .pointerInput(Unit) {}
+        )
+    },
+    navigation = {
+        RootNavigation(
+            state = rememberRootNavigationPresenter().present()
+        )
+    }
+)
 
 @Composable
 private fun ApplySystemUI() {

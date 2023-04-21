@@ -16,7 +16,7 @@ android {
     }
     buildFeatures {
         compose = true
-        composeOptions.kotlinCompilerExtensionVersion = "1.4.0"
+        composeOptions.kotlinCompilerExtensionVersion = "1.4.4"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -38,4 +38,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.ui.asProvider())
     implementation(libs.androidx.compose.ui.ui.tooling.preview)
     implementation(libs.androidx.compose.material.material)
+    implementation(libs.io.coil.kt.coil.asProvider())
+    implementation(libs.io.coil.kt.coil.compose)
 }

@@ -33,6 +33,11 @@ fun Material3Theme.surfaceColorAsState(): State<Color> {
 }
 
 @Composable
+fun Material3Theme.surfaceContentColorAsState(): State<Color> {
+    return rememberUpdatedState(newValue = colorScheme.onSurface)
+}
+
+@Composable
 fun Material3Theme.surfaceVariantColorAsState(): State<Color> {
     return rememberUpdatedState(newValue = colorScheme.surfaceVariant)
 }

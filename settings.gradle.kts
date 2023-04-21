@@ -10,6 +10,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        gradlePluginPortal()
     }
     versionCatalogs {
         val compose_ui_version = "1.4.0"
@@ -51,8 +52,8 @@ dependencyResolutionManagement {
             ).version(compose_ui_version)
             library(
                 "androidx.compose.material-material",
-                "androidx.compose",
-                "material:material"
+                "androidx.compose.material",
+                "material"
             ).version("1.3.1")
 
             // KTOR
@@ -96,6 +97,29 @@ dependencyResolutionManagement {
                 "io.ktor",
                 "ktor-client-logging"
             ).version("2.2.4")
+
+            library(
+                "io.coil-kt-coil",
+                "io.coil-kt",
+                "coil"
+            ).version("2.3.0")
+            library(
+                "io.coil-kt-coil-compose",
+                "io.coil-kt",
+                "coil-compose"
+            ).version("2.3.0")
+
+            library(
+                "org.jetbrains.kotlinx-kotlinx-collections-immutable",
+                "org.jetbrains.kotlinx",
+                "kotlinx-collections-immutable"
+            ).version("0.3.5")
+
+            library(
+                "org.jetbrains.kotlinx-atomicfu-jvm",
+                "org.jetbrains.kotlinx",
+                "atomicfu-jvm"
+            ).version("0.20.2")
         }
     }
 }
@@ -105,3 +129,4 @@ include(":auth")
 include(":base")
 include(":career")
 include(":live")
+include(":assets")

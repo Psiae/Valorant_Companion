@@ -21,8 +21,8 @@ fun LoginLoadingScreen(
     modifier: Modifier,
     show: Boolean
 ) {
-    val backgroundColor = Material3Theme.backgroundColorAsState().value
     if (show) {
+        val backgroundColor = Material3Theme.backgroundColorAsState().value
         Box(
             modifier = remember {
                 modifier

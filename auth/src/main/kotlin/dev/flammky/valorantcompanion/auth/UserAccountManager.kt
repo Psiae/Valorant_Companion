@@ -2,6 +2,7 @@ package dev.flammky.valorantcompanion.auth
 
 import androidx.annotation.GuardedBy
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
+import io.ktor.client.plugins.auth.*
 
 internal class UserAccountRegistry() {
 
@@ -14,6 +15,7 @@ internal class UserAccountRegistry() {
             return field
         }
 
+    // should use channel instead
     private val activeAccountListeners = mutableListOf<ActiveAccountListener>()
 
     var activeAccount: AuthenticatedAccount? = null
@@ -32,10 +34,12 @@ internal class UserAccountRegistry() {
     fun setActiveAccount(
         id: String
     ) {
+        val current: AuthenticatedAccount?
+        val get: AuthenticatedAccount?
         synchronized(lock) {
-            val get = map[id] ?: return
+            get = map[id]
             if (activeAccount == get) return
-            val current = activeAccount
+            current = activeAccount
             activeAccount = get
             activeAccountListeners.forEach { it.onChange(current, get) }
         }
@@ -48,6 +52,7 @@ internal class UserAccountRegistry() {
             activeAccountListeners.add(handler)
             handler.onChange(null, activeAccount)
         }
+
     }
 
     fun unRegisterActiveAccountListener(

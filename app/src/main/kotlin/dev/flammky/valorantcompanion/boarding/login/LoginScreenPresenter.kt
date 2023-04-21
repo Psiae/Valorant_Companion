@@ -1,12 +1,10 @@
 package dev.flammky.valorantcompanion.boarding.login
 
-import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.auth.riot.RiotLoginRequest
 import kotlinx.coroutines.*
-import kotlin.math.log
 
 @Composable
 fun rememberLoginScreenPresenter(

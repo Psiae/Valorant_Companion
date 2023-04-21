@@ -25,7 +25,7 @@ android {
     }
     buildFeatures {
         compose = true
-        composeOptions.kotlinCompilerExtensionVersion = "1.4.0"
+        composeOptions.kotlinCompilerExtensionVersion = "1.4.4"
     }
     packagingOptions {
         resources.pickFirsts.add("META-INF/INDEX.LIST")
@@ -36,6 +36,7 @@ android {
 dependencies {
     implementation(project(":base"))
     implementation(project(":auth"))
+    implementation(project(":career"))
 
     implementation(libs.androidx.core.core.ktx)
     implementation(libs.androidx.activity.activity.compose)
