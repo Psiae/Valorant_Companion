@@ -9,7 +9,7 @@ interface PlatformFileSystem {
 
     fun String.appendFolder(name: String): String
     fun String.appendFile(name: String): String
-    fun buildPathInDefaultInternalCacheFolder(
+    fun defaultInternalCacheFolder(
         path: (cachePath: String) -> String
     ): String
 }

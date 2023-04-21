@@ -4,7 +4,7 @@ import dev.flammky.valorantcompanion.assets.PlayerCardArtType
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.toPersistentSet
 
-class LoadPlayerCardRequest internal constructor(
+class LoadPlayerCardRequest private constructor(
     val player_card_id: String,
     // ordered
     val acceptableTypes: PersistentSet<PlayerCardArtType>,

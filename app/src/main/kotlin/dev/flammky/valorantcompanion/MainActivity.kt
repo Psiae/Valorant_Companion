@@ -2,11 +2,13 @@ package dev.flammky.valorantcompanion
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import dev.flammky.valorantcompanion.imageloading.Coil
 import dev.flammky.valorantcompanion.root.setRootContent
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
         setRootContent()
     }

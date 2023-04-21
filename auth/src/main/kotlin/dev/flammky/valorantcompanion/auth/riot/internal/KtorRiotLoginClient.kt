@@ -1,5 +1,7 @@
 package dev.flammky.valorantcompanion.auth.riot.internal
 
+import android.util.Log
+import dev.flammky.valorantcompanion.auth.BuildConfig
 import dev.flammky.valorantcompanion.auth.riot.*
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepositoryImpl
 import io.ktor.client.*
@@ -8,6 +10,7 @@ import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.cookies.*
+import io.ktor.client.plugins.logging.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
 
@@ -25,6 +28,16 @@ internal class KtorRiotLoginClient(
         install(Auth) {
             bearer {
                 sendWithoutRequest { true }
+            }
+        }
+        if (BuildConfig.DEBUG) {
+            install(Logging) {
+                logger = object : Logger {
+                    override fun log(message: String) {
+                        Log.i("KtorHttpClient", message)
+                    }
+                }
+                level = LogLevel.ALL
             }
         }
     }

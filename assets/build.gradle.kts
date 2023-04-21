@@ -24,6 +24,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.koin.android)
     implementation(libs.io.ktor.ktor.client.android)
     implementation(libs.io.ktor.ktor.client.okhttp)
     implementation(libs.io.ktor.ktor.client.serialization)

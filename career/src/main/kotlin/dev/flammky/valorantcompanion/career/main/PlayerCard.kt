@@ -1,5 +1,8 @@
 package dev.flammky.valorantcompanion.career.main
 
+import android.content.ContentResolver
+import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -67,6 +70,7 @@ private fun ProfilePicture(
     modifier: Modifier,
     data: Any?
 ) {
+    Log.d("PlayerCard", "data=$data")
     val ctx = LocalContext.current
     AsyncImage(
         modifier = modifier.clip(RoundedCornerShape(50)),
@@ -77,7 +81,7 @@ private fun ProfilePicture(
                 .build()
         },
         contentDescription = "profile picture",
-        contentScale = ContentScale.Crop
+        contentScale = ContentScale.Fit
     )
 }
 

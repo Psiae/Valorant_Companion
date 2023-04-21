@@ -4,6 +4,7 @@ import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardAssetDownloader
 import kotlinx.coroutines.*
 import java.io.File
+import kotlin.coroutines.resume
 
 class DisposableValorantAssetsLoaderClient(
     private val repository: ValorantAssetRepository,
@@ -31,7 +32,28 @@ class DisposableValorantAssetsLoaderClient(
                     def.complete(file)
                     return@launch
                 }
-            player_card_downloader
+            val art = suspendCancellableCoroutine { cont ->
+                player_card_downloader.downloadArt(req.player_card_id, req.acceptableTypes).run {
+                    invokeOnCompletion { t ->
+                        if (t != null) {
+                            def.completeExceptionally(t)
+                            cont.cancel(t)
+                        }
+                        cont.resume(requireNotNull(result))
+                    }
+                }
+            }
+            repository.cachePlayerCard(
+                art.id,
+                art.type,
+                art.barr
+            )
+            repository.loadCachedPlayerCard(req.player_card_id, req.acceptableTypes, true)
+                .onSuccess { file ->
+                    file?.let { def.complete(it) } ?: def.completeExceptionally(CancellationException("repository returned null"))
+                }.onFailure {
+                    def.completeExceptionally(it)
+                }
         }.invokeOnCompletion { ex ->
             ex?.let { def.completeExceptionally(ex.cause ?: ex) }
         }

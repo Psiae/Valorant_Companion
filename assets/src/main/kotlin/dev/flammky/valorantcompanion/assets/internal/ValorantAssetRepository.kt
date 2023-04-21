@@ -2,6 +2,7 @@ package dev.flammky.valorantcompanion.assets.internal
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory.decodeByteArray
+import android.util.Log
 import dev.flammky.valorantcompanion.assets.PlayerCardArtType
 import dev.flammky.valorantcompanion.assets.conflate.CacheWriteMutex
 import dev.flammky.valorantcompanion.assets.conflate.ConflatedCacheWriteMutex
@@ -26,7 +27,7 @@ class ValorantAssetRepository(
 
     private val playerCardFolderPath by lazy {
         with(platformFS) {
-            buildPathInDefaultInternalCacheFolder { cache ->
+            defaultInternalCacheFolder { cache ->
                 cache
                     .appendFolder("assets")
                     .appendFolder("player_card")
@@ -47,7 +48,9 @@ class ValorantAssetRepository(
                         if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
                             cacheWriteMutexes[fileName]
                         }?.awaitUnlock()
-                        it.exists() }?.let { return@withContext it }
+                        Log.d("ValorantAssetRepository", "loadCachedPlayerCard($id), resolving $it, exist=${it.exists()}")
+                        it.exists()
+                    }?.let { return@withContext it }
             }
             null
         }
@@ -60,7 +63,10 @@ class ValorantAssetRepository(
     ): Result<Unit> = runCatching {
         withContext(Dispatchers.IO) {
             val fileName = id + "_" + type.name
-            val file = with(platformFS) { File(playerCardFolderPath.appendFile(fileName)) }
+            val file = with(platformFS) {
+                File(playerCardFolderPath).mkdirs()
+                File(playerCardFolderPath.appendFile(fileName))
+            }
             // use channel and single writer instead ?
             val mutex = synchronized(cacheWriteMutexes) {
                 cacheWriteMutexes.getOrPut(fileName) { ConflatedCacheWriteMutex() }

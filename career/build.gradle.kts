@@ -33,6 +33,7 @@ android {
 dependencies {
     implementation(project(":base"))
     implementation(project(":auth"))
+    implementation(project(":assets"))
     implementation(libs.androidx.core.core.ktx)
     implementation(libs.androidx.activity.activity.compose)
     implementation(libs.androidx.compose.ui.ui.asProvider())
