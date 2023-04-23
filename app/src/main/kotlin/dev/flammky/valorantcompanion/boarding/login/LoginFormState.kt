@@ -8,7 +8,12 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
 
 class LoginFormIntents(
-    val login: (self: LoginFormState, username: String, password: String, retain: Boolean) -> Unit
+    val login: (
+        self: LoginFormState,
+        username: String,
+        password: String,
+        retain: Boolean,
+    ) -> Unit
 )
 
 class LoginFormState(
@@ -19,6 +24,9 @@ class LoginFormState(
         private set
 
     var retainLogin by mutableStateOf(false)
+        private set
+
+    var region by mutableStateOf("NA")
         private set
 
     val canLogin by derivedStateOf {
@@ -37,6 +45,10 @@ class LoginFormState(
                 usernameInput(inputSlot.username)
                 exceptionMessage(msg)
             }
+    }
+
+    fun selectRegion(region: String) {
+        this.region = region
     }
 
     companion object {

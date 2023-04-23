@@ -9,7 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -24,7 +23,6 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -34,10 +32,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.R
 import dev.flammky.valorantcompanion.base.runRemember
-import dev.flammky.valorantcompanion.base.theme.material3.LocalIsThemeDark
-import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
-import dev.flammky.valorantcompanion.base.theme.material3.backgroundColorAsState
-import dev.flammky.valorantcompanion.base.theme.material3.backgroundContentColorAsState
+import dev.flammky.valorantcompanion.base.theme.material3.*
 
 @Composable
 fun LoginForm(
@@ -59,6 +54,31 @@ fun LoginForm(
                 inputSlot = slot
             )
         },
+        rememberMe = { modifier ->
+            val textColor = Material3Theme.backgroundContentColorAsState().value
+            Row(modifier = modifier.height(30.dp), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    modifier = Modifier.size(24.dp),
+                    checked = false,
+                    onCheckedChange = {},
+                    enabled = false,
+                    colors = run {
+                        val background = if (LocalIsThemeDark.current) {
+                            Color(0xFF121212)
+                        } else {
+                            Color(0xFFE7E7E7)
+                        }
+                        CheckboxDefaults.colors(
+                            uncheckedColor = background,
+                            disabledUncheckedColor = background.copy(alpha = 0.38f)
+                        )
+                    }
+                )
+                Spacer(Modifier.width(5.dp))
+                Text("remember me", color = textColor, style = MaterialTheme.typography.labelLarge)
+            }
+        },
+        regionSelection = { },
         loginButton = { modifier ->
             LoginFormButton(
                 modifier,
@@ -74,12 +94,24 @@ private fun LoginFormPlacements(
     modifier: Modifier,
     header: @Composable (Modifier) -> Unit,
     textFields: @Composable (Modifier) -> Unit,
-    loginButton: @Composable (Modifier) -> Unit
+    regionSelection: @Composable (Modifier) -> Unit,
+    rememberMe: @Composable (Modifier) -> Unit,
+    loginButton: @Composable (Modifier) -> Unit,
 ) = Column(modifier = modifier.fillMaxSize()) {
     Spacer(modifier = Modifier.height(100.dp))
     header(Modifier.align(Alignment.CenterHorizontally))
     Spacer(modifier = Modifier.height(10.dp))
     textFields(Modifier.align(Alignment.CenterHorizontally))
+    Spacer(modifier = Modifier.height(5.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(0.8f)
+            .align(Alignment.CenterHorizontally),
+    ) {
+        rememberMe(Modifier)
+        Box(Modifier.weight(1f, true))
+        /*regionSelection(Modifier)*/
+    }
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Bottom
@@ -148,7 +180,7 @@ private fun UsernameTextField(
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = Material3Theme.backgroundContentColorAsState()
                     .value
-                    .copy(alpha = 0.65f)
+                    .copy(alpha = 0.8f)
                     .compositeOver(Material3Theme.backgroundColorAsState().value)
             )
         },
@@ -160,9 +192,9 @@ private fun UsernameTextField(
                 Color.Transparent
             } else {
                 if (LocalIsThemeDark.current) {
-                    remember { Color(0xFF0D0D0D) }
+                    remember { Color(0xFF181818) }
                 } else {
-                    remember { Color(0xFFEDEDED) }
+                    remember { Color(0xFFE7E7E7) }
                 }
             },
             focusedBorderColor = Color.Transparent,
@@ -207,7 +239,7 @@ private fun PasswordTextField(
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                 color = Material3Theme.backgroundContentColorAsState()
                     .value
-                    .copy(alpha = 0.65f)
+                    .copy(alpha = 0.8f)
                     .compositeOver(Material3Theme.backgroundColorAsState().value)
             )
         },
@@ -248,9 +280,9 @@ private fun PasswordTextField(
                 Color.Transparent
             } else {
                 if (LocalIsThemeDark.current) {
-                    remember { Color(0xFF0D0D0D) }
+                    remember { Color(0xFF181818) }
                 } else {
-                    remember { Color(0xFFEDEDED) }
+                    remember { Color(0xFFE7E7E7) }
                 }
             },
             focusedBorderColor = Color.Transparent,

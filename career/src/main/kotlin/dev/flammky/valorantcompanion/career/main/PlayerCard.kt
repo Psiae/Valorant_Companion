@@ -81,7 +81,7 @@ private fun ProfilePicture(
                 .build()
         },
         contentDescription = "profile picture",
-        contentScale = ContentScale.Fit
+        contentScale = ContentScale.Crop
     )
 }
 

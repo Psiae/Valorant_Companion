@@ -5,10 +5,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.*
-import kotlin.math.log
 
 data class LoginScreenIntents(
-    val loginRiotID: (username: String, password: String, retain: Boolean) -> Deferred<*>,
+    val loginRiotID: (
+        username: String,
+        password: String,
+        retain: Boolean,
+    ) -> Deferred<*>,
 ) {
     companion object {
         fun mock(coroutineScope: CoroutineScope, timeMs: Long): LoginScreenIntents = LoginScreenIntents(

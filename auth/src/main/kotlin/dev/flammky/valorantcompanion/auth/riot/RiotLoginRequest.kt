@@ -2,7 +2,7 @@ package dev.flammky.valorantcompanion.auth.riot
 
 data class RiotLoginRequest(
     val username: String,
-    val password: String
+    val password: String,
 ) {
 }
 
