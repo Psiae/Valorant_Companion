@@ -14,12 +14,15 @@ fun MainCareer() {
                 .fillMaxWidth()
                 .height(
                     with(LocalDensity.current) {
-                        WindowInsets.statusBars.getTop(this).toDp() + 20.dp
+                        WindowInsets.statusBars
+                            .getTop(this)
+                            .toDp() + 20.dp
                     }
                 )
         )
         PlayerProfileCard(
             state = rememberPlayerProfileCardPresenter().present()
         )
+        CareerSectionTab()
     }
 }

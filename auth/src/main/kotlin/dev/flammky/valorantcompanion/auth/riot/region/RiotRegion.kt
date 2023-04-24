@@ -1,6 +1,6 @@
-package dev.flammky.valorantcompanion.auth.region
+package dev.flammky.valorantcompanion.auth.riot.region
 
-import dev.flammky.valorantcompanion.auth.region.ISO_3166_Country.Companion.register
+import dev.flammky.valorantcompanion.auth.riot.region.ISO_3166_Country.Companion.register
 
 sealed class RiotRegion() {
 
@@ -16,175 +16,177 @@ sealed class RiotRegion() {
 
     object KR : RiotRegion()
 
-    fun resolveByRegionName(str: String): RiotRegion? {
-        return when (str.lowercase()) {
-            "latam", "latin america", "south america", "central america", "caribbean" -> LATAM
-            "br", "bra", "brazil" -> BR
-            "na", "north america" -> NA
-            "eu", "europe", "emea" -> EU
-            "ap", "apac", "asia pacific" -> APAC
-            "kr", "kor", "korea" -> KR
-            else -> null
+    companion object {
+        fun resolveByRegionName(str: String): RiotRegion? {
+            return when (str.lowercase()) {
+                "latam", "latin america", "south america", "central america", "caribbean" -> LATAM
+                "br", "bra", "brazil" -> BR
+                "na", "north america" -> NA
+                "eu", "europe", "emea" -> EU
+                "ap", "apac", "asia pacific" -> APAC
+                "kr", "kor", "korea" -> KR
+                else -> null
+            }
         }
-    }
 
-    fun resolveByCountryCode(code: String): RiotRegion? {
-        return when (code.length) {
-            2 -> {
-                if (code.all(Char::isLetter)) {
-                    resolveAlpha2CountryCode(code)
-                } else {
-                    throw IllegalArgumentException("Country Code with size of 2 can only be consisted of Letters, code=$code")
+        fun resolveByCountryCode(code: String): RiotRegion? {
+            return when (code.length) {
+                2 -> {
+                    if (code.all(Char::isLetter)) {
+                        resolveAlpha2CountryCode(code)
+                    } else {
+                        throw IllegalArgumentException("Country Code with size of 2 can only be consisted of Letters, code=$code")
+                    }
+                }
+                3 -> {
+                    if (code.all(Char::isLetter)) {
+                        resolveAlpha3CountryCode(code)
+                    }  else if (code.all(Char::isLetter)) {
+                        resolveNumericCountryCode(code)
+                    }  else {
+                        throw IllegalArgumentException("Country Code with size of 3 can only either be all Letters or all Numbers, code=$code")
+                    }
+                }
+                else -> {
+                    throw IllegalArgumentException(
+                        "only Alpha-2, Alpha-3, and Numeric country code are resolve-able, code=$code"
+                    )
                 }
             }
-            3 -> {
-                if (code.all(Char::isLetter)) {
-                    resolveAlpha3CountryCode(code)
-                }  else if (code.all(Char::isLetter)) {
-                    resolveNumericCountryCode(code)
-                }  else {
-                    throw IllegalArgumentException("Country Code with size of 3 can only either be all Letters or all Numbers, code=$code")
-                }
+        }
+
+        private fun resolveAlpha2CountryCode(code: String): RiotRegion? {
+            if (code.length != 2 || !code.all(Char::isLetter)) {
+                throw IllegalArgumentException("Alpha2CountryCode must consist of only 2 letter, code=$code")
             }
-            else -> {
-                throw IllegalArgumentException(
-                    "only Alpha-2, Alpha-3, and Numeric country code are resolve-able, code=$code"
-                )
+            val uc_code =
+                code.uppercase()
+            // Brazil
+            if (uc_code == "BR") {
+                return BR
             }
+            // South Korea
+            if (uc_code == "KR") {
+                return KR
+            }
+            // North America
+            if (ISO_3166_Northern_America_Countries.any { it.alpha2 == uc_code }) {
+                return NA
+            }
+            // Latin America
+            if (ISO_3166_Latin_America_Countries.any { it.alpha2 == uc_code }) {
+                return LATAM
+            }
+            // EMEA
+            if (
+                ISO_3166_Eastern_Europe_Countries.any { it.alpha2 == uc_code } ||
+                ISO_3166_Northern_Europe_Countries.any { it.alpha2 == uc_code } ||
+                ISO_3166_Southern_Europe_Countries.any { it.alpha2 == uc_code } ||
+                ISO_3166_Western_Europe_Countries.any { it.alpha2 == uc_code } ||
+                ISO_3166_Africa_Countries.any { it.alpha2 == uc_code } ||
+                ISO_3166_Middle_East_Countries.any { it.alpha2 == uc_code }
+            ) {
+                return EU
+            }
+            // APAC
+            if (
+                ISO_3166_Eastern_Asia_Countries.any { it.alpha2 == uc_code } ||
+                ISO_3166_South_Asia_Countries.any { it.alpha2 == uc_code } ||
+                ISO_3166_SouthEast_Asia_Countries.any { it.alpha2 == uc_code } ||
+                ISO_3166_Oceania_Countries.any { it.alpha2 == uc_code }
+            ) {
+                return APAC
+            }
+            return null
         }
-    }
 
-    private fun resolveAlpha2CountryCode(code: String): RiotRegion? {
-        if (code.length != 2 || !code.all(Char::isLetter)) {
-            throw IllegalArgumentException("Alpha2CountryCode must consist of only 2 letter, code=$code")
+        private fun resolveAlpha3CountryCode(code: String): RiotRegion? {
+            if (code.length != 3 || !code.all(Char::isLetter)) {
+                throw IllegalArgumentException("Alpha3CountryCode must consist of only 3 letter, code=$code")
+            }
+            val uc_code =
+                code.uppercase()
+            // Brazil
+            if (uc_code == "BRA") {
+                return BR
+            }
+            // South Korea
+            if (uc_code == "KOR") {
+                return KR
+            }
+            // North America
+            if (ISO_3166_Northern_America_Countries.any { it.alpha3 == uc_code }) {
+                return NA
+            }
+            // Latin America
+            if (ISO_3166_Latin_America_Countries.any { it.alpha3 == uc_code }) {
+                return LATAM
+            }
+            // EMEA
+            if (
+                ISO_3166_Eastern_Europe_Countries.any { it.alpha3 == uc_code } ||
+                ISO_3166_Northern_Europe_Countries.any { it.alpha3 == uc_code } ||
+                ISO_3166_Southern_Europe_Countries.any { it.alpha3 == uc_code } ||
+                ISO_3166_Western_Europe_Countries.any { it.alpha3 == uc_code } ||
+                ISO_3166_Africa_Countries.any { it.alpha3 == uc_code } ||
+                ISO_3166_Middle_East_Countries.any { it.alpha3 == uc_code }
+            ) {
+                return EU
+            }
+            // APAC
+            if (
+                ISO_3166_Eastern_Asia_Countries.any { it.alpha3 == uc_code } ||
+                ISO_3166_South_Asia_Countries.any { it.alpha3 == uc_code } ||
+                ISO_3166_SouthEast_Asia_Countries.any { it.alpha3 == uc_code } ||
+                ISO_3166_Oceania_Countries.any { it.alpha3 == uc_code }
+            ) {
+                return APAC
+            }
+            return null
         }
-        val uc_code =
-            code.uppercase()
-        // Brazil
-        if (uc_code == "BR") {
-            return BR
-        }
-        // South Korea
-        if (uc_code == "KR") {
-            return KR
-        }
-        // North America
-        if (ISO_3166_Northern_America_Countries.any { it.alpha2 == uc_code }) {
-            return NA
-        }
-        // Latin America
-        if (ISO_3166_Latin_America_Countries.any { it.alpha2 == uc_code }) {
-            return LATAM
-        }
-        // EMEA
-        if (
-            ISO_3166_Eastern_Europe_Countries.any { it.alpha2 == uc_code } ||
-            ISO_3166_Northern_Europe_Countries.any { it.alpha2 == uc_code } ||
-            ISO_3166_Southern_Europe_Countries.any { it.alpha2 == uc_code } ||
-            ISO_3166_Western_Europe_Countries.any { it.alpha2 == uc_code } ||
-            ISO_3166_Africa_Countries.any { it.alpha2 == uc_code } ||
-            ISO_3166_Middle_East_Countries.any { it.alpha2 == uc_code }
-        ) {
-            return EU
-        }
-        // APAC
-        if (
-            ISO_3166_Eastern_Asia_Countries.any { it.alpha2 == uc_code } ||
-            ISO_3166_South_Asia_Countries.any { it.alpha2 == uc_code } ||
-            ISO_3166_SouthEast_Asia_Countries.any { it.alpha2 == uc_code } ||
-            ISO_3166_Oceania_Countries.any { it.alpha2 == uc_code }
-        ) {
-            return APAC
-        }
-        return null
-    }
 
-    private fun resolveAlpha3CountryCode(code: String): RiotRegion? {
-        if (code.length != 3 || !code.all(Char::isLetter)) {
-            throw IllegalArgumentException("Alpha3CountryCode must consist of only 3 letter, code=$code")
+        private fun resolveNumericCountryCode(code: String): RiotRegion? {
+            if (code.length != 3 || !code.all(Char::isDigit)) {
+                throw IllegalArgumentException("NumericCountryCode must consist of only 3 digit, code=$code")
+            }
+            // Brazil
+            if (code == "076") {
+                return BR
+            }
+            // South Korea
+            if (code == "410") {
+                return KR
+            }
+            // North America
+            if (ISO_3166_Northern_America_Countries.any { it.numeric == code }) {
+                return NA
+            }
+            // Latin America
+            if (ISO_3166_Latin_America_Countries.any { it.numeric == code }) {
+                return LATAM
+            }
+            // EMEA
+            if (
+                ISO_3166_Eastern_Europe_Countries.any { it.numeric == code } ||
+                ISO_3166_Northern_Europe_Countries.any { it.numeric == code } ||
+                ISO_3166_Southern_Europe_Countries.any { it.numeric == code } ||
+                ISO_3166_Western_Europe_Countries.any { it.numeric == code } ||
+                ISO_3166_Africa_Countries.any { it.numeric == code } ||
+                ISO_3166_Middle_East_Countries.any { it.numeric == code }
+            ) {
+                return EU
+            }
+            // APAC
+            if (
+                ISO_3166_Eastern_Asia_Countries.any { it.numeric == code } ||
+                ISO_3166_South_Asia_Countries.any { it.numeric == code } ||
+                ISO_3166_SouthEast_Asia_Countries.any { it.numeric == code } ||
+                ISO_3166_Oceania_Countries.any { it.numeric == code }
+            ) {
+                return APAC
+            }
+            return null
         }
-        val uc_code =
-            code.uppercase()
-        // Brazil
-        if (uc_code == "BRA") {
-            return BR
-        }
-        // South Korea
-        if (uc_code == "KOR") {
-            return KR
-        }
-        // North America
-        if (ISO_3166_Northern_America_Countries.any { it.alpha3 == uc_code }) {
-            return NA
-        }
-        // Latin America
-        if (ISO_3166_Latin_America_Countries.any { it.alpha3 == uc_code }) {
-            return LATAM
-        }
-        // EMEA
-        if (
-            ISO_3166_Eastern_Europe_Countries.any { it.alpha3 == uc_code } ||
-            ISO_3166_Northern_Europe_Countries.any { it.alpha3 == uc_code } ||
-            ISO_3166_Southern_Europe_Countries.any { it.alpha3 == uc_code } ||
-            ISO_3166_Western_Europe_Countries.any { it.alpha3 == uc_code } ||
-            ISO_3166_Africa_Countries.any { it.alpha3 == uc_code } ||
-            ISO_3166_Middle_East_Countries.any { it.alpha3 == uc_code }
-        ) {
-            return EU
-        }
-        // APAC
-        if (
-            ISO_3166_Eastern_Asia_Countries.any { it.alpha3 == uc_code } ||
-            ISO_3166_South_Asia_Countries.any { it.alpha3 == uc_code } ||
-            ISO_3166_SouthEast_Asia_Countries.any { it.alpha3 == uc_code } ||
-            ISO_3166_Oceania_Countries.any { it.alpha3 == uc_code }
-        ) {
-            return APAC
-        }
-        return null
-    }
-
-    private fun resolveNumericCountryCode(code: String): RiotRegion? {
-        if (code.length != 3 || !code.all(Char::isDigit)) {
-            throw IllegalArgumentException("NumericCountryCode must consist of only 3 digit, code=$code")
-        }
-        // Brazil
-        if (code == "076") {
-            return BR
-        }
-        // South Korea
-        if (code == "410") {
-            return KR
-        }
-        // North America
-        if (ISO_3166_Northern_America_Countries.any { it.numeric == code }) {
-            return NA
-        }
-        // Latin America
-        if (ISO_3166_Latin_America_Countries.any { it.numeric == code }) {
-            return LATAM
-        }
-        // EMEA
-        if (
-            ISO_3166_Eastern_Europe_Countries.any { it.numeric == code } ||
-            ISO_3166_Northern_Europe_Countries.any { it.numeric == code } ||
-            ISO_3166_Southern_Europe_Countries.any { it.numeric == code } ||
-            ISO_3166_Western_Europe_Countries.any { it.numeric == code } ||
-            ISO_3166_Africa_Countries.any { it.numeric == code } ||
-            ISO_3166_Middle_East_Countries.any { it.numeric == code }
-        ) {
-            return EU
-        }
-        // APAC
-        if (
-            ISO_3166_Eastern_Asia_Countries.any { it.numeric == code } ||
-            ISO_3166_South_Asia_Countries.any { it.numeric == code } ||
-            ISO_3166_SouthEast_Asia_Countries.any { it.numeric == code } ||
-            ISO_3166_Oceania_Countries.any { it.numeric == code }
-        ) {
-            return APAC
-        }
-        return null
     }
 }
 

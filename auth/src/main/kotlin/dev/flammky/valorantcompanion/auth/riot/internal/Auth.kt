@@ -101,7 +101,25 @@ internal suspend fun retrieveAccessToken(
         return
     }
 
+    val id_token = obj["response"]
+        ?.jsonObjectOrNull?.get("parameters")
+        ?.jsonObjectOrNull?.get("uri")
+        ?.jsonPrimitiveOrNull
+        ?.takeIf { it.isString }
+        ?.toString()?.run {
+            indexOf("id_token=").takeIf { it >= 0 }?.let { i ->
+                drop(i + "id_token=".length).takeWhile { it != '&' }
+            }
+        }
+
+    if (id_token == null || id_token.isEmpty()) {
+        session.onException(
+            ResponseParsingException("id_token not found")
+        )
+        return
+    }
+
     session.parsedData(
-        AuthRequestResponseData(access_token)
+        AuthRequestResponseData(access_token, id_token)
     )
 }

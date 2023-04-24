@@ -1,7 +1,11 @@
 package dev.flammky.valorantcompanion.auth.riot.internal
 
+import dev.flammky.valorantcompanion.auth.ex.ResponseParsingException
 import dev.flammky.valorantcompanion.auth.ex.UnexpectedResponseException
 import dev.flammky.valorantcompanion.auth.ext.jsonObjectOrNull
+import dev.flammky.valorantcompanion.auth.ext.jsonPrimitiveOrNull
+import dev.flammky.valorantcompanion.auth.riot.RegionInfoHttpRequestResponse
+import dev.flammky.valorantcompanion.auth.riot.RegionInfoRequestResponseData
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -20,7 +24,7 @@ internal suspend fun retrieveUserRegion(
 ) {
     val httpRequest = HttpRequestBuilder()
         .apply {
-            method = HttpMethod.Get
+            method = HttpMethod.Put
             url("https://riot-geo.pas.si.riotgames.com/pas/v1/product/valorant")
             headers {
                 append("Content-Type", "application/json")
@@ -57,4 +61,51 @@ internal suspend fun retrieveUserRegion(
         session.onException(it as Exception)
         return
     }
+
+    session.onResponse(
+        RegionInfoHttpRequestResponse(httpResponse.status.value, obj)
+    )
+
+    val affinities = runCatching {
+        obj["affinities"]?.let { obj ->
+            obj.jsonObjectOrNull
+                ?: throw ResponseParsingException("expected affinities as JSON object, but got ${obj::class::simpleName} instead")
+        } ?: run {
+            throw ResponseParsingException("affinities not found")
+        }
+    }.getOrElse {
+        session.onException(it as Exception)
+        return
+    }
+
+    val pbe = runCatching {
+        affinities["pbe"]?.let { obj ->
+            obj.jsonPrimitiveOrNull
+                ?: throw ResponseParsingException("expected pbe as JSON primitive, but got ${obj::class::simpleName} instead")
+        } ?: run {
+            throw ResponseParsingException("pbe not found")
+        }
+    }.getOrElse {
+        session.onException(it as Exception)
+        return
+    }
+
+    val live = runCatching {
+        affinities["live"]?.let { obj ->
+            obj.jsonPrimitiveOrNull
+                ?: throw ResponseParsingException("expected live as JSON primitive, but got ${obj::class::simpleName} instead")
+        } ?: run {
+            throw ResponseParsingException("live not found")
+        }
+    }.getOrElse {
+        session.onException(it as Exception)
+        return
+    }
+
+    session.onParse(
+        RegionInfoRequestResponseData(
+            pbe = pbe.toString(),
+            live = live.toString()
+        )
+    )
 }

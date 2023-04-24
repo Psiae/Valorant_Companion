@@ -12,6 +12,16 @@ val Material3Theme.colorScheme: ColorScheme
     @ReadOnlyComposable
     get() = LocalColorScheme.current
 
+val Material3Theme.lightColorScheme: ColorScheme
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalLightColorScheme.current
+
+val Material3Theme.darkColorScheme: ColorScheme
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalDarkColorScheme.current
+
 @Composable
 fun Material3Theme.backgroundColorAsState(): State<Color> {
     return rememberUpdatedState(newValue = colorScheme.background)

@@ -1,7 +1,5 @@
 package dev.flammky.valorantcompanion.career.main
 
-import android.content.ContentResolver
-import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import dev.flammky.valorantcompanion.base.theme.material3.LocalIsThemeDark
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundContentColorAsState
 
@@ -37,7 +36,8 @@ fun PlayerProfileCard(
         NameTagText(
             modifier,
             state.riotId ?: "",
-            state.tagLine ?: ""
+            state.tagLine ?: "",
+            state.region ?: ""
         )
     }
 )
@@ -89,19 +89,57 @@ private fun ProfilePicture(
 private fun NameTagText(
     modifier: Modifier,
     name: String,
-    tag: String
+    tag: String,
+    region: String
 ) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.fillMaxHeight()) {
         Text(
+            modifier = Modifier.align(Alignment.CenterVertically),
             text = name,
             color = Material3Theme.backgroundContentColorAsState().value,
             style = MaterialTheme.typography.titleMedium
         )
         Spacer(modifier = Modifier.width(3.dp))
-        Text(
-            text = "#$tag",
-            color = Material3Theme.backgroundContentColorAsState().value,
-            style = MaterialTheme.typography.titleMedium
-        )
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.CenterVertically)
+                .background(
+                    if (LocalIsThemeDark.current) {
+                        Color.White.copy(alpha = 0.1f)
+                    } else {
+                        Color.Black.copy(alpha = 0.1f)
+                    }
+                )
+        ) {
+            Spacer(modifier = Modifier.width(2.dp))
+            Text(
+                text = "#$tag",
+                color = Material3Theme.backgroundContentColorAsState().value,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Spacer(modifier = Modifier.width(2.dp))
+        }
+        Spacer(modifier = Modifier.width(3.dp))
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.CenterVertically)
+                .background(
+                    if (LocalIsThemeDark.current) {
+                        Color.White.copy(alpha = 0.1f)
+                    } else {
+                        Color.Black.copy(alpha = 0.1f)
+                    }
+                )
+        ) {
+            Spacer(modifier = Modifier.width(2.dp))
+            Text(
+                text = region,
+                color = Material3Theme.backgroundContentColorAsState().value,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+            )
+            Spacer(modifier = Modifier.width(2.dp))
+        }
     }
 }

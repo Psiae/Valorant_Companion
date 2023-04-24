@@ -85,6 +85,7 @@ internal suspend fun retrieveEntitlementToken(
         ?.jsonPrimitiveOrNull
         ?.takeIf { it.isString }
         ?.toString()
+        ?.removeSurrounding("\"")
 
     if (entitlementToken.isNullOrBlank()) {
         session.onException(

@@ -2,8 +2,10 @@ package dev.flammky.valorantcompanion.auth.riot.internal
 
 import android.util.Log
 import dev.flammky.valorantcompanion.auth.BuildConfig
+import dev.flammky.valorantcompanion.auth.ex.UnexpectedResponseException
+import dev.flammky.valorantcompanion.auth.riot.region.RiotRegion
+import dev.flammky.valorantcompanion.auth.riot.region.RiotShard
 import dev.flammky.valorantcompanion.auth.riot.*
-import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepositoryImpl
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.auth.*
@@ -15,7 +17,8 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
 
 internal class KtorRiotLoginClient(
-    private val repository: RiotAuthRepositoryImpl
+    private val auth: RiotAuthRepositoryImpl,
+    private val geo: RiotGeoRepositoryImpl
 ) : RiotLoginClient {
 
     private val httpClient = HttpClient(OkHttp) {
@@ -79,7 +82,24 @@ internal class KtorRiotLoginClient(
                 return@launch
             }
 
-            repository.apply {
+            retrieveUserRegion(httpClient, session.auth.data!!.access_token, session.auth.data!!.id_token, session.regionInfo)
+
+            session.regionInfo.firstException?.let { ex ->
+                def.completeExceptionally(ex)
+                return@launch
+            }
+
+            val region = runCatching {
+                RiotRegion.resolveByRegionName(session.regionInfo.data!!.live.replace("\"", ""))
+                    ?: throw UnexpectedResponseException("Unknown Region: ${session.regionInfo.data!!.live}")
+            }.getOrElse { ex ->
+                def.completeExceptionally(ex)
+                return@launch
+            }
+
+            val shard = RiotShard.ofRegion(region)
+
+            auth.apply {
                 registerAuthenticatedAccount(
                     account = run {
                         val data = session.userInfo.data!!
@@ -94,8 +114,28 @@ internal class KtorRiotLoginClient(
                     },
                     setActive = setActive
                 )
+                val puuid = session.userInfo.data!!.puuid
+                updateAccessToken(
+                    puuid,
+                    session.auth.data!!.access_token
+                )
+                updateIdToken(
+                    puuid,
+                    session.auth.data!!.id_token
+                )
+                updateEntitlement(
+                    puuid,
+                    session.entitlement.data!!.entitlements_token
+                )
             }
-            def.complete(Unit)
+
+            geo.apply {
+                updateUserGeoShardInfo(
+                    puuid = session.userInfo.data!!.puuid,
+                    region = region,
+                    shard = shard
+                )
+            }
         }
 
         def.invokeOnCompletion {

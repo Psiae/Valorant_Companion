@@ -5,25 +5,28 @@ import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.assets.PlayerCardArtType
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.internal.LoadPlayerCardRequest
-import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
-import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
-import dev.flammky.valorantcompanion.auth.riot.RiotAuthenticatedAccount
-import dev.flammky.valorantcompanion.career.R
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import dev.flammky.valorantcompanion.auth.riot.*
+import dev.flammky.valorantcompanion.auth.riot.region.GeoShardInfo
+import dev.flammky.valorantcompanion.auth.riot.region.RiotRegion
+import dev.flammky.valorantcompanion.pvp.loadout.PlayerLoadoutService
+import kotlinx.coroutines.*
 import org.koin.androidx.compose.get as getFromKoin
 
 @Composable
 fun rememberPlayerProfileCardPresenter(
     authRepo: RiotAuthRepository = getFromKoin(),
-    assetsService: ValorantAssetsService = getFromKoin()
+    geoRepo: RiotGeoRepository = getFromKoin(),
+    assetsService: ValorantAssetsService = getFromKoin(),
+    loadoutService: PlayerLoadoutService = getFromKoin()
 ): PlayerProfileCardPresenter {
-    return remember { PlayerProfileCardPresenter(authRepo, assetsService) }
+    return remember { PlayerProfileCardPresenter(authRepo, geoRepo, assetsService, loadoutService) }
 }
 
 class PlayerProfileCardPresenter(
     private val authRepo: RiotAuthRepository,
-    private val assetsService: ValorantAssetsService
+    private val geoRepo: RiotGeoRepository,
+    private val assetsService: ValorantAssetsService,
+    private val loadoutService: PlayerLoadoutService
 ) {
 
     @Composable
@@ -33,8 +36,8 @@ class PlayerProfileCardPresenter(
         val state = remember(this) { PlayerProfileCardState() }
 
         val acc = account ?: observeActiveAccount()
-        val picture = observePlayerArtCard()
-
+        val picture = observePlayerArtCard(acc?.model?.puuid ?: "")
+        val geo = observePlayerGeo(puuid = acc?.model?.puuid ?: "")
 
         remember(acc) {
             state.apply {
@@ -56,6 +59,19 @@ class PlayerProfileCardPresenter(
         remember(picture) {
             state.apply {
                 profilePicture = picture
+            }
+        }
+        remember(geo) {
+            state.apply {
+                region = when(geo?.region) {
+                    RiotRegion.APAC -> "APAC"
+                    RiotRegion.BR -> "BR"
+                    RiotRegion.EU -> "EU"
+                    RiotRegion.KR -> "KR"
+                    RiotRegion.LATAM -> "LATAM"
+                    RiotRegion.NA -> "NA"
+                    null -> null
+                }
             }
         }
 
@@ -82,38 +98,84 @@ class PlayerProfileCardPresenter(
 
     @Composable
     private fun observePlayerArtCard(
-
+        puuid: String
     ): Any? {
+        val upPuuid = rememberUpdatedState(puuid)
         val assetLoader = remember(this) {
             assetsService.createLoaderClient()
+        }
+        val loadoutClient = remember(this) {
+            loadoutService.createClient()
         }
         val returns = remember {
             mutableStateOf<Any?>(null)
         }
         val coroutineScope = rememberCoroutineScope()
         DisposableEffect(
-            key1 = assetLoader,
-            effect = {
-                val supervisor = SupervisorJob()
-                coroutineScope.launch(supervisor) {
-                    runCatching {
-                        assetLoader.loadUserPlayerCardAsync(
-                            LoadPlayerCardRequest(
-                                "72f9b137-41f1-ef95-853a-798212f064ee",
-                                PlayerCardArtType.SMALL, PlayerCardArtType.TALL
-                            )
-                        ).await()
-                    }.onFailure {
-                        it.printStackTrace()
-                        if (supervisor.isActive) returns.value = null
-                    }.onSuccess {
-                        if (supervisor.isActive) returns.value = it
+            this
+        ) {
+            val supervisor = SupervisorJob()
+            coroutineScope.launch(supervisor) {
+                var latestJob: Job? = null
+                snapshotFlow { upPuuid.value }.collect { puuid ->
+                    latestJob?.cancel()
+                    latestJob = launch {
+                        runCatching {
+                            val cardId = loadoutClient
+                                .getCachedOrFetchPlayerLoadoutAsync(puuid)
+                                .await()
+                                .onFailure { it.printStackTrace() }
+                                .getOrNull()?.identity?.playerCardId
+                                ?: return@launch
+                            assetLoader.loadUserPlayerCardAsync(
+                                LoadPlayerCardRequest(
+                                    cardId,
+                                    PlayerCardArtType.SMALL, PlayerCardArtType.TALL
+                                )
+                            ).await()
+                        }.onFailure {
+                            it.printStackTrace()
+                            if (currentCoroutineContext().job.isActive) returns.value = null
+                        }.onSuccess {
+                            if (currentCoroutineContext().job.isActive) returns.value = it
+                        }
                     }
                 }
-                onDispose {
-                    supervisor.cancel()
-                    assetLoader.dispose()
+            }
+            onDispose {
+                supervisor.cancel()
+                assetLoader.dispose()
+                loadoutClient.dispose()
+            }
+        }
+        return returns.value
+    }
+
+    @Composable
+    private fun observePlayerGeo(
+        puuid: String
+    ): GeoShardInfo? {
+        val returns = remember(this, puuid) {
+            mutableStateOf<GeoShardInfo?>(null)
+        }
+        val coroutineScope = rememberCoroutineScope()
+        DisposableEffect(
+            key1 = returns,
+            effect = {
+                val supervisor = SupervisorJob()
+
+                val listener = UserGeoShardInfoListener(
+                    puuid,
+                    initial = returns::value::set,
+                    onRemoteInfoChanged = returns::value::set,
+                    onUserOverriding = { }
+                )
+
+                coroutineScope.launch(supervisor) {
+                    geoRepo.registerUserGeoShardInfoChangeListener(listener)
                 }
+
+                onDispose { supervisor.cancel() ; geoRepo.unregisterUserGeoShardInfoChangeListener(listener) }
             }
         )
         return returns.value

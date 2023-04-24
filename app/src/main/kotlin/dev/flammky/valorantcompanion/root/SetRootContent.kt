@@ -14,11 +14,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import dev.flammky.valorantcompanion.MainActivity
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundColorAsState
 import dev.flammky.valorantcompanion.base.theme.material3.primaryColorAsState
 import dev.flammky.valorantcompanion.base.theme.material3.surfaceColorAsState
-import dev.flammky.valorantcompanion.MainActivity
 import kotlin.math.ln
 
 fun MainActivity.setRootContent() = setContent {

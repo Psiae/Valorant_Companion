@@ -14,87 +14,9 @@ internal class RiotLoginSessionImpl : RiotLoginSession {
     private val _cookie = CookieRequestSessionImpl()
     private val _entitlement = EntitlementRequestSessionImpl()
     private val _userInfo = UserInfoRequestSessionImpl()
+    private val _regionInfo = RegionInfoRequestSessionImpl()
     private val completionEx = LazyConstructor<Exception?>()
     private val invokeOnCompletion = mutableListOf<() -> Unit>()
-
-    @kotlin.jvm.Throws(IllegalStateException::class)
-    fun provideAuthResponse(
-        status: Int,
-        json: JsonElement,
-    ) = synchronized(lock) {
-        check(!completed)
-        _auth.onResponse(AuthHttpRequestResponse(status, json))
-    }
-
-    @kotlin.jvm.Throws(IllegalStateException::class)
-    fun provideAuthResponseData(
-        data: AuthRequestResponseData
-    ) = synchronized(lock) {
-        check(!completed)
-        _auth.parsedData(data)
-    }
-
-    @kotlin.jvm.Throws(IllegalStateException::class)
-    fun provideCookieResponse(
-        status: Int,
-        json: JsonElement
-    ) = synchronized(lock) {
-        check(!completed)
-        _cookie.onResponse(CookieHttpRequestResponse(status, json))
-    }
-
-    @kotlin.jvm.Throws(IllegalStateException::class)
-    fun provideEntitlementResponse(
-        status: Int,
-        json: JsonElement
-    ) = synchronized(lock) {
-        check(!completed)
-        _entitlement.onResponse(EntitlementHttpRequestResponse(status, json))
-    }
-
-    fun provideEntitlementData(
-        data: EntitlementRequestResponseData
-    ) = synchronized(lock) {
-        check(!completed)
-        _entitlement.onParse(data)
-    }
-
-    @kotlin.jvm.Throws(IllegalStateException::class)
-    fun provideUserInfoResponse(
-        status: Int,
-        json: JsonElement
-    ) = synchronized(lock) {
-        check(!completed)
-        _userInfo.onResponse(UserInfoHttpRequestResponse(status, json))
-    }
-
-    @kotlin.jvm.Throws(IllegalStateException::class)
-    fun provideUserInfoData(
-        data: UserInfoRequestResponseData
-    ) = synchronized(lock) {
-        check(!completed)
-        _userInfo.onParse(data)
-    }
-
-    fun authException(ex: Exception) = synchronized(lock) {
-        check(!completed)
-        _auth.onException(ex)
-    }
-
-    fun cookieException(ex: Exception) = synchronized(lock) {
-        check(!completed)
-        _cookie.onException(ex)
-    }
-
-    fun entitlementException(ex: Exception) = synchronized(lock) {
-        check(!completed)
-        _entitlement.onException(ex)
-    }
-
-    fun provideUserInfoException(ex: Exception) = synchronized(lock) {
-        check(!completed)
-        _userInfo.onException(ex)
-    }
 
     fun makeCompleting(
         ex: Exception?
@@ -114,6 +36,8 @@ internal class RiotLoginSessionImpl : RiotLoginSession {
         get() = _entitlement
     override val userInfo: UserInfoRequestSessionImpl
         get() = _userInfo
+    override val regionInfo: RegionInfoRequestSessionImpl
+        get() = _regionInfo
     override val ex: Exception?
         get() = completionEx.valueOrNull()
     override fun invokeOnCompletion(block: () -> Unit) {

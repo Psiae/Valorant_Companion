@@ -3,6 +3,10 @@ package dev.flammky.valorantcompanion.auth
 import androidx.annotation.GuardedBy
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import io.ktor.client.plugins.auth.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 internal class UserAccountRegistry() {
 
@@ -14,6 +18,14 @@ internal class UserAccountRegistry() {
             check(Thread.holdsLock(lock))
             return field
         }
+
+    private val _entitlements = mutableMapOf<String, String>()
+
+    private val _idTokens = mutableMapOf<String, String>()
+
+    private val _accessTokens = mutableMapOf<String, String>()
+
+    private val _coroutineScope = CoroutineScope(SupervisorJob())
 
     // should use channel instead
     private val activeAccountListeners = mutableListOf<ActiveAccountListener>()
@@ -41,7 +53,10 @@ internal class UserAccountRegistry() {
             if (activeAccount == get) return
             current = activeAccount
             activeAccount = get
-            activeAccountListeners.forEach { it.onChange(current, get) }
+            // TODO: we should not care about this, should use flow / channel instead
+            _coroutineScope.launch(Dispatchers.Main) {
+                activeAccountListeners.forEach { it.onChange(current, get) }
+            }
         }
     }
 
@@ -60,6 +75,54 @@ internal class UserAccountRegistry() {
     ) {
         synchronized(lock) {
             activeAccountListeners.remove(handler)
+        }
+    }
+
+    fun updateEntitlementToken(
+        id: String,
+        token: String
+    ) {
+        synchronized(lock) {
+            if (map[id] == null) return
+            _entitlements[id] = token
+        }
+    }
+
+    fun updateIdToken(
+        id: String,
+        token: String
+    ) {
+        synchronized(lock) {
+            if (map[id] == null) return
+            _idTokens[id] = token
+        }
+    }
+
+    fun updateAccessToken(
+        id: String,
+        token: String
+    ) {
+        synchronized(lock) {
+            if (map[id] == null) return
+            _accessTokens[id] = token
+        }
+    }
+
+    fun getEntitlementToken(id: String): String? {
+        return synchronized(lock) {
+            _entitlements[id]
+        }
+    }
+
+    fun getIdToken(id: String): String? {
+        return synchronized(lock) {
+            _idTokens[id]
+        }
+    }
+
+    fun getAccessToken(id: String): String? {
+        return synchronized(lock) {
+            _accessTokens[id]
         }
     }
 }

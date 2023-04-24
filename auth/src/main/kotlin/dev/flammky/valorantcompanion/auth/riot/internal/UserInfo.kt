@@ -71,6 +71,7 @@ internal suspend fun retrieveUserInfo(
         ?.jsonPrimitiveOrNull
         ?.takeIf { it.isString }
         ?.toString()
+        ?.removeSurrounding("\"")
 
     if (puuid.isNullOrBlank()) {
         session.onException(
@@ -92,6 +93,7 @@ internal suspend fun retrieveUserInfo(
         ?.jsonPrimitiveOrNull
         ?.takeIf { it.isString }
         ?.toString()
+        ?.removeSurrounding("\"")
         ?: run {
             session.onException(
                 UnexpectedResponseException("game_name not found")
@@ -104,6 +106,7 @@ internal suspend fun retrieveUserInfo(
         ?.jsonPrimitiveOrNull
         ?.takeIf { it.isString }
         ?.toString()
+        ?.removeSurrounding("\"")
         ?: run {
             session.onException(
                 UnexpectedResponseException("tag_line not found")
