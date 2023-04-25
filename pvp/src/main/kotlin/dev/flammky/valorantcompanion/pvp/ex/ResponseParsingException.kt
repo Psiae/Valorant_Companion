@@ -1,4 +1,4 @@
 package dev.flammky.valorantcompanion.pvp.ex
 
-class ResponseParsingException(override val message: String?) : Exception() {
+class ResponseParsingException internal constructor(override val message: String?) : Exception() {
 }

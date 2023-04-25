@@ -12,7 +12,6 @@ import dev.flammky.valorantcompanion.pvp.loadout.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
-import kotlinx.serialization.json.jsonNull
 
 internal class DisposablePlayerLoadoutClientImpl(
     private val repo: PlayerLoadoutRepositoryImpl,

@@ -1,4 +1,4 @@
-package dev.flammky.valorantcompanion.auth
+package dev.flammky.valorantcompanion.pvp.util
 
 import kotlin.reflect.KProperty
 

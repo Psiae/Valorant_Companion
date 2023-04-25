@@ -27,10 +27,15 @@ android {
 }
 
 dependencies {
+    implementation(project(":base"))
+    implementation(project(":auth"))
+    implementation(project(":assets"))
+    implementation(project(":pvp"))
     implementation(libs.androidx.core.core.ktx)
+    implementation(libs.androidx.activity.activity.compose)
     implementation(libs.androidx.compose.ui.ui.asProvider())
     implementation(libs.androidx.compose.ui.ui.tooling.preview)
-    implementation(libs.androidx.activity.activity.compose)
-    implementation(libs.koin.android)
-    implementation(libs.koin.androidx.compose)
+    implementation(libs.androidx.compose.material.material)
+    implementation(libs.io.coil.kt.coil.asProvider())
+    implementation(libs.io.coil.kt.coil.compose)
 }
