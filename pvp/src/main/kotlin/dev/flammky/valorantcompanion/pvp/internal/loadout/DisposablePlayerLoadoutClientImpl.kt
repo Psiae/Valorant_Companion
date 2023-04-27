@@ -52,6 +52,7 @@ internal class DisposablePlayerLoadoutClientImpl(
         val response = runCatching {
             httpClient.jsonRequest(
                 JsonHttpRequest(
+                    method = "GET",
                     url = "https://pd.${shard.assignedUrlName}.a.pvp.net/personalization/v2/players/$puuid/playerloadout",
                     headers = listOf(
                         "X-Riot-Entitlements-JWT" to entitlement,

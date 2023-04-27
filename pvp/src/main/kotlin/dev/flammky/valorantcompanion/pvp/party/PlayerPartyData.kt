@@ -2,7 +2,7 @@ package dev.flammky.valorantcompanion.pvp.party
 
 data class PlayerPartyData(
     val party_id: String,
-    val version: Int,
+    val version: Long,
     val client_version: String,
     val members: List<PlayerPartyMember>,
     val state: String,

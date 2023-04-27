@@ -45,6 +45,7 @@ internal class KtorWrappedHttpClient() : HttpClient() {
         val ktorResponse = self.request(
             HttpRequestBuilder()
                 .apply {
+                    method = HttpMethod.parse(request.method)
                     url(request.url)
                     headers {
                         contentType(ContentType.Application.Json)

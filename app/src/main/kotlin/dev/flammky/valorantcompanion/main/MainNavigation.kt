@@ -1,11 +1,9 @@
 package dev.flammky.valorantcompanion.main
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.BottomNavigation
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,7 +22,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import dev.flammky.valorantcompanion.base.theme.material3.*
-import dev.flammky.valorantcompanion.career.main.MainCareer
+import dev.flammky.valorantcompanion.career.main.CareerMain
+import dev.flammky.valorantcompanion.live.LiveMain
 import kotlin.math.ln
 import androidx.compose.material3.Scaffold as Material3Scaffold
 import androidx.compose.material3.Surface as Material3Surface
@@ -169,10 +168,10 @@ private fun NavigationHost(
         startDestination = "career"
     ) {
         composable("career") {
-            MainCareer()
+            CareerMain()
         }
         composable("live") {
-
+            LiveMain()
         }
         composable("account") {
 

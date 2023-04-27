@@ -4,7 +4,7 @@ data class CustomGameData(
     val settings: CustomGameDataSettings,
     val membership: CustomGameDataMembership,
     val maxPartySize: Int,
-    val autoBalanceEnabled: Boolean,
-    val autoBalanceMinPlayers: Boolean,
+    val autobalanceEnabled: Boolean,
+    val autobalanceMinPlayers: Int,
     val hasRecoveryData: Boolean
 )

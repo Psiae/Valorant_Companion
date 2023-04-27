@@ -1,9 +1,9 @@
 package dev.flammky.valorantcompanion.live.party.presentation
 
-class PartyMember(
+data class PartyMember(
     val puuid: String,
+    val cardArtId: String,
     val name: String,
-    val tag: String,
-    val cardArtId: String
+    val tag: String
 ) {
 }

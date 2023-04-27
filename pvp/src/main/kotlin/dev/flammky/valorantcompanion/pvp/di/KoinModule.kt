@@ -7,6 +7,10 @@ import dev.flammky.valorantcompanion.pvp.internal.loadout.PlayerLoadoutRepositor
 import dev.flammky.valorantcompanion.pvp.internal.loadout.PlayerLoadoutServiceImpl
 import dev.flammky.valorantcompanion.pvp.loadout.PlayerLoadoutRepository
 import dev.flammky.valorantcompanion.pvp.loadout.PlayerLoadoutService
+import dev.flammky.valorantcompanion.pvp.party.PartyService
+import dev.flammky.valorantcompanion.pvp.party.internal.RealPartyService
+import dev.flammky.valorantcompanion.pvp.player.NameService
+import dev.flammky.valorantcompanion.pvp.player.internal.RealNameService
 import org.koin.dsl.module
 
 val KoinPvpModule = module {
@@ -20,5 +24,14 @@ val KoinPvpModule = module {
             geoProvider = GeoProviderImpl(get()),
             httpClient = KtorWrappedHttpClient()
         )
+    }
+    single<PartyService> {
+        RealPartyService(
+            authService = get(),
+            geoRepository = get()
+        )
+    }
+    single<NameService> {
+        RealNameService(KtorWrappedHttpClient())
     }
 }

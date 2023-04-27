@@ -14,6 +14,10 @@ android {
 
     buildTypes {
     }
+    buildFeatures {
+        compose = true
+        composeOptions.kotlinCompilerExtensionVersion = "1.4.4"
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -24,6 +28,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":base"))
     implementation(project(":auth"))
 
     implementation(libs.androidx.core.core.ktx)

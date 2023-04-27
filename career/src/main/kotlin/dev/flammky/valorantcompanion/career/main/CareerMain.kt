@@ -7,7 +7,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun MainCareer() {
+fun CareerMain() {
     Column {
         Spacer(
             modifier = Modifier

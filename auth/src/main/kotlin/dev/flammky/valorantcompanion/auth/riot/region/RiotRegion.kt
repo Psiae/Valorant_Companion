@@ -2,19 +2,21 @@ package dev.flammky.valorantcompanion.auth.riot.region
 
 import dev.flammky.valorantcompanion.auth.riot.region.ISO_3166_Country.Companion.register
 
-sealed class RiotRegion() {
+sealed class RiotRegion(
+    val assignedUrlName: String
+) {
 
-    object NA : RiotRegion()
+    object NA : RiotRegion("na")
 
-    object LATAM : RiotRegion()
+    object LATAM : RiotRegion("latam")
 
-    object BR : RiotRegion()
+    object BR : RiotRegion("br")
 
-    object EU : RiotRegion()
+    object EU : RiotRegion("eu")
 
-    object APAC : RiotRegion()
+    object APAC : RiotRegion("ap")
 
-    object KR : RiotRegion()
+    object KR : RiotRegion("kr")
 
     companion object {
         fun resolveByRegionName(str: String): RiotRegion? {

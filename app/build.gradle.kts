@@ -36,9 +36,10 @@ android {
 dependencies {
     implementation(project(":base"))
     implementation(project(":auth"))
-    implementation(project(":career"))
     implementation(project(":assets"))
     implementation(project(":pvp"))
+    implementation(project(":career"))
+    implementation(project(":live"))
 
     implementation(libs.androidx.core.core.ktx)
     implementation(libs.androidx.activity.activity.compose)

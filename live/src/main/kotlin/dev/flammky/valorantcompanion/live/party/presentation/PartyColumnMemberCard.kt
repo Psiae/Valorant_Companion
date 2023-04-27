@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.live.party.presentation
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Text
@@ -13,9 +14,65 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import dev.flammky.valorantcompanion.assets.PlayerCardArtType
+import dev.flammky.valorantcompanion.assets.ValorantAssetsService
+import dev.flammky.valorantcompanion.assets.internal.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.base.theme.material3.LocalIsThemeDark
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundContentColorAsState
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import org.koin.androidx.compose.get as getFromKoin
+
+@Composable
+fun rememberPartyColumnMemberCardPresenter(
+    assetsService: ValorantAssetsService = getFromKoin()
+): PartyColumnMemberCardPresenter {
+    return remember(assetsService) { PartyColumnMemberCardPresenter(assetsService) }
+}
+
+class PartyColumnMemberCardPresenter(
+    private val assetsService: ValorantAssetsService,
+) {
+
+    @Composable
+    fun present(
+        puuid: String?,
+        name: String?,
+        tag: String?,
+        playerCardId: String?
+    ): PartyColumnMemberCardState {
+        Log.d("PartyColumnMemberCardPresenter", "present($puuid, $name, $tag, $playerCardId)")
+        val returns = remember(puuid) {
+            mutableStateOf(PartyColumnMemberCardState(null, null, null))
+        }.apply {
+            value = value.copy(name = name, tag = tag)
+        }
+        val coroutineScope = rememberCoroutineScope()
+        DisposableEffect(
+            puuid, playerCardId
+        ) {
+            val supervisor = SupervisorJob()
+            val assetClient = assetsService.createLoaderClient()
+            coroutineScope.launch(supervisor) {
+                playerCardId?.let { id ->
+                    runCatching {
+                        assetClient
+                            .loadUserPlayerCardAsync(LoadPlayerCardRequest(id, PlayerCardArtType.SMALL))
+                            .await()
+                    }.onSuccess {
+                        returns.value = returns.value.copy(playerCard = it)
+                    }
+                }
+            }
+            onDispose {
+                supervisor.cancel()
+                assetClient.dispose()
+            }
+        }
+        return returns.value
+    }
+}
 
 data class PartyColumnMemberCardState(
     val playerCard: Any?,
@@ -50,22 +107,23 @@ private fun PlayerCard(
         Box(modifier = Modifier.fillMaxHeight().aspectRatio(1f)) {
             AsyncImage(
                 modifier = Modifier.align(Alignment.Center),
-                model = remember(ctx) {
+                model = remember(ctx, playerCard) {
                     ImageRequest.Builder(ctx)
                         .crossfade(true)
                         .data(playerCard)
+                        .build()
                 },
                 contentDescription = "player card"
             )
         }
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             modifier = Modifier.align(Alignment.CenterVertically),
             text = name,
             color = Material3Theme.backgroundContentColorAsState().value,
             style = MaterialTheme.typography.titleMedium
         )
-        Spacer(modifier = Modifier.width(3.dp))
-
+        Spacer(modifier = Modifier.width(4.dp))
         Row(
             modifier = Modifier
                 .align(Alignment.CenterVertically)

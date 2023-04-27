@@ -50,7 +50,9 @@ class DisposableValorantAssetsLoaderClient(
             )
             repository.loadCachedPlayerCard(req.player_card_id, req.acceptableTypes, true)
                 .onSuccess { file ->
-                    file?.let { def.complete(it) } ?: def.completeExceptionally(CancellationException("repository returned null"))
+                    file
+                        ?.let { def.complete(it) }
+                        ?: def.completeExceptionally(CancellationException("repository returned null"))
                 }.onFailure {
                     def.completeExceptionally(it)
                 }

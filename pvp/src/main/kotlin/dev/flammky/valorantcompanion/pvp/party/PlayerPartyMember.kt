@@ -10,7 +10,7 @@ data class PlayerPartyMember(
     val isOwner: Boolean? = null,
     val queueEligibleRemainingAccountLevels: Int,
     val pings: List<PlayerPartyMemberPing>,
-    val ready: Boolean,
+    val isReady: Boolean,
     val isModerator: Boolean,
     val useBroadcastHUD: Boolean,
     val platformType: String

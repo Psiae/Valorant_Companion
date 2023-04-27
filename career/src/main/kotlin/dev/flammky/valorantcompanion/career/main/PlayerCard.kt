@@ -52,13 +52,13 @@ private fun PlayerProfileCardContentPlacement(
         profilePicture(
             Modifier
                 .align(Alignment.CenterVertically)
-                .size(40.dp)
+                .size(45.dp)
         )
         Spacer(modifier = Modifier.width(10.dp))
         nameTag(
             Modifier
                 .align(Alignment.CenterVertically)
-                .height(50.dp)
+                .height(45.dp)
                 .weight(2f, true)
         )
         Spacer(modifier = Modifier.width(20.dp))
@@ -73,7 +73,7 @@ private fun ProfilePicture(
     Log.d("PlayerCard", "data=$data")
     val ctx = LocalContext.current
     AsyncImage(
-        modifier = modifier.clip(RoundedCornerShape(50)),
+        modifier = modifier,
         model = remember(data, ctx) {
             ImageRequest.Builder(ctx)
                 .data(data)
