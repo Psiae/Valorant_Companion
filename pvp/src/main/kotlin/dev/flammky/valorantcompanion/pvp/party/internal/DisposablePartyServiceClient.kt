@@ -2,7 +2,6 @@ package dev.flammky.valorantcompanion.pvp.party.internal
 
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
-import dev.flammky.valorantcompanion.auth.riot.region.RiotRegion
 import dev.flammky.valorantcompanion.pvp.PVPClient
 import dev.flammky.valorantcompanion.pvp.ex.UnexpectedResponseException
 import dev.flammky.valorantcompanion.pvp.ext.jsonObjectOrNull
@@ -27,18 +26,26 @@ internal class DisposablePartyServiceClient(
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
-    override fun fetchSignedInPlayerPartyMembersAsync(puuid: String): Deferred<List<PlayerPartyMember>> {
-        val def = CompletableDeferred<List<PlayerPartyMember>>()
+    override fun fetchSignedInPlayerPartyDataAsync(puuid: String): Deferred<PlayerPartyData> {
+        val def = CompletableDeferred<PlayerPartyData>()
 
-        coroutineScope.launch(SupervisorJob()) {
+        coroutineScope.launch {
             def.completeWith(
                 runCatching {
                     val partyId = getPartyId(puuid).getOrThrow()
-                    val partyData = getPlayerPartyData(puuid, partyId).getOrThrow()
-                    partyData.members
+                    getPlayerPartyData(puuid, partyId).getOrThrow()
                 }
             )
         }.invokeOnCompletion { ex -> ex?.let { def.completeExceptionally(ex) } }
+
+        return def
+    }
+
+    override fun changePartyMatchmakingGameMode(
+        puuid: String,
+        gameModeId: String
+    ): Deferred<PlayerPartyData> {
+        val def = CompletableDeferred<PlayerPartyData>()
 
         return def
     }
@@ -167,7 +174,7 @@ internal class DisposablePartyServiceClient(
                                     ?.toString()?.removeSurrounding("\"")
                                     ?: unexpectedResponse("CompetitiveTier not found")
                                 if (!str.all(Char::isDigit)) {
-                                    unexpectedResponse("Version contains non Digit char")
+                                    unexpectedResponse("CompetitiveTier contains non Digit char")
                                 }
                                 str.toInt()
                             },
@@ -230,15 +237,17 @@ internal class DisposablePartyServiceClient(
                                     ?: unexpectedResponse("SeasonalBadgeInfo not found")
                             },
                             isOwner = run {
-                                val str = member["IsOwner"]?.jsonPrimitive?.toString()
-                                    ?: unexpectedResponse("IsOwner not found")
-                                str.toBooleanStrictOrNull()
+                                val prim = member["IsOwner"]?.jsonPrimitive
+                                if (prim == null || prim is JsonNull) {
+                                    return@run false
+                                }
+                                prim.toString().toBooleanStrictOrNull()
                                     ?: unexpectedResponse("IsOwner is not a Boolean")
                             },
                             queueEligibleRemainingAccountLevels = run {
                                 val str = member["QueueEligibleRemainingAccountLevels"]?.jsonPrimitive?.toString()
                                     ?: unexpectedResponse("QueueEligibleRemainingAccountLevels not found")
-                                if (!str.all(Char::isDigit)) {
+                                if (!str.all { it.isDigit() || it == '-' }) {
                                     unexpectedResponse("QueueEligibleRemainingAccountLevels contains non digit char")
                                 }
                                 str.toInt()

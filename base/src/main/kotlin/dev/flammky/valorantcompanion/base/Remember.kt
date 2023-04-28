@@ -5,7 +5,7 @@ import androidx.compose.runtime.DisallowComposableCalls
 import androidx.compose.runtime.remember
 
 @Composable
-fun <T, R> T.runRemember(
+inline fun <T, R> T.runRemember(
     vararg keys: Any,
-    init: @DisallowComposableCalls T.() -> R
+    crossinline init: @DisallowComposableCalls T.() -> R
 ) = remember(this, *keys) { init() }

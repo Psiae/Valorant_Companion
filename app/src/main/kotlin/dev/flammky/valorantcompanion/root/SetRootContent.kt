@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dev.flammky.valorantcompanion.MainActivity
+import dev.flammky.valorantcompanion.base.runRemember
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundColorAsState
 import dev.flammky.valorantcompanion.base.theme.material3.primaryColorAsState
