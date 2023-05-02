@@ -40,26 +40,29 @@ internal class RealNameService(
                         buildMap {
                             val array = response.body.jsonArray
                             request.lookupPUUIDs.forEachIndexed { i, e ->
-                                runCatching {
-                                    val obj = array[i].jsonObject
-                                    val puuid = obj["Subject"]?.jsonPrimitive
-                                        ?.toString()
-                                        ?.removeSurrounding("\"")
-                                        ?: error("Subject not found")
-                                    val displayName = obj["DisplayName"]?.jsonPrimitive
-                                        ?.toString()
-                                        ?.removeSurrounding("\"")
-                                        ?: error("DisplayName not found")
-                                    val gameName = obj["GameName"]?.jsonPrimitive
-                                        ?.toString()
-                                        ?.removeSurrounding("\"")
-                                        ?: error("GameName not found")
-                                    val tagLine = obj["TagLine"]?.jsonPrimitive
-                                        ?.toString()
-                                        ?.removeSurrounding("\"")
-                                        ?: error("TagLine not found")
-                                    put(e, PlayerPvpName(puuid, displayName, gameName, tagLine))
-                                }
+                                put(
+                                    e,
+                                    runCatching {
+                                        val obj = array[i].jsonObject
+                                        val puuid = obj["Subject"]?.jsonPrimitive
+                                            ?.toString()
+                                            ?.removeSurrounding("\"")
+                                            ?: error("Subject not found")
+                                        val displayName = obj["DisplayName"]?.jsonPrimitive
+                                            ?.toString()
+                                            ?.removeSurrounding("\"")
+                                            ?: error("DisplayName not found")
+                                        val gameName = obj["GameName"]?.jsonPrimitive
+                                            ?.toString()
+                                            ?.removeSurrounding("\"")
+                                            ?: error("GameName not found")
+                                        val tagLine = obj["TagLine"]?.jsonPrimitive
+                                            ?.toString()
+                                            ?.removeSurrounding("\"")
+                                            ?: error("TagLine not found")
+                                        PlayerPvpName(puuid, displayName, gameName, tagLine)
+                                    }
+                                )
                             }
                         }
                     )

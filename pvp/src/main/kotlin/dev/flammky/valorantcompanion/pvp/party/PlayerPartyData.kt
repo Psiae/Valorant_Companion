@@ -4,7 +4,7 @@ data class PlayerPartyData(
     val party_id: String,
     val version: Long,
     val client_version: String,
-    val members: List<PlayerPartyMember>,
+    val members: List<PlayerPartyMemberData>,
     val state: String,
     val previousState: String,
     val stateTransitionReason: String,

@@ -1,16 +1,25 @@
 package dev.flammky.valorantcompanion.live.party.presentation
 
+import androidx.compose.runtime.Immutable
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+
+@Immutable
 data class PlayerPartyData(
-    val matchmakingID: String,
-    val members: List<PartyMember>,
-    val eligible: List<String>
+    val partyID: String,
+    val matchmakingQueueID: String,
+    val members: ImmutableList<PlayerPartyMemberInfo>,
+    val eligible: ImmutableList<String>,
+    val preferredPods: ImmutableList<String>
 ) {
 
     companion object {
         val UNSET = PlayerPartyData(
             "",
-            emptyList(),
-            emptyList()
+            "",
+            persistentListOf(),
+            persistentListOf(),
+            persistentListOf(),
         )
     }
 }

@@ -6,7 +6,7 @@ import dev.flammky.valorantcompanion.pvp.http.ktor.KtorWrappedHttpClient
 import dev.flammky.valorantcompanion.pvp.party.PartyService
 import dev.flammky.valorantcompanion.pvp.party.PartyServiceClient
 
-class RealPartyService(
+internal class RealPartyService(
     private val authService: RiotAuthService,
     private val geoRepository: RiotGeoRepository
 ) : PartyService {

@@ -20,12 +20,12 @@ class KtorWrappedHttpClient(
                 Log.d("KtorWrappedHttpClient", "get($url), downloaded$bytesSentTotal, contentLength=$contentLength")
             }
         }
-        val contentChannel = response.body<ByteArray>()
-        Log.d("assets.ktor.KtorWrappedHttpClient", "get($url), status=${response.status}, size=${contentChannel.size}")
+        val contentChannel = response.bodyAsChannel().apply { awaitContent() }
+        Log.d("assets.ktor.KtorWrappedHttpClient", "get($url), status=${response.status}, size=${contentChannel.availableForRead}")
         return AssetHttpResponse(
             statusCode = response.status.value,
             content = ReadableAssetByteChannel { bb ->
-                bb.put(contentChannel)
+                contentChannel.readAvailable(bb)
             }
         )
     }

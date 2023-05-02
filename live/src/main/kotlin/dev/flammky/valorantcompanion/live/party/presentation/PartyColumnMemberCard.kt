@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.Text
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -41,16 +42,25 @@ class PartyColumnMemberCardPresenter(
 
     @Composable
     inline fun present(
-        partyMember: PartyMember
-    ) = present(
-        puuid = partyMember.puuid,
-        name = partyMember.name,
-        tag = partyMember.tag,
-        playerCardId = partyMember.cardArtId,
-        isOwner = partyMember.isOwner,
-        isReady = partyMember.isReady,
-        pods = partyMember.gamePods
-    )
+        memberinfo: PlayerPartyMemberInfo,
+        memberName: Result<PlayerPartyMemberName>?,
+        partyPreferredPods: List<String>,
+        changePreferredPodsKey: Any,
+        noinline changePreferredPods: (Set<String>) -> Unit
+    ): PartyColumnMemberCardState {
+        return present(
+            puuid = memberinfo.puuid,
+            name = memberName?.getOrNull()?.name ?: "",
+            tag = memberName?.getOrNull()?.tag ?: "",
+            playerCardId = memberinfo.cardArtId,
+            isOwner = memberinfo.isOwner,
+            isReady = memberinfo.isReady,
+            pods = memberinfo.gamePodData,
+            preferredPods = partyPreferredPods,
+            changePreferredPodsKey = changePreferredPodsKey,
+            changePreferredPods = changePreferredPods
+        )
+    }
 
     @Composable
     fun present(
@@ -60,13 +70,35 @@ class PartyColumnMemberCardPresenter(
         playerCardId: String?,
         isOwner: Boolean?,
         isReady: Boolean?,
-        pods: List<GamePod>
+        pods: List<GamePodConnection>,
+        preferredPods: List<String>,
+        changePreferredPodsKey: Any,
+        changePreferredPods: (Set<String>) -> Unit
     ): PartyColumnMemberCardState {
         Log.d("PartyColumnMemberCardPresenter", "present($puuid, $name, $tag, $playerCardId)")
         val returns = remember(puuid) {
-            mutableStateOf(PartyColumnMemberCardState(null, null, null, null, null, emptyList()))
+            mutableStateOf(
+                PartyColumnMemberCardState(
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    emptyList(),
+                    emptyList(),
+                    {  }
+                )
+            )
         }.apply {
-            value = value.copy(name = name, tag = tag, isOwner = isOwner, isReady = isReady, pods = pods)
+            value = value.copy(
+                name = name,
+                tag = tag,
+                isOwner = isOwner,
+                isReady = isReady,
+                pods = pods,
+                preferredPods = preferredPods,
+                changePreferredPods = remember(changePreferredPodsKey) { changePreferredPods }
+            )
         }
         val coroutineScope = rememberCoroutineScope()
         DisposableEffect(
@@ -100,7 +132,9 @@ data class PartyColumnMemberCardState(
     val tag: String?,
     val isOwner: Boolean?,
     val isReady: Boolean?,
-    val pods: List<GamePod>
+    val pods: List<GamePodConnection>,
+    val preferredPods: List<String>,
+    val changePreferredPods: (Set<String>) -> Unit
 ) {
 }
 
@@ -116,7 +150,23 @@ fun PartyColumnMemberCard(
         state.tag ?: "",
         state.isOwner ?: false,
         state.isReady ?: false,
-        state.pods
+        state.pods,
+        state.preferredPods,
+        addPreferredPod = { pod ->
+            state.changePreferredPods(
+                buildSet {
+                    state.preferredPods.forEach { add(it) }
+                    add(pod)
+                }
+            )
+        },
+        removePreferredPod = { pod ->
+            state.changePreferredPods(
+                buildSet {
+                    state.preferredPods.forEach { if (it != pod) add(it) }
+                }
+            )
+        }
     )
 }
 
@@ -129,7 +179,10 @@ private fun PlayerCard(
     tag: String,
     isOwner: Boolean,
     isReady: Boolean,
-    pods: List<GamePod>
+    pods: List<GamePodConnection>,
+    preferredPods: List<String>,
+    addPreferredPod: (String) -> Unit,
+    removePreferredPod: (String) -> Unit
 ) {
     val ctx = LocalContext.current
     Row(modifier, horizontalArrangement = Arrangement.SpaceBetween) {
@@ -217,12 +270,13 @@ private fun PlayerCard(
                     .align(Alignment.CenterVertically)
                     .clickable { expandedState.value = true }
             ) {
-                Draw4PingBar(
+                Draw4PingBarFromPartyMemberPods(
                     modifier = Modifier
                         .height(12.dp)
                         .width(24.dp)
                         .align(Alignment.Center),
-                    pingMs = pods.minByOrNull { it.ping }?.ping ?: 0
+                    memberPods = pods,
+                    partyPreferredPods = preferredPods
                 )
             }
             DropdownMenu(
@@ -236,8 +290,10 @@ private fun PlayerCard(
                 expanded = expandedState.value,
                 onDismissRequest = { expandedState.value = false }
             ) {
+                // TODO: show party preferred pods visual
                 remember(pods) { pods.sortedBy { it.ping } }.forEach { pod ->
                     key(pod.id) {
+                        val preferred = pod.id in preferredPods
                         DropdownMenuItem(
                             text = {
                                 Text(
@@ -250,8 +306,25 @@ private fun PlayerCard(
                                     }
                                 )
                             },
+                            leadingIcon = {
+                                Checkbox(
+                                    modifier = Modifier.size(24.dp),
+                                    checked = preferred,
+                                    onCheckedChange = { checked ->
+                                        check(checked != preferred)
+                                        if (checked)
+                                            addPreferredPod(pod.id)
+                                        else
+                                            removePreferredPod(pod.id)
+                                    },
+                                    enabled = isOwner
+                                )
+                            },
                             trailingIcon = {
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Text(
                                         text = "${pod.ping}ms",
                                         style = MaterialTheme.typography.labelMedium,
@@ -269,7 +342,12 @@ private fun PlayerCard(
                                     )
                                 }
                             },
-                            onClick = { /*TODO*/ }
+                            onClick = {
+                                if (preferred)
+                                    removePreferredPod(pod.id)
+                                else
+                                    addPreferredPod(pod.id)
+                            }
                         )
                     }
                 }
@@ -283,6 +361,96 @@ private fun parsePodName(id: String): String {
     val split = id.split("-")
     val take = if (split.size > 2) { split.takeLast(2) } else split
     return take.joinToString("-")
+}
+
+@Composable
+private fun Draw4PingBarFromPartyMemberPods(
+    modifier: Modifier,
+    memberPods: List<GamePodConnection>,
+    partyPreferredPods: List<String>
+) {
+    Draw4PingBarFromMultipleSource(
+        modifier = modifier,
+        pingsMs = if (partyPreferredPods.isNotEmpty()) {
+            remember(memberPods, partyPreferredPods) {
+                partyPreferredPods.mapNotNull { pref ->
+                    memberPods.find { it.id == pref }?.ping
+                }
+            }
+        } else {
+            remember(memberPods) {
+                memberPods.map { it.ping }
+            }
+        }
+    )
+}
+
+@Composable
+private fun Draw4PingBarFromMultipleSource(
+    modifier: Modifier,
+    pingsMs: List<Int>,
+    isPingAlreadySorted: Boolean = false
+) {
+    val strengths = remember(pingsMs) {
+        val list = mutableListOf<Int>()
+        val size = pingsMs.size
+        when {
+            size < 1 -> {
+                list.apply { repeat(4) { add(-1) } }
+            }
+            size == 1 -> {
+                val get = pingsMs[0]
+                list.apply { repeat(4) { add(pingStrengthInRangeOf4(get)) } }
+            }
+            else -> {
+                val sort = if (isPingAlreadySorted) pingsMs else pingsMs.sorted()
+                repeat(4) { i ->
+                    list.add(
+                        pingStrengthInRangeOf4(
+                            sort.getOrElse(3 - i) {
+                                return@repeat list.add(0, pingStrengthInRangeOf4(sort.first()))
+                            }
+                        )
+                    )
+                }
+                list.sort()
+            }
+        }
+        list
+    }
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxHeight()
+            .fillMaxWidth()
+    ) {
+        val maxWidth = maxWidth
+        val maxHeight = maxHeight
+        Row(
+            modifier = Modifier.align(Alignment.Center),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            repeat(4) { i ->
+                val s = strengths[i]
+                val n = i + 1
+                val height = (maxHeight.value * (n.toFloat() / 4)).dp
+                val width = maxHeight / 4
+                val color = when (s) {
+                    -1 -> null
+                    1 -> Color.Red
+                    2 -> Color.Yellow
+                    3, 4 -> Color.Green
+                    else -> error("Unguarded condition $s")
+                }
+                Box(
+                    modifier = Modifier
+                        .height(height)
+                        .width(width)
+                        .background(color ?: Color.Gray)
+                )
+            }
+        }
+    }
 }
 
 @Composable

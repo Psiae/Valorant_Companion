@@ -2,7 +2,7 @@ package dev.flammky.valorantcompanion.pvp.party
 
 import dev.flammky.valorantcompanion.pvp.party.internal.PlayerPartyMemberIdentity
 
-data class PlayerPartyMember(
+data class PlayerPartyMemberData(
     val uuid: String,
     val competitiveTier: Int,
     val identity: PlayerPartyMemberIdentity,

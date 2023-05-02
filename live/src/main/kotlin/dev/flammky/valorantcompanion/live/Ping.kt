@@ -9,3 +9,12 @@ fun pingStrengthInRangeOf4(pingMs: Int): Int {
         else -> 1
     }
 }
+
+fun pingStrengthInRangeOf3(pingMs: Int): Int {
+    require(pingMs >= 0)
+    return when(pingMs) {
+        in 0..45 -> 3
+        in 46..100 -> 2
+        else -> 1
+    }
+}

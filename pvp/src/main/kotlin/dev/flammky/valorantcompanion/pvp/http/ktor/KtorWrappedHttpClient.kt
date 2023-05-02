@@ -50,7 +50,7 @@ internal class KtorWrappedHttpClient() : HttpClient() {
                     headers {
                         contentType(ContentType.Application.Json)
                         accept(ContentType.Application.Json)
-                        request.headers.forEach { set(it.first, it.second) }
+                        request.headers.forEach { append(it.first, it.second) }
                     }
                     request.body?.let { setBody(it) }
                 }

@@ -1,6 +1,6 @@
 package dev.flammky.valorantcompanion.live.party.presentation
 
-data class GamePod(
+data class GamePodConnection(
     val id: String,
     val ping: Int
 )

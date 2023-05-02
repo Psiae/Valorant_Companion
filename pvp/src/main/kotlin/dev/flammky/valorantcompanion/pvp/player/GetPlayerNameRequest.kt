@@ -9,7 +9,5 @@ class GetPlayerNameRequest(
 }
 
 class GetPlayerNameRequestResult(
-    private val map: Map<String, PlayerPvpName>
-) {
-    operator fun get(puuid: String): PlayerPvpName? = map[puuid]
-}
+    private val map: Map<String, Result<PlayerPvpName>>
+): Map<String, Result<PlayerPvpName>> by map {}
