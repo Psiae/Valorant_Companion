@@ -43,4 +43,5 @@ dependencies {
     implementation(libs.io.coil.kt.coil.asProvider())
     implementation(libs.io.coil.kt.coil.compose)
     implementation(libs.org.jetbrains.kotlinx.kotlinx.collections.immutable)
+    implementation(libs.org.jetbrains.kotlinx.kotlinx.datetime)
 }

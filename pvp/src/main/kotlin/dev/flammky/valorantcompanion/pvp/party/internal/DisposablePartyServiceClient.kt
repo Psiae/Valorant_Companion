@@ -11,7 +11,6 @@ import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpResponse
 import dev.flammky.valorantcompanion.pvp.party.*
 import dev.flammky.valorantcompanion.pvp.party.ex.PlayerPartyNotFoundException
-import dev.flammky.valorantcompanion.pvp.sync
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 
@@ -23,7 +22,6 @@ internal class DisposablePartyServiceClient(
 ) : PartyServiceClient {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
-    private val matchmakingLock = Any()
     private val matchmakingPostChannel: SuspendingPostChannel = SuspendingPostChannelImpl(Dispatchers.IO)
 
     override fun fetchSignedInPlayerPartyDataAsync(puuid: String): Deferred<PlayerPartyData> {
@@ -52,6 +50,14 @@ internal class DisposablePartyServiceClient(
         request: PartyChangePreferredPodsRequest
     ): Deferred<Result<PartyChangePreferredPodsRequestResult>> {
         return postChangeMatchmakingPreferredPods(request)
+    }
+
+    override fun partyJoinMatchmaking(puuid: String, partyId: String) {
+        return postJoinMatchmakingQueue(puuid, partyId)
+    }
+
+    override fun partyLeaveMatchmaking(puuid: String, partyId: String) {
+        return postLeaveMatchmakingQueue(puuid, partyId)
     }
 
     override fun dispose() {
@@ -585,7 +591,7 @@ internal class DisposablePartyServiceClient(
 
     private fun postChangeMatchmakingQueueRequest(
         request: PartyChangeQueueRequest
-    ): Deferred<Result<PartyChangeQueueRequestResult>> = sync(matchmakingLock) {
+    ): Deferred<Result<PartyChangeQueueRequestResult>> {
         val def = CompletableDeferred<Result<PartyChangeQueueRequestResult>>()
         matchmakingPostChannel.post {
             val task = runCatching<PartyChangeQueueRequestResult> {
@@ -625,7 +631,7 @@ internal class DisposablePartyServiceClient(
 
     private fun postChangeMatchmakingPreferredPods(
         request: PartyChangePreferredPodsRequest
-    ): Deferred<Result<PartyChangePreferredPodsRequestResult>> = sync(matchmakingLock) {
+    ): Deferred<Result<PartyChangePreferredPodsRequestResult>> {
         val def = CompletableDeferred<Result<PartyChangePreferredPodsRequestResult>>()
 
         matchmakingPostChannel.post {
@@ -668,6 +674,68 @@ internal class DisposablePartyServiceClient(
         }
 
         return def
+    }
+
+    private fun postJoinMatchmakingQueue(
+        puuid: String,
+        partyID: String,
+    ) {
+        matchmakingPostChannel.post {
+            runCatching {
+                val geo = geoRepository
+                    .getGeoShardInfo(puuid)
+                    ?: error("Geo info not registered")
+                val entitlement_token = authService
+                    .get_entitlement_token(puuid)
+                    .getOrThrow()
+                val access_token = authService
+                    .get_authorization(puuid)
+                    .getOrThrow().access_token
+                val url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}.a.pvp.net/parties/v1/parties/$partyID/matchmaking/join"
+                httpClient.jsonRequest(
+                    JsonHttpRequest(
+                        method = "POST",
+                        url = url,
+                        headers = listOf(
+                            "X-Riot-Entitlements-JWT" to entitlement_token,
+                            "Authorization" to "Bearer $access_token"
+                        ),
+                        body = null
+                    )
+                )
+            }
+        }.invokeOnCompletion { }
+    }
+
+    private fun postLeaveMatchmakingQueue(
+        puuid: String,
+        partyID: String,
+    ) {
+        matchmakingPostChannel.post {
+            runCatching {
+                val geo = geoRepository
+                    .getGeoShardInfo(puuid)
+                    ?: error("Geo info not registered")
+                val entitlement_token = authService
+                    .get_entitlement_token(puuid)
+                    .getOrThrow()
+                val access_token = authService
+                    .get_authorization(puuid)
+                    .getOrThrow().access_token
+                val url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}.a.pvp.net/parties/v1/parties/$partyID/matchmaking/leave"
+                httpClient.jsonRequest(
+                    JsonHttpRequest(
+                        method = "POST",
+                        url = url,
+                        headers = listOf(
+                            "X-Riot-Entitlements-JWT" to entitlement_token,
+                            "Authorization" to "Bearer $access_token"
+                        ),
+                        body = null
+                    )
+                )
+            }
+        }.invokeOnCompletion { }
     }
 
     private fun parseChangeMatchmakingQueueResponse(response: JsonHttpResponse): PartyChangeQueueRequestResult {

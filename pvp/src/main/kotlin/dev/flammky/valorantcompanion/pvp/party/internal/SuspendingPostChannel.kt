@@ -3,6 +3,8 @@ package dev.flammky.valorantcompanion.pvp.party.internal
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 class PostChannelResult(
     private val job: Job
@@ -30,11 +32,11 @@ internal class SuspendingPostChannelImpl(
 
     private val coroutineScope = CoroutineScope(dispatcher + SupervisorJob())
     private val array = mutableListOf<Element>()
-    private val lock = Any()
     private val mutex = Mutex()
+    private val lock = ReentrantLock()
 
     override fun <R> post(block: suspend () -> R): PostChannelResult {
-        return synchronized(lock) {
+        return lock.withLock {
             val element = Element(
                 Job(),
                 block

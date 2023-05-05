@@ -127,6 +127,12 @@ dependencyResolutionManagement {
                 "com.github.instacart",
                 "truetime-android"
             ).version("4.0.0.alpha")
+
+            library(
+                "org.jetbrains.kotlinx.kotlinx-datetime",
+                "org.jetbrains.kotlinx",
+                "kotlinx-datetime"
+            ).version("0.4.0")
         }
     }
 }

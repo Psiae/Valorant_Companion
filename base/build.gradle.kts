@@ -51,4 +51,7 @@ dependencies {
     api("io.insert-koin:koin-android:3.3.3")
     api("io.insert-koin:koin-androidx-compose:3.4.2")
     api("com.google.accompanist:accompanist-systemuicontroller:0.30.1")
+
+    implementation(libs.org.jetbrains.kotlinx.atomicfu.jvm)
+    implementation(libs.com.github.instacart.truetime.android)
 }

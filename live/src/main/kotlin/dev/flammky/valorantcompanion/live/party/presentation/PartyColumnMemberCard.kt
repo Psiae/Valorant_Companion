@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -447,6 +448,7 @@ private fun Draw4PingBarFromMultipleSource(
                         .height(height)
                         .width(width)
                         .background(color ?: Color.Gray)
+                        .shadow(2.dp)
                 )
             }
         }
@@ -488,6 +490,7 @@ private fun Draw4PingBar(
                         .height(height)
                         .width(width)
                         .background(color.takeIf { strength >= n } ?: Color.Gray)
+                        .shadow(2.dp)
                 )
             }
         }

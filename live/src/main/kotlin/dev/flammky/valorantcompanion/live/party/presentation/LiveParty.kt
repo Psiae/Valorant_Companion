@@ -3,7 +3,6 @@ package dev.flammky.valorantcompanion.live.party.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.DropdownMenu
 import androidx.compose.material.Text
 import androidx.compose.material3.Icon
 import androidx.compose.material3.*
@@ -22,14 +21,18 @@ import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.pvp.party.PartyService
+import dev.flammky.valorantcompanion.pvp.party.PartyState
 import dev.flammky.valorantcompanion.pvp.party.PlayerPartyData as DomainPlayerPartyData
 import dev.flammky.valorantcompanion.pvp.party.PlayerPartyMemberData as DomainPlayerPartyMemberData
 import dev.flammky.valorantcompanion.pvp.party.ex.PlayerPartyNotFoundException
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
+import kotlinx.datetime.Instant
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import org.koin.androidx.compose.get as getFromKoin
 
 @Composable
@@ -155,7 +158,14 @@ private fun LiveParty(
             }
         }
     }
-    LaunchedEffect(state) { state.initialRefresh() }
+    LaunchedEffect(state) {
+        state.initialRefresh()
+        snapshotFlow { state.initialRefresh }.first { !it }
+        while (isActive) {
+            delay(1000)
+            state.autoInitiatedRefresh()
+        }
+    }
 }
 
 @Composable
@@ -179,10 +189,13 @@ class LivePartyState(
     var matchmakingExceptionMessage by mutableStateOf("")
     var initialRefresh by mutableStateOf(true)
     var userRefreshSlot by mutableStateOf(true)
-    var startMatchmakingSlot by mutableStateOf(true)
-    val loading by derivedStateOf { initialRefresh || !userRefreshSlot }
+    var isUserRefreshing by mutableStateOf(false)
+    val loading by derivedStateOf { initialRefresh || isUserRefreshing }
 
     fun initialRefresh() {
+        if (!initialRefresh) return
+        if (!userRefreshSlot) return
+        userRefreshSlot = false
         coroutineScope.launch {
             runCatching {
                 fetch().await()
@@ -194,10 +207,32 @@ class LivePartyState(
         }.invokeOnCompletion { ex ->
             ex?.let { onRefreshFailure(ex) }
             initialRefresh = false
+            userRefreshSlot = true
         }
     }
 
     fun userInitiatedRefresh() {
+        if (initialRefresh) return
+        if (!userRefreshSlot) return
+        isUserRefreshing = true
+        userRefreshSlot = false
+        exceptionMessage = ""
+        coroutineScope.launch {
+            runCatching {
+                fetch().await()
+            }.onSuccess {
+                onRefreshSuccess(it)
+            }.onFailure { ex ->
+                onRefreshFailure(ex)
+            }
+        }.invokeOnCompletion { ex ->
+            ex?.let { onRefreshFailure(ex) }
+            userRefreshSlot = true
+            isUserRefreshing = false
+        }
+    }
+
+    fun autoInitiatedRefresh() {
         if (initialRefresh) return
         if (!userRefreshSlot) return
         userRefreshSlot = false
@@ -324,7 +359,13 @@ private fun mapToPlayerPartyData(
             pvp.members.forEach { member -> list.add(mapToPlayerPartyMemberData(member)) }
         },
         pvp.eligibleQueues.toPersistentList(),
-        pvp.matchmakingData.preferredGamePods.toPersistentList()
+        pvp.matchmakingData.preferredGamePods.toPersistentList(),
+        pvp.state == PartyState.toPartyDataString(PartyState.MATCHMAKING),
+        runCatching { Instant.parse(pvp.queueEntryTime).toEpochMilliseconds().milliseconds }
+            .onFailure {
+                it.printStackTrace()
+            }
+            .getOrElse { Duration.ZERO }
     )
 }
 
