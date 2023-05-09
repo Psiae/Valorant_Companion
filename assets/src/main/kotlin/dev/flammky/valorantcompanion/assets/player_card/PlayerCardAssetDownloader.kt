@@ -2,6 +2,7 @@ package dev.flammky.valorantcompanion.assets.player_card
 
 import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
 import dev.flammky.valorantcompanion.assets.PlayerCardArtType
+import dev.flammky.valorantcompanion.assets.map.ValorantMapImage
 import io.ktor.util.*
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.coroutines.*
@@ -9,10 +10,10 @@ import java.nio.ByteBuffer
 
 class PlayerCardAssetDownloader(
     private val assetHttpClient: AssetHttpClient,
-    private val endpoint: ValorantPlayerCardEndpoints
+    private val endpoint: ValorantPlayerCardAssetEndpoint
 ) {
 
-    val coroutineScope = CoroutineScope(SupervisorJob())
+    private val coroutineScope = CoroutineScope(SupervisorJob())
 
     fun downloadArt(
         id: String,
@@ -29,22 +30,24 @@ class PlayerCardAssetDownloader(
             instance.inLifetime {
                 val id = instance.id
                 instance.acceptableTypes.forEach { type ->
-                    // TODO: handle status code
-                    val response = assetHttpClient
-                        .get(endpoint.buildArtUrl(instance.id, instance.acceptableTypes.first()))
-                    // TODO: should be less than 500kb
-                    val bb = ByteBuffer.allocate(1_000_000)
-                    response.content.read(bb)
-                    instance.completeWith(
-                        Result.success(
-                            PlayerCardArt(
-                                id = id,
-                                type = type,
-                                bb.array()
+                    runCatching {
+                        // TODO: handle status code
+                        val response = assetHttpClient
+                            .get(endpoint.buildArtUrl(instance.id, instance.acceptableTypes.first()))
+                        // TODO: should be less than 500kb
+                        val bb = ByteBuffer.allocate(1_000_000)
+                        response.contentChannel.read(bb)
+                        instance.completeWith(
+                            Result.success(
+                                PlayerCardArt(
+                                    id = id,
+                                    type = type,
+                                    bb.apply { flip() }.moveToByteArray()
+                                )
                             )
                         )
-                    )
-                    return@inLifetime
+                        return@inLifetime
+                    }
                 }
             }
         }.invokeOnCompletion { ex ->
@@ -80,7 +83,7 @@ class PlayerCardAssetDownloadInstance(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val result: PlayerCardArt?
-        get() = if (def.isCompleted) def.getCompleted() else null
+        get() = if (def.isCompleted && !def.isCancelled) def.getCompleted() else null
 
     val isCompleted: Boolean
         get() = def.isCompleted

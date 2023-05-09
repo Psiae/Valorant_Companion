@@ -1,5 +1,7 @@
 package dev.flammky.valorantcompanion.live.party.presentation
 
+import android.os.SystemClock
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -29,7 +31,9 @@ import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -70,9 +74,7 @@ private fun LiveParty(
                     }
                 }
             )
-            .run {
-                shadow(elevation = 1.dp)
-            }
+            .shadow(elevation = 1.dp)
             .padding(10.dp)
     ) {
         Row {
@@ -159,12 +161,29 @@ private fun LiveParty(
         }
     }
     LaunchedEffect(state) {
+        Log.d("live.LiveParty.kt", "LiveParty() { LaunchedEffect($state) }")
         state.initialRefresh()
         snapshotFlow { state.initialRefresh }.first { !it }
-        while (isActive) {
-            delay(1000)
-            state.autoInitiatedRefresh()
+
+        var job: Job? = null
+        var stamp = SystemClock.elapsedRealtime()
+        runCatching {
+            snapshotFlow { state.autoRefreshOn && state.exceptionMessage.isEmpty() }
+                .distinctUntilChanged()
+                .collect { on ->
+                    job?.cancel()
+                    if (on) job = launch {
+                        // delay until at least 1 second from the last refresh
+                        delay(1000 - (SystemClock.elapsedRealtime() - stamp))
+                        while (isActive) {
+                            stamp = SystemClock.elapsedRealtime()
+                            state.autoInitiatedRefresh()
+                            delay(1000)
+                        }
+                    }
+                }
         }
+        Log.d("live.LiveParty.kt", "LiveParty() { LaunchedEffect($state) } end")
     }
 }
 
@@ -189,6 +208,7 @@ class LivePartyState(
     var matchmakingExceptionMessage by mutableStateOf("")
     var initialRefresh by mutableStateOf(true)
     var userRefreshSlot by mutableStateOf(true)
+    var autoRefreshOn by mutableStateOf(true)
     var isUserRefreshing by mutableStateOf(false)
     val loading by derivedStateOf { initialRefresh || isUserRefreshing }
 
@@ -233,8 +253,11 @@ class LivePartyState(
     }
 
     fun autoInitiatedRefresh() {
+        Log.d("live.LiveParty.kt", "autoInitiatedRefresh")
         if (initialRefresh) return
         if (!userRefreshSlot) return
+        // exception should be removed by user initiating the refresh
+        if (exceptionMessage.isNotEmpty()) return
         userRefreshSlot = false
         exceptionMessage = ""
         coroutineScope.launch {

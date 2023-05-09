@@ -4,7 +4,7 @@ import android.util.Log
 import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.assets.PlayerCardArtType
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
-import dev.flammky.valorantcompanion.assets.internal.LoadPlayerCardRequest
+import dev.flammky.valorantcompanion.assets.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.auth.riot.*
 import dev.flammky.valorantcompanion.auth.riot.region.GeoShardInfo
 import dev.flammky.valorantcompanion.auth.riot.region.RiotRegion

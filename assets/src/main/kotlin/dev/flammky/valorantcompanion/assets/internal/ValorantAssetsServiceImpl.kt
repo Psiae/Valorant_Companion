@@ -5,8 +5,10 @@ import dev.flammky.valorantcompanion.assets.BuildConfig
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.ktor.KtorWrappedHttpClient
+import dev.flammky.valorantcompanion.assets.map.ValorantApiMapAssetEndpoint
+import dev.flammky.valorantcompanion.assets.map.ValorantMapAssetDownloader
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardAssetDownloader
-import dev.flammky.valorantcompanion.assets.player_card.ValorantApiPlayerCardEndpoints
+import dev.flammky.valorantcompanion.assets.player_card.ValorantApiPlayerCardAssetEndpoint
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.logging.*
@@ -20,7 +22,11 @@ class ValorantAssetsServiceImpl(
             repository = repo,
             player_card_downloader = PlayerCardAssetDownloader(
                 KtorWrappedHttpClient(createKtorHttpClient()),
-                ValorantApiPlayerCardEndpoints()
+                ValorantApiPlayerCardAssetEndpoint()
+            ),
+            map_asset_downloader = ValorantMapAssetDownloader(
+                KtorWrappedHttpClient(createKtorHttpClient()),
+                ValorantApiMapAssetEndpoint()
             )
         )
     }

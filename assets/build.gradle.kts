@@ -35,4 +35,5 @@ dependencies {
     implementation(libs.io.ktor.ktor.serialization.kotlinx.json)
     implementation(libs.org.jetbrains.kotlinx.kotlinx.collections.immutable)
     implementation(libs.org.jetbrains.kotlinx.atomicfu.jvm)
+    implementation(kotlin("reflect"))
 }

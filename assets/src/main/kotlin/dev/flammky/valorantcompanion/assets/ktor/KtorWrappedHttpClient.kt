@@ -8,6 +8,7 @@ import io.ktor.client.call.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.utils.io.*
 import io.ktor.client.HttpClient as KtorHttpClient
 
 class KtorWrappedHttpClient(
@@ -20,12 +21,14 @@ class KtorWrappedHttpClient(
                 Log.d("KtorWrappedHttpClient", "get($url), downloaded$bytesSentTotal, contentLength=$contentLength")
             }
         }
-        val contentChannel = response.bodyAsChannel().apply { awaitContent() }
-        Log.d("assets.ktor.KtorWrappedHttpClient", "get($url), status=${response.status}, size=${contentChannel.availableForRead}")
+        val content = response.bodyAsChannel()
+        Log.d("assets.ktor.KtorWrappedHttpClient", "get($url), status=${response.status}")
         return AssetHttpResponse(
             statusCode = response.status.value,
-            content = ReadableAssetByteChannel { bb ->
-                contentChannel.readAvailable(bb)
+            contentChannel = ReadableAssetByteChannel { bb ->
+                while (true) {
+                    if (content.readAvailable(bb) == -1) break
+                }
             }
         )
     }

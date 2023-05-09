@@ -1,6 +1,5 @@
-package dev.flammky.valorantcompanion.assets.internal
+package dev.flammky.valorantcompanion.assets
 
-import dev.flammky.valorantcompanion.assets.PlayerCardArtType
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.toPersistentSet
 

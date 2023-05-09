@@ -18,6 +18,7 @@ private fun LiveMainPlacement(
     liveParty: @Composable () -> Unit
 ) {
     Column {
+        // TODO: Don't consume here
         Spacer(modifier = Modifier.height(
             with(LocalDensity.current) { WindowInsets.statusBars.getTop(this).toDp() }
         ))

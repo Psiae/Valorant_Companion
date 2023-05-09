@@ -2,7 +2,7 @@ package dev.flammky.valorantcompanion.assets.player_card
 
 import dev.flammky.valorantcompanion.assets.PlayerCardArtType
 
-class ValorantApiPlayerCardEndpoints : ValorantPlayerCardEndpoints {
+class ValorantApiPlayerCardAssetEndpoint : ValorantPlayerCardAssetEndpoint {
 
     override fun buildArtUrl(id: String, type: PlayerCardArtType): String {
         val typeStr = when (type) {

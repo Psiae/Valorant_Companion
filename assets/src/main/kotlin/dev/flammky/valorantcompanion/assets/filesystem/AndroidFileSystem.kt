@@ -13,7 +13,7 @@ class AndroidFileSystem(private val application: Application) : PlatformFileSyst
     override fun String.appendFolder(name: String): String = (suffix("/") + name).suffix("/")
     override fun String.appendFile(name: String): String = prefix("/") + name
 
-    override fun defaultInternalCacheFolder(path: (cachePath: String) -> String): String {
+    override fun buildStringWithDefaultInternalCacheFolder(path: (cachePath: String) -> String): String {
         return path(internalCacheFolder.absolutePath)
     }
 }

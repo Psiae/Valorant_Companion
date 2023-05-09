@@ -1,13 +1,16 @@
 package dev.flammky.valorantcompanion.assets.internal
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory.decodeByteArray
+import android.graphics.BitmapFactory
 import android.util.Log
 import dev.flammky.valorantcompanion.assets.PlayerCardArtType
 import dev.flammky.valorantcompanion.assets.conflate.CacheWriteMutex
 import dev.flammky.valorantcompanion.assets.conflate.ConflatedCacheWriteMutex
 import dev.flammky.valorantcompanion.assets.filesystem.PlatformFileSystem
+import dev.flammky.valorantcompanion.assets.map.ValorantMapImage
+import dev.flammky.valorantcompanion.assets.map.ValorantMapImageType
 import dev.flammky.valorantcompanion.assets.sync
+import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -25,12 +28,29 @@ class ValorantAssetRepository(
     private val profileCardUpdateListeners = mutableMapOf<String, MutableList<ProfileCardUpdateListener>>()
     private var profileCardUpdateDispatcher: Job = Job().apply { cancel() }
 
+    //
+    // TODO:
+    //  I don't think these should be cache's, but rather a downloadable content,
+    //  so it should be part of the internal `data` folder,
+    //  which we should implement with settings for user to dispose some of it if necessary
+    //
+
     private val playerCardFolderPath by lazy {
         with(platformFS) {
-            defaultInternalCacheFolder { cache ->
+            buildStringWithDefaultInternalCacheFolder { cache ->
                 cache
                     .appendFolder("assets")
                     .appendFolder("player_card")
+            }
+        }
+    }
+
+    private val valorantMapFolderPath by lazy {
+        with(platformFS) {
+            buildStringWithDefaultInternalCacheFolder { cache ->
+                cache
+                    .appendFolder("assets")
+                    .appendFolder("maps")
             }
         }
     }
@@ -61,6 +81,7 @@ class ValorantAssetRepository(
         type: PlayerCardArtType,
         data: ByteArray
     ): Result<Unit> = runCatching {
+        Log.d("ValorantAssetRepository.kt", "cachePlayerCard($id, $type, ${data.size})")
         withContext(Dispatchers.IO) {
             val fileName = id + "_" + type.name
             val file = with(platformFS) {
@@ -71,15 +92,90 @@ class ValorantAssetRepository(
             val mutex = synchronized(cacheWriteMutexes) {
                 cacheWriteMutexes.getOrPut(fileName) { ConflatedCacheWriteMutex() }
             }
-            mutex.write { handle ->
-                handle.ensureActive()
-                val bitmap = decodeByteArray(data, 0, data.size)
-                handle.ensureActive()
-                FileOutputStream(file).use { fos ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
+            mutex.write { _ ->
+                val fileOutputStream = FileOutputStream(file)
+                try {
+                    fileOutputStream.use { fos ->
+                        val lock = fos.channel.lock()
+                            ?: error("Could not lock FileChannel")
+                        try {
+                            val bmp = BitmapFactory
+                                .decodeByteArray(data, 0 , data.size)
+                                ?: error("Could not decode ByteArray")
+                            val out = bmp.compress(Bitmap.CompressFormat.PNG, 100, fos)
+                            if (!out) error("Could not compress PNG from decoded Bitmap")
+                        } finally {
+                            lock.release()
+                        }
+                    }
+                } catch (e: Exception) {
+                    file.delete()
+                    throw e
                 }
             }
             notifyUpdatedProfileCard(fileName, file.absolutePath)
+        }
+    }
+
+    suspend fun cacheMapImage(
+        id: String,
+        type: ValorantMapImageType,
+        data: ByteArray
+    ): Result<Unit> = runCatching {
+        Log.d("ValorantAssetRepository.kt", "cacheMapImage($id, $type, ${data.size})")
+        withContext(Dispatchers.IO) {
+            val fileName = id + "_" + type.name
+            val file = with(platformFS) {
+                File(playerCardFolderPath).mkdirs()
+                File(playerCardFolderPath.appendFile(fileName))
+            }
+            // use channel and single writer instead ?
+            val mutex = synchronized(cacheWriteMutexes) {
+                cacheWriteMutexes.getOrPut(fileName) { ConflatedCacheWriteMutex() }
+            }
+            mutex.write { _ ->
+                val fileOutputStream = FileOutputStream(file)
+                try {
+                    fileOutputStream.use { fos ->
+                        val lock = fos.channel.lock()
+                            ?: error("Could not lock FileChannel")
+                        try {
+                            val bmp = BitmapFactory
+                                .decodeByteArray(data, 0 , data.size)
+                                ?: error("Could not decode ByteArray")
+                            val out = bmp.compress(Bitmap.CompressFormat.PNG, 100, fos)
+                            if (!out) error("Could not compress PNG from decoded Bitmap")
+                        } finally {
+                            lock.release()
+                        }
+                    }
+                } catch (e: Exception) {
+                    file.delete()
+                    throw e
+                }
+            }
+            // TODO: notify
+        }
+    }
+
+    suspend fun loadCachedMapImage(
+        id: String,
+        types: ImmutableSet<ValorantMapImageType>,
+        awaitAnyWrite: Boolean
+    ): Result<File?> = runCatching {
+        withContext(Dispatchers.IO) {
+            types.forEach { type ->
+                val fileName = id + "_" + type.name
+                with(platformFS) { File(playerCardFolderPath.appendFile(fileName)) }
+                    .takeIf {
+                        if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
+                            cacheWriteMutexes[fileName]
+                        }?.awaitUnlock()
+                        Log.d("ValorantAssetRepository", "loadCachedPlayerCard($id), resolving $it, exist=${it.exists()}")
+                        it.exists()
+                    }?.let { return@withContext it }
+            }
+            null
         }
     }
 
