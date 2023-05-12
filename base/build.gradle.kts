@@ -39,16 +39,10 @@ dependencies {
     api("androidx.compose.ui:ui-tooling:$compose_ui_version")
     api("androidx.compose.ui:ui-tooling-preview:$compose_ui_version")
 
-    val vFoundation = "1.3.1"
-    // Foundation
-    api("androidx.compose.foundation:foundation:$vFoundation")
-
-    // Material
-    api("androidx.compose.material:material:$vFoundation")
-
-    // Material3
-    val vMaterial3 = "1.0.1"
-    api("androidx.compose.material3:material3:$vMaterial3")
+    api(libs.androidx.compose.foundation.foundation)
+    api(libs.androidx.compose.foundation.foundation.layout)
+    api(libs.androidx.compose.material.material)
+    api(libs.androidx.compose.material3.material3)
     api("io.insert-koin:koin-android:3.3.3")
     api("io.insert-koin:koin-androidx-compose:3.4.2")
     api("com.google.accompanist:accompanist-systemuicontroller:0.30.1")

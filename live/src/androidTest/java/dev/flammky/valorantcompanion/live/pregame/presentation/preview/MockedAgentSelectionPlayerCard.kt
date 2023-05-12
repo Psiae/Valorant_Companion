@@ -1,9 +1,12 @@
-package dev.flammky.valorantcompanion.live.pregame.presentation.test
+package dev.flammky.valorantcompanion.live.pregame.presentation.preview
 
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
 import dev.flammky.valorantcompanion.base.theme.material3.DefaultMaterial3Theme
+import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
+import dev.flammky.valorantcompanion.base.theme.material3.surfaceColorAsState
 import dev.flammky.valorantcompanion.assets.R as AssetResource
 import dev.flammky.valorantcompanion.live.pregame.presentation.AgentSelectionPlayerCard
 import dev.flammky.valorantcompanion.live.pregame.presentation.AgentSelectionPlayerCardState
@@ -20,6 +23,9 @@ private fun AgentSelectionPlayerCardPreviewWithNeon() {
             selectedAgentName = "Neon",
             selectedAgentIcon = LocalImageData.Resource(AssetResource.raw.neon_displayicon),
             selectedAgentIconKey = Unit,
+            selectedAgentRoleName = "Duelist",
+            selectedAgentRoleIcon = LocalImageData.Resource(AssetResource.raw.role_duelist_displayicon),
+            selectedAgentRoleIconKey = Unit,
             isLockedIn = false,
             tierName = "Ascendant 1",
             tierIcon = LocalImageData.Resource(AssetResource.raw.ascendant1_smallicon),
@@ -28,6 +34,8 @@ private fun AgentSelectionPlayerCardPreviewWithNeon() {
         )
     }
     DefaultMaterial3Theme(dark = true) {
-        AgentSelectionPlayerCard(state = state)
+        Surface(color = Material3Theme.surfaceColorAsState().value) {
+            AgentSelectionPlayerCard(state = state)
+        }
     }
 }

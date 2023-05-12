@@ -14,7 +14,7 @@ dependencyResolutionManagement {
         maven(url = "https://jitpack.io")
     }
     versionCatalogs {
-        val compose_ui_version = "1.4.0"
+        val compose_ui_version = "1.5.0-alpha02"
         create("libs") {
             library(
                 "koin.android",
@@ -47,6 +47,16 @@ dependencyResolutionManagement {
                 "ui"
             ).version(compose_ui_version)
             library(
+                "androidx.compose.foundation-foundation",
+                "androidx.compose.foundation",
+                "foundation"
+            ).version(compose_ui_version)
+            library(
+                "androidx.compose.foundation-foundation-layout",
+                "androidx.compose.foundation",
+                "foundation-layout"
+            ).version(compose_ui_version)
+            library(
                 "androidx.compose.ui.ui-tooling-preview",
                 "androidx.compose.ui",
                 "ui-tooling-preview"
@@ -55,7 +65,12 @@ dependencyResolutionManagement {
                 "androidx.compose.material.material",
                 "androidx.compose.material",
                 "material"
-            ).version("1.3.1")
+            ).version(compose_ui_version)
+            library(
+                "androidx.compose.material3.material3",
+                "androidx.compose.material3",
+                "material3"
+            ).version("1.1.0")
 
             // KTOR
             library(

@@ -1,9 +1,11 @@
 package dev.flammky.valorantcompanion.live.pregame.presentation
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -13,13 +15,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import dev.flammky.valorantcompanion.base.runRemember
+import dev.flammky.valorantcompanion.base.theme.material3.DefaultMaterial3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.LocalIsThemeDark
 import dev.flammky.valorantcompanion.live.shared.presentation.LocalImageData
 
@@ -27,7 +33,7 @@ import dev.flammky.valorantcompanion.live.shared.presentation.LocalImageData
 fun AgentSelectionPlayerCard(
     state: AgentSelectionPlayerCardState
 ) = AgentSelectionPlayerCardPlacement(
-    playerNameAvailable = state.playerGameName.isNotEmpty(),
+    titleAvailable = state.playerGameName.isNotEmpty(),
     agentPicture = { modifier ->
         AgentPicture(
             modifier = modifier,
@@ -36,7 +42,7 @@ fun AgentSelectionPlayerCard(
             agentName = state.selectedAgentName
         )
     },
-    playerName = { modifier ->
+    title = { modifier ->
         PlayerNameText(
             modifier = modifier,
             gameName = state.playerGameName,
@@ -44,11 +50,14 @@ fun AgentSelectionPlayerCard(
             isUser = state.isUser
         )
     },
-    agentName = { modifier ->
-        AgentNameText(
+    subtitle = { modifier ->
+        AgentIdentity(
             modifier = modifier,
             agentName = state.selectedAgentName,
-            state.isLockedIn
+            roleName = state.selectedAgentRoleName,
+            roleIcon = state.selectedAgentRoleIcon,
+            roleIconKey = state.selectedAgentRoleIconKey,
+            lockedIn = state.isLockedIn
         )
     },
     competitiveTierIcon = { modifier ->
@@ -63,10 +72,10 @@ fun AgentSelectionPlayerCard(
 
 @Composable
 private fun AgentSelectionPlayerCardPlacement(
-    playerNameAvailable: Boolean,
+    titleAvailable: Boolean,
     agentPicture: @Composable (Modifier) -> Unit,
-    playerName: @Composable (Modifier) -> Unit,
-    agentName: @Composable (Modifier) -> Unit,
+    title: @Composable (Modifier) -> Unit,
+    subtitle: @Composable (Modifier) -> Unit,
     competitiveTierIcon: @Composable (Modifier) -> Unit
 ) {
     Row(
@@ -79,17 +88,17 @@ private fun AgentSelectionPlayerCardPlacement(
                 .fillMaxHeight(1f)
                 .aspectRatio(1f, true)
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(8.dp))
         Column(
             modifier = Modifier.weight(2f, true)
         ) {
-            if (playerNameAvailable) {
+            if (titleAvailable) {
                 Row(modifier = Modifier.fillMaxHeight(0.5f)) {
-                    playerName(Modifier.align(Alignment.CenterVertically))
+                    title(Modifier.align(Alignment.CenterVertically))
                 }
             }
             Row(modifier = Modifier.fillMaxHeight(1f)) {
-                agentName(Modifier.align(Alignment.CenterVertically))
+                subtitle(Modifier.align(Alignment.CenterVertically))
             }
         }
         competitiveTierIcon(
@@ -147,8 +156,7 @@ private fun PlayerNameText(
         MaterialTheme.typography.labelMedium
     Row(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp),
+            .fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
 
@@ -185,23 +193,58 @@ private fun PlayerNameText(
 }
 
 @Composable
-private fun AgentNameText(
+private fun AgentIdentity(
     modifier: Modifier,
     agentName: String,
+    roleName: String,
+    roleIcon: LocalImageData<*>?,
+    roleIconKey: Any,
     lockedIn: Boolean
 ) {
     val textColor =
         if (LocalIsThemeDark.current) Color.White else Color.Black
-    Text(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 4.dp),
-        text = if (agentName.isNotEmpty() && lockedIn) agentName else "Picking...",
-        color = textColor,
-        style = MaterialTheme.typography.labelMedium,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis
-    )
+    val roleIconRetryHash = remember {
+        mutableStateOf(0)
+    }.runRemember(roleIconKey) {
+        value++
+    }
+    val ctx = LocalContext.current
+    val inspection = LocalInspectionMode.current
+    Row(modifier = modifier) {
+        // maybe add && if (roleIcon is LocalImageData.Resouce) rolceIcon.value != 0 else true
+        if (roleName.isNotEmpty() && roleIcon != null) {
+            AsyncImage(
+                modifier = Modifier
+                    .size(12.dp)
+                    .align(Alignment.CenterVertically),
+                model = remember(roleIconRetryHash) {
+                    ImageRequest.Builder(ctx)
+                        .run {
+                            if (inspection && roleIcon is LocalImageData.Resource) {
+                                placeholder(roleIcon.value)
+                            } else {
+                                data(roleIcon.value)
+                            }
+                        }
+                        .build()
+                },
+                colorFilter = ColorFilter.tint(if (LocalIsThemeDark.current) Color.White else Color.Black),
+                contentDescription = "$roleName role Icon"
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+        }
+        Text(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.CenterVertically),
+            text = if (lockedIn) agentName else "picking ...",
+            color = textColor,
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+
 }
 
 @Composable
