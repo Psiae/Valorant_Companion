@@ -24,14 +24,6 @@ class AgentSelectionPresenter(
         ally: PreGameTeam?,
         enemy: PreGameTeam?
     ): AgentSelectionState {
-        val state = remember(this) { AgentSelectionState() }
-
-        state
-            .apply {
-                updateAlly(ally)
-                updateEnemy(enemy)
-            }
-
-        return state
+        TODO()
     }
 }

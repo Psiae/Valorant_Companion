@@ -1,5 +1,8 @@
 package dev.flammky.valorantcompanion.pvp.agent
 
+import kotlinx.collections.immutable.persistentListOf
+import kotlin.reflect.KClass
+
 sealed class ValorantAgentIdentity(
     val uuid: String,
     val displayName: String,
@@ -266,6 +269,14 @@ sealed class ValorantAgentIdentity(
     )
 
     companion object {
+
+        private val SubclassesInstance by lazy {
+            ValorantAgentIdentity::class.sealedSubclasses.mapNotNullTo(
+                destination = persistentListOf<ValorantAgentIdentity>().builder(),
+                transform = KClass<out ValorantAgentIdentity>::objectInstance
+            )
+        }
+
         fun of(agent: ValorantAgent) = when(agent) {
             ValorantAgent.ASTRA -> ASTRA
             ValorantAgent.BREACH -> BREACH
@@ -289,5 +300,8 @@ sealed class ValorantAgentIdentity(
             ValorantAgent.VIPER -> VIPER
             ValorantAgent.YORU -> YORU
         }
+
+        fun iter(): Iterator<ValorantAgentIdentity> = SubclassesInstance.iterator()
+        fun asList(): List<ValorantAgentIdentity> = SubclassesInstance
     }
 }

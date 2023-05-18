@@ -5,10 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Icon
 import androidx.compose.material.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -42,34 +39,34 @@ fun MockableAgentSelectionPool(
     selectedAgent: String?,
     onSelected: (String) -> Unit
 ) {
+    val upOnSelected = rememberUpdatedState(newValue = onSelected)
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        val unlockedInPool = mutableListOf<@Composable () -> Unit>()
         val notUnlockedInPool = mutableListOf<@Composable () -> Unit>()
         agentPool.forEach { agent ->
             val identity = ValorantAgentIdentity.of(agent)
-            key(agent) {
-                val userAgent = identity.uuid == selectedAgent
-                val unlocked = unlockedAgents.any { it == identity.uuid }
-                val disabled = disabledAgents.any { it == identity.uuid }
-                val block = @Composable {
-                    SelectableAgentIcon(
-                        modifier = Modifier.size(45.dp),
-                        enabled = !userAgent && unlocked && !disabled,
-                        locked = !unlocked,
-                        data = LocalImageData.Resource(agentIconOf(agent)),
-                        dataKey = agent,
-                        agentName = identity.displayName,
-                        onSelected = { onSelected(identity.uuid) }
-                    )
-                }
-                if (unlocked) block.invoke()
-                else notUnlockedInPool.add(block)
+            val userAgent = identity.uuid == selectedAgent
+            val unlocked = unlockedAgents.any { it == identity.uuid }
+            val disabled = disabledAgents.any { it == identity.uuid }
+            val block = @Composable {
+                SelectableAgentIcon(
+                    modifier = Modifier.size(45.dp),
+                    enabled = !userAgent && unlocked && !disabled,
+                    locked = !unlocked,
+                    data = LocalImageData.Resource(agentIconOf(agent)),
+                    dataKey = agent,
+                    agentName = identity.displayName,
+                    onSelected = { upOnSelected.value(identity.uuid) }
+                )
             }
+            if (unlocked) unlockedInPool.add(block) else notUnlockedInPool.add(block)
         }
-        notUnlockedInPool.forEach { composable -> composable() }
+        unlockedInPool.forEach { composable -> composable.invoke() }
+        notUnlockedInPool.forEach { composable -> composable.invoke() }
     }
 }
 
@@ -113,7 +110,6 @@ private fun MockableAgentSelectionPoolPreview() {
                     onSelected = { selectedState.value = it }
                 )
             }
-
         }
     }
 }
@@ -199,7 +195,9 @@ private fun SelectableAgentIcon(
         }
         if (locked) {
             Icon(
-                modifier = Modifier.align(Alignment.Center).size(24.dp),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(24.dp),
                 painter = painterResource(id = R_ASSET.drawable.lock_fill0_wght400_grad0_opsz48),
                 contentDescription = "Locked Agent Icon of $agentName",
                 tint = Color.White
