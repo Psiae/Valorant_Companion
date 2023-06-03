@@ -13,7 +13,6 @@ import androidx.compose.material.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,7 +25,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import coil.compose.AsyncImagePainter
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.live.pingStrengthInRangeOf4
 import dev.flammky.valorantcompanion.live.pregame.presentation.*
@@ -34,6 +32,8 @@ import dev.flammky.valorantcompanion.live.shared.presentation.LocalImageData
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgent
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentRole
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import dev.flammky.valorantcompanion.assets.R as R_ASSET
 
 
@@ -51,13 +51,14 @@ fun MockableTeamAgentSelectionColumn() {
 
 @Composable
 @Preview(
+    name = "Team Agent Selection",
     uiMode = UI_MODE_NIGHT_YES,
     showBackground = true,
     backgroundColor = 0xFF1A1C1E
 )
-private fun TeamAgentSelectionColumnPreview(
-    // user: userPUUID,
-    // partyMembers: ImmutableList<String>
+fun TeamAgentSelectionColumnPreview(
+     user: String = "Dokka",
+     partyMembers: ImmutableList<String> = persistentListOf("Dokka", "Dex")
 ) {
     // TODO: state factory
     val mockedState = rememberMockedAgentSelectionPresenter().present()
@@ -85,7 +86,7 @@ private fun TeamAgentSelectionColumnPreview(
                                 index = i,
                                 name = name,
                                 nameTag = tag,
-                                incognito = player.identity.incognito,
+                                maskName = player.identity.incognito && player.puuid !in partyMembers,
                                 tier = player.competitiveTier,
                                 lockedIn =  player.characterSelectionState == CharacterSelectionState.LOCKED,
                                 selectedAgentName = if (player.characterSelectionState != CharacterSelectionState.NONE) {
@@ -237,15 +238,15 @@ private fun mockPlayerCardState(
     index: Int,
     name: String,
     nameTag: String,
-    incognito: Boolean,
+    maskName: Boolean,
     tier: Int,
     lockedIn: Boolean,
     selectedAgentName: String,
     selectedAgentRoleName: String,
     isUser: Boolean
 ): AgentSelectionPlayerCardState = AgentSelectionPlayerCardState(
-    playerGameName = name.takeIf { !incognito } ?: "Player ${index + 1}",
-    playerGameNameTag = nameTag.takeIf { !incognito } ?: "",
+    playerGameName = name.takeIf { !maskName } ?: "Player ${index + 1}",
+    playerGameNameTag = nameTag.takeIf { !maskName } ?: "",
     hasSelectedAgent = true,
     selectedAgentName = selectedAgentName,
     selectedAgentIcon = LocalImageData.Resource(agentDisplayIcon(selectedAgentName)),
@@ -402,7 +403,6 @@ private fun Draw4PingBar(
                 val n = i + 1
                 val height = (maxHeight.value * (n.toFloat() / 4)).dp
                 val width = maxHeight / 4
-                Log.d("Draw4PingBar", "n=$n, w=$width, h=$height")
                 Box(
                     modifier = Modifier
                         .height(height)

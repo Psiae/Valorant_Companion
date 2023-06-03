@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LivePreGame(
     modifier: Modifier,
-    state: LivePreGameState
+    state: LivePreGameUIState
 ) {
     LivePreGamePlacement(
         modifier,
@@ -60,7 +60,7 @@ private fun LivePreGamePlacement(
 
 @Composable
 private fun Background(
-    state: LivePreGameState,
+    state: LivePreGameUIState,
     assetsService: ValorantAssetsService
 ) {
     val mapName = state.mapName
@@ -110,7 +110,7 @@ private fun Background(
 
 @Composable
 private fun TopBarInfo(
-    state: LivePreGameState
+    state: LivePreGameUIState
 ) {
     val textColor = if (LocalIsThemeDark.current) Color.White else Color.Black
     Column(

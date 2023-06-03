@@ -14,13 +14,18 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import io.ktor.client.HttpClient as KtorHttpClient
 
-internal class KtorWrappedHttpClient() : HttpClient() {
+internal class KtorWrappedHttpClient(
+    lifetime: Job? = null
+) : HttpClient() {
 
     private val self: KtorHttpClient = KtorHttpClient(OkHttp) {
         install(ContentNegotiation) {
@@ -38,6 +43,17 @@ internal class KtorWrappedHttpClient() : HttpClient() {
                 }
                 level = LogLevel.ALL
             }
+        }
+    }
+
+    init {
+        lifetime?.invokeOnCompletion { ex ->
+            self.cancel(
+                CancellationException(
+                    message = "Lifetime Completed",
+                    cause = ex
+                )
+            )
         }
     }
 

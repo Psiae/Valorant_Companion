@@ -6,4 +6,18 @@ data class SeasonalBadgeInfo(
     val winsByTier: Any?,
     val rank: Int,
     val leaderBoardRank: Int
-)
+) {
+
+    companion object {
+
+        val UNSET by lazy {
+            SeasonalBadgeInfo(
+                "",
+                0,
+                null,
+                0,
+                0
+            )
+        }
+    }
+}

@@ -24,6 +24,7 @@ import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.pvp.party.PartyService
 import dev.flammky.valorantcompanion.pvp.party.PartyState
+import dev.flammky.valorantcompanion.pvp.party.ex.PlayerNotFoundException
 import dev.flammky.valorantcompanion.pvp.party.PlayerPartyData as DomainPlayerPartyData
 import dev.flammky.valorantcompanion.pvp.party.PlayerPartyMemberData as DomainPlayerPartyMemberData
 import dev.flammky.valorantcompanion.pvp.party.ex.PlayerPartyNotFoundException
@@ -33,32 +34,33 @@ import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import org.koin.androidx.compose.get as getFromKoin
 
 @Composable
-fun LiveParty(
+fun LivePartyUI(
     modifier: Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
-        LiveParty(
+        LivePartyUI(
+            padding = PaddingValues(15.dp),
             state = rememberLivePartyPresenter().present()
         )
     }
 }
 
 @Composable
-private fun LiveParty(
-    state: LivePartyState
+private fun LivePartyUI(
+    state: LivePartyState,
+    padding: PaddingValues,
 ) {
     val isBackgroundDark = LocalIsThemeDark.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(15.dp)
+            .padding(padding)
             .background(
                 color = run {
                     if (isBackgroundDark) {
@@ -301,8 +303,11 @@ class LivePartyState(
                 exceptionMessage = "Could not find Player party, make sure Valorant Client is " +
                         "running with valid connection"
                 return@run
+            } else if (ex is PlayerNotFoundException) {
+                exceptionMessage = "Could not find Player resource, try entering a match then try again"
+                return@run
             }
-            exceptionMessage = ex.cause?.message ?: ex.message ?: "unexpected error occurred"
+            exceptionMessage = ex.message ?: "unexpected error occurred"
         }
         partyDataState.value = null
     }
@@ -376,15 +381,15 @@ private fun mapToPlayerPartyData(
     pvp: DomainPlayerPartyData,
 ): PlayerPartyData {
     return PlayerPartyData(
-        pvp.party_id,
-        pvp.matchmakingData.queueId,
-        persistentListOf<PlayerPartyMemberInfo>().mutate { list ->
+        partyID = pvp.party_id,
+        matchmakingQueueID = pvp.matchmakingData.queueId,
+        members = persistentListOf<PlayerPartyMemberInfo>().mutate { list ->
             pvp.members.forEach { member -> list.add(mapToPlayerPartyMemberData(member)) }
         },
-        pvp.eligibleQueues.toPersistentList(),
-        pvp.matchmakingData.preferredGamePods.toPersistentList(),
-        pvp.state == PartyState.toPartyDataString(PartyState.MATCHMAKING),
-        runCatching { Instant.parse(pvp.queueEntryTime).toEpochMilliseconds().milliseconds }
+        eligible = pvp.eligibleQueues.toPersistentList(),
+        preferredPods = pvp.matchmakingData.preferredGamePods.toPersistentList(),
+        inQueue = pvp.state == PartyState.toPartyDataString(PartyState.MATCHMAKING),
+        timeStamp = runCatching { Instant.parse(pvp.queueEntryTime).toEpochMilliseconds().milliseconds }
             .onFailure {
                 it.printStackTrace()
             }

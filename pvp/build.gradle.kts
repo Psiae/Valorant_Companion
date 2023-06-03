@@ -30,6 +30,7 @@ android {
 dependencies {
     implementation(project(":base"))
     implementation(project(":auth"))
+    implementation(project(":assets"))
 
     implementation(libs.androidx.core.core.ktx)
     implementation(libs.koin.android)
@@ -43,4 +44,5 @@ dependencies {
     implementation(libs.io.ktor.ktor.serialization.kotlinx.json)
     implementation(libs.org.jetbrains.kotlinx.kotlinx.collections.immutable)
     implementation(kotlin("reflect"))
+    implementation(libs.org.jetbrains.kotlinx.kotlinx.datetime)
 }

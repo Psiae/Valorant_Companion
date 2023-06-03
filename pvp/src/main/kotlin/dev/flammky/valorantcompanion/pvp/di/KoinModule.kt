@@ -11,6 +11,8 @@ import dev.flammky.valorantcompanion.pvp.party.PartyService
 import dev.flammky.valorantcompanion.pvp.party.internal.RealPartyService
 import dev.flammky.valorantcompanion.pvp.player.NameService
 import dev.flammky.valorantcompanion.pvp.player.internal.RealNameService
+import dev.flammky.valorantcompanion.pvp.pregame.PreGameService
+import dev.flammky.valorantcompanion.pvp.pregame.internal.RealPreGameService
 import org.koin.dsl.module
 
 val KoinPvpModule = module {
@@ -32,6 +34,12 @@ val KoinPvpModule = module {
         )
     }
     single<NameService> {
-        RealNameService(KtorWrappedHttpClient())
+        RealNameService(KtorWrappedHttpClient(), get())
+    }
+    single<PreGameService> {
+        RealPreGameService(
+            authService = get(),
+            geoRepository = get()
+        )
     }
 }

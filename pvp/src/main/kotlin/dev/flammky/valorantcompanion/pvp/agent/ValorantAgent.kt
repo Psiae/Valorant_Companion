@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.pvp.agent
 
+import dev.flammky.valorantcompanion.pvp.util.mapSealedObjectInstancesToPersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.internal.ReflectProperties.Val
@@ -51,10 +52,7 @@ sealed class ValorantAgent {
     companion object {
 
         private val SUBCLASSES by lazy {
-            ValorantAgent::class.sealedSubclasses.mapNotNullTo(
-                destination = persistentListOf<ValorantAgent>().builder(),
-                transform = KClass<out ValorantAgent>::objectInstance
-            )
+            ValorantAgent::class.mapSealedObjectInstancesToPersistentList()
         }
 
         fun iter(): Iterator<ValorantAgent> = SUBCLASSES.iterator()

@@ -35,8 +35,9 @@ class LoginScreenState(
     fun onLogin(
         def: Deferred<*>
     ) {
-        check(loginInstance?.isCompleted() != false)
-        loginInstance = LoginInstanceState(def)
+        if (loginInstance?.isCompleted() != true) {
+            loginInstance = LoginInstanceState(def)
+        }
     }
 }
 

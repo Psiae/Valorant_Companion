@@ -13,7 +13,7 @@ fun LivePartyColumn(
         val dataKey = remember(data) { Any() }
         data.members.forEach { info ->
 
-            key(info.puuid) {
+            key(info) {
                 PartyColumnMemberCard(
                     modifier = Modifier.height(42.dp),
                     state = rememberPartyColumnMemberCardPresenter().present(

@@ -86,7 +86,7 @@ class MockedAgentSelectionPresenter() {
                         characterSelectionState = CharacterSelectionState.SELECTED,
                         pregamePlayerState = PreGamePlayerState.JOINED,
                         competitiveTier = 20,
-                        identity = PreGamePlayerInfo("Dex", "", "", 100, "", false, false),
+                        identity = PreGamePlayerInfo("Dex", "", "", 100, "", true, false),
                         seasonalBadgeInfo = SeasonalBadgeInfo("", 100, null, 0, 0),
                         isCaptain = true
                     ),
@@ -126,7 +126,7 @@ class MockedAgentSelectionPresenter() {
                         characterSelectionState = CharacterSelectionState.NONE,
                         pregamePlayerState = PreGamePlayerState.JOINED,
                         competitiveTier = 24,
-                        identity = PreGamePlayerInfo("Lock", "", "", 100, "", false, false),
+                        identity = PreGamePlayerInfo("Lock", "", "", 100, "", true, false),
                         seasonalBadgeInfo = SeasonalBadgeInfo("", 100, null, 0, 0),
                         isCaptain = false
                     )

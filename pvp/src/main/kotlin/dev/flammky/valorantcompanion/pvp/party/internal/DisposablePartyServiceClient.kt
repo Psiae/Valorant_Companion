@@ -10,6 +10,7 @@ import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpResponse
 import dev.flammky.valorantcompanion.pvp.party.*
+import dev.flammky.valorantcompanion.pvp.party.ex.PlayerNotFoundException
 import dev.flammky.valorantcompanion.pvp.party.ex.PlayerPartyNotFoundException
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
@@ -98,6 +99,7 @@ internal class DisposablePartyServiceClient(
                     ?.removeSurrounding("\"")
                     ?.let { code ->
                         if (code == "RESOURCE_NOT_FOUND") throw PlayerPartyNotFoundException()
+                        if (code == "PLAYER_DOES_NOT_EXIST") throw PlayerNotFoundException()
                     }
                 unexpectedResponse("Unable to fetch Player Party Info (404)")
             }

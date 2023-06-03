@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.pvp.player.internal
 
+import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
 import dev.flammky.valorantcompanion.pvp.http.ktor.KtorWrappedHttpClient
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
@@ -11,7 +12,8 @@ import kotlinx.serialization.json.*
 
 internal class RealNameService(
     // TODO: should provide builder
-    private val httpClient: KtorWrappedHttpClient
+    private val httpClient: KtorWrappedHttpClient,
+    private val authService: RiotAuthService
 ) : NameService {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
@@ -26,11 +28,18 @@ internal class RealNameService(
         coroutineScope.launch(Dispatchers.IO) {
             def.completeWith(
                 runCatching {
+                    val auth_token = authService.get_authorization(request.signedInUserPUUID)
+                        .getOrElse { error("Unable to get authorization token") }.access_token
+                    val entitlement_token = authService.get_entitlement_token(request.signedInUserPUUID)
+                        .getOrElse { error("Unable to get entitlement token") }
                     val response = httpClient.jsonRequest(
                         JsonHttpRequest(
                             method = "PUT",
                             url ="https://pd.${request.shard.assignedUrlName}.a.pvp.net/name-service/v2/players",
-                            headers = emptyList(),
+                            headers = buildList {
+                                add("Authorization" to "Bearer $auth_token")
+                                add("X-Riot-Entitlements-JWT" to entitlement_token)
+                            },
                             body = buildJsonArray {
                                 request.lookupPUUIDs.forEach { add(JsonPrimitive(it)) }
                             }

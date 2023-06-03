@@ -1,5 +1,7 @@
 package dev.flammky.valorantcompanion.pvp
 
+import dev.flammky.valorantcompanion.base.RiotClient
+
 object PVPClient {
-    const val VERSION = "release-06.08-14-872043"
+    const val VERSION = RiotClient.VERSION
 }

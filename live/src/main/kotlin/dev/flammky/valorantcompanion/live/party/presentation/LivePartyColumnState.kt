@@ -2,6 +2,7 @@ package dev.flammky.valorantcompanion.live.party.presentation
 
 import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
+import dev.flammky.valorantcompanion.live.BuildConfig
 import dev.flammky.valorantcompanion.pvp.party.PartyChangePreferredPodsRequest
 import dev.flammky.valorantcompanion.pvp.party.PartyService
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
@@ -71,7 +72,7 @@ class LivePartyColumnPresenter(
                     val geo = geo.getGeoShardInfo(userPuuid)
                         ?: error("Unable to retrieve GeoShard info")
                     val get = nameService.getPlayerNameAsync(
-                        GetPlayerNameRequest(geo.shard, partyData.members.map { it.puuid })
+                        GetPlayerNameRequest(geo.shard, userPuuid, partyData.members.map { it.puuid })
                     ).await()
                     val map = persistentMapOf<String, Result<PlayerPartyMemberName>>().mutate { map ->
                         partyData.members.forEach { member ->
@@ -131,6 +132,7 @@ class LivePartyColumnState(
                         partyMemberNameLookupResults.value = persistentMapOf()
                     }
             }.onFailure {
+                if (BuildConfig.DEBUG) it.printStackTrace()
                 partyMemberNameLookupResults.value = persistentMapOf()
             }
         }

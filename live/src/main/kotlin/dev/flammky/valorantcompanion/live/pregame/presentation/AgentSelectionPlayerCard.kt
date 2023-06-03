@@ -192,6 +192,8 @@ private fun PlayerNameText(
     }
 }
 
+
+// TODO: might be better to show a lock icon instead
 @Composable
 private fun AgentIdentity(
     modifier: Modifier,

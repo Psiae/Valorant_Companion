@@ -4,6 +4,7 @@ import dev.flammky.valorantcompanion.auth.riot.region.RiotShard
 
 class GetPlayerNameRequest(
     val shard: RiotShard,
+    val signedInUserPUUID: String,
     val lookupPUUIDs: List<String>
 ) {
 }
