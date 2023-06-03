@@ -330,22 +330,48 @@ class LivePartyPresenter(
         val activeAccountState = remember(this) {
             mutableStateOf<AuthenticatedAccount?>(null)
         }
+        DisposableEffect(
+            this,
+        ) {
+            val listener = ActiveAccountListener { old, new ->
+                activeAccountState.value = new
+            }
+            authRepository.registerActiveAccountChangeListener(
+                listener
+            )
+            onDispose {
+                authRepository.unRegisterActiveAccountListener(listener)
+            }
+        }
+        return present(puuid = activeAccountState.value?.model?.id ?: "")
+    }
+
+    @Composable
+    fun present(
+        puuid: String
+    ): LivePartyState {
+        val coroutineScope = rememberCoroutineScope()
         val partyServiceClient = remember(this) {
             partyService.createClient()
         }
-        val coroutineScope = rememberCoroutineScope()
-        val state = remember(activeAccountState.value, partyServiceClient) {
-            val acc = activeAccountState.value
+        DisposableEffect(
+            this,
+        ) {
+            onDispose {
+                partyServiceClient.dispose()
+            }
+        }
+        return remember(puuid, partyServiceClient) {
             LivePartyState(
-                acc?.model?.id ?: "",
+                puuid,
                 fetch = {
-                    acc?.let {
+                    puuid.takeIf { it.isNotBlank() }?.let {
                         val def = CompletableDeferred<PlayerPartyData>()
                         coroutineScope.launch {
                             def.completeWith(
                                 result = runCatching {
                                     val pvpPartyData = partyServiceClient
-                                        .fetchSignedInPlayerPartyDataAsync(it.model.id)
+                                        .fetchSignedInPlayerPartyDataAsync(puuid)
                                         .await()
                                     mapToPlayerPartyData(pvpPartyData)
                                 }.onFailure {
@@ -359,21 +385,6 @@ class LivePartyPresenter(
                 coroutineScope
             )
         }
-        DisposableEffect(
-            this,
-        ) {
-            val listener = ActiveAccountListener { old, new ->
-                activeAccountState.value = new
-            }
-            authRepository.registerActiveAccountChangeListener(
-                listener
-            )
-            onDispose {
-                authRepository.unRegisterActiveAccountListener(listener)
-                partyServiceClient.dispose()
-            }
-        }
-        return state
     }
 }
 

@@ -9,5 +9,23 @@ data class UserMatchInfoUIState(
     val mapName: String,
     val gameModeName: String,
     val gamePodName: String,
-    val gamePodPingMs: Int
-)
+    val gamePodPingMs: Int,
+    val showLoading: Boolean,
+    val errorMessage: String?
+) {
+
+    companion object {
+        val UNSET by lazy {
+            UserMatchInfoUIState(
+                inPreGame = false,
+                inGame = false,
+                mapName = "",
+                gameModeName = "",
+                gamePodName = "",
+                gamePodPingMs = -1,
+                showLoading = false,
+                errorMessage = null
+            )
+        }
+    }
+}

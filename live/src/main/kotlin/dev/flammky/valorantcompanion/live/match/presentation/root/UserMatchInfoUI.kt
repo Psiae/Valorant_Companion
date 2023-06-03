@@ -6,12 +6,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
@@ -24,12 +26,13 @@ import dev.flammky.valorantcompanion.live.pregame.presentation.root.PreGameInfoU
 
 @Composable
 fun UserMatchInfoUI(
+    modifier: Modifier,
     state: UserMatchInfoUIState,
     openDetail: () -> Unit,
     refresh: () -> Unit
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 15.dp)
             .background(
@@ -76,22 +79,42 @@ fun UserMatchInfoUI(
                 .padding(vertical = 6.dp),
             color = Material3Theme.surfaceVariantColorAsState().value
         )
-        when {
-            state.inPreGame -> PreGameInfoUICard(
-                mapName = state.mapName,
-                gameModeName = state.gameModeName,
-                gamePodName = state.gamePodName,
-                gamePodPingMs = state.gamePodPingMs,
-                openDetail = openDetail
-            )
-            state.inGame -> InGameInfoUI(
-                mapName = state.mapName,
-                gameModeName = state.gameModeName,
-                gamePodName = state.gamePodName,
-                gamePodPingMs = state.gamePodPingMs,
-                openDetail = openDetail
-            )
-            else -> NotInMatchUI()
+        Box() {
+            Box(
+                modifier = Modifier
+                    .alpha(if (state.showLoading) 0.38f else 1f)
+            ) {
+                when {
+                    state.inPreGame -> PreGameInfoUICard(
+                        mapName = state.mapName,
+                        gameModeName = state.gameModeName,
+                        gamePodName = state.gamePodName,
+                        gamePodPingMs = state.gamePodPingMs,
+                        openDetail = openDetail
+                    )
+                    state.inGame -> InGameInfoUI(
+                        mapName = state.mapName,
+                        gameModeName = state.gameModeName,
+                        gamePodName = state.gamePodName,
+                        gamePodPingMs = state.gamePodPingMs,
+                        openDetail = openDetail
+                    )
+                    state.errorMessage != null -> ErrorUI(errorMessage = state.errorMessage)
+                    else -> NotInMatchUI()
+                }
+            }
+            if (state.showLoading) {
+                Box(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp))
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(32.dp),
+                    color = Color.Red,
+                    strokeWidth = 2.dp
+                )
+            }
         }
     }
 }
@@ -150,7 +173,9 @@ private fun InGameInfoUI(
             )
         }
         Icon(
-            modifier = Modifier.size(24.dp).align(Alignment.CenterVertically),
+            modifier = Modifier
+                .size(24.dp)
+                .align(Alignment.CenterVertically),
             painter = painterResource(id = ASSET_R.drawable.right_arrow_100),
             contentDescription = "open detail",
             tint = Material3Theme.surfaceContentColorAsState().value
@@ -169,6 +194,23 @@ private fun NotInMatchUI() = Box(
         modifier = Modifier.align(Alignment.Center),
         text = "Not In a Match".uppercase(),
         color = Material3Theme.backgroundContentColorAsState().value.copy(alpha = 0.38f),
+        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+    )
+}
+
+@Composable
+private fun ErrorUI(
+    errorMessage: String
+) = Box(
+    modifier = Modifier
+        .fillMaxWidth()
+        .heightIn(min = 20.dp)
+        .padding(vertical = 8.dp, horizontal = 10.dp)
+) {
+    Text(
+        modifier = Modifier.align(Alignment.Center),
+        text = errorMessage.ifEmpty { "unexpected error occurred" },
+        color = MaterialTheme.colorScheme.error,
         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
     )
 }

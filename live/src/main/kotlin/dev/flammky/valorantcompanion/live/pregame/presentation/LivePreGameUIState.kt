@@ -14,7 +14,9 @@ data class LivePreGameUIState(
     val ally: PreGameTeam?,
     val enemy: PreGameTeam?,
     val isProvisioned: Boolean,
-    val errorMessage: String,
+    val errorMessage: String?,
+    val showLoading: Boolean,
+    val isAutoRefreshOn: Boolean,
     val eventSink: (Event) -> Unit
 ) {
 
@@ -33,7 +35,7 @@ data class LivePreGameUIState(
         val UNSET by lazy {
             LivePreGameUIState(
                 inPreGame = false,
-                errorMessage = "",
+                errorMessage = null,
                 mapName = "",
                 gameModeName = "",
                 gamePodName = "",
@@ -42,6 +44,8 @@ data class LivePreGameUIState(
                 ally = PreGameTeam.UNSET,
                 enemy = PreGameTeam.UNSET,
                 isProvisioned = false,
+                showLoading = false,
+                isAutoRefreshOn = false,
                 eventSink = { _ ->  }
             )
         }

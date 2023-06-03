@@ -30,8 +30,12 @@ internal class DisposablePreGameClient(
         val def = CompletableDeferred<Result<PreGameMatchData>>()
 
         coroutineScope.launch(Dispatchers.IO) {
-            def.complete(getUserLatestPreGameData())
+            def.complete(
+                getUserLatestPreGameData()
+                    .onFailure { ex -> ex.printStackTrace() }
+            )
         }.invokeOnCompletion { ex ->
+            ex?.printStackTrace()
             ex?.let { def.completeExceptionally(ex) }
             check(def.isCompleted)
         }
@@ -53,8 +57,11 @@ internal class DisposablePreGameClient(
                             else -> throw e
                         }
                     }
-                }
+                }.onFailure { ex -> ex.printStackTrace() }
             )
+        }.invokeOnCompletion { ex ->
+            ex?.let { def.completeExceptionally(ex) }
+            check(def.isCompleted)
         }
 
         return def
@@ -108,7 +115,7 @@ internal class DisposablePreGameClient(
                         response.body.jsonObjectOrNull
                             ?.get("errorCode")
                             ?.jsonPrimitiveOrNull
-                            ?.toString() == "RESOURCE_NOT_FOUND"
+                            ?.content == "PREGAME_MNF"
                     ) {
                         throw PreGameNotFoundException()
                     }
@@ -133,7 +140,7 @@ internal class DisposablePreGameClient(
                JsonHttpRequest(
                    method = "GET",
                    url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}" +
-                           ".a.pvp.net/core-game/v1/players/$puuid",
+                           ".a.pvp.net/pregame/v1/players/$puuid",
                    headers = listOf(
                        "X-Riot-Entitlements-JWT" to entitlement_token,
                        "Authorization" to "Bearer $access_token"
@@ -150,8 +157,7 @@ internal class DisposablePreGameClient(
                        response.body.jsonObjectOrNull
                            ?.get("errorCode")
                            ?.jsonPrimitiveOrNull
-                           ?.toString()
-                           ?.removeSurrounding("\"")== "RESOURCE_NOT_FOUND"
+                           ?.content == "RESOURCE_NOT_FOUND"
                    ) {
                         throw PreGameNotFoundException()
                    }
@@ -251,7 +257,7 @@ internal class DisposablePreGameClient(
                     .toInt()
             },
             state = run {
-                val propName = "PreGameState"
+                val propName = "PregameState"
                 element
                     .expectJsonProperty(propName)
                     .expectJsonPrimitive(propName)
@@ -333,12 +339,9 @@ internal class DisposablePreGameClient(
                     .expectJsonPrimitive(propName)
                     .expectNotJsonNull(propName)
                     .content
-                    .also {
-                        expectNonBlankJsonString(propName, it)
-                    }
             },
             provisioningFlow = run {
-                val propName = "ProvisioningFlow"
+                val propName = "ProvisioningFlowID"
                 element
                     .expectJsonProperty(propName)
                     .expectJsonPrimitive(propName)
@@ -440,9 +443,6 @@ internal class DisposablePreGameClient(
                     .expectJsonPrimitive(propName)
                     .expectNotJsonNull(propName)
                     .content
-                    .also {
-                        expectNonBlankJsonString(propertyName = propName, content = it)
-                    }
             },
             preGameCharacterSelectionState = run {
                 val propName = "CharacterSelectionState"
@@ -451,9 +451,6 @@ internal class DisposablePreGameClient(
                     .expectJsonPrimitive(propName)
                     .expectNotJsonNull(propName)
                     .content
-                    .also {
-                        expectNonBlankJsonString(propertyName = propName, content = it)
-                    }
                     .let {
                         PreGameCharacterSelectionState.parse(it)
                             ?: unexpectedJsonValueError(
