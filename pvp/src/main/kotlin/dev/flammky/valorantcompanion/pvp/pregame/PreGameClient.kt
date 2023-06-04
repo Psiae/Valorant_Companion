@@ -8,6 +8,8 @@ interface PreGameClient {
 
     fun hasPreGameMatchData(): Deferred<Result<Boolean>>
 
+    fun fetchPingMillis(): Deferred<Result<Map<String, Int>>>
+
     fun dispose()
 
     fun lockAgent(

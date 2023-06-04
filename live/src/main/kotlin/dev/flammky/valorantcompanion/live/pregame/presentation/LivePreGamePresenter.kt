@@ -60,51 +60,58 @@ class LivePreGamePresenter(
     fun present(
         puuid: String
     ): LivePreGameUIState {
-        return rememberLocalProducer().apply { onRemembered() }.produceState(puuid = puuid)
+        return rememberLocalProducer(puuid).produceState()
     }
 
     @Composable
-    private fun rememberLocalProducer(): LivePreGameUIProducer {
-        return remember {
-            LivePreGameUIProducer()
+    private fun rememberLocalProducer(
+        puuid: String
+    ): LivePreGameUIProducer {
+        return remember(puuid) {
+            LivePreGameUIProducer(puuid)
         }
     }
 
-    // TODO: stateless puuid
-    private inner class LivePreGameUIProducer(): RememberObserver {
+    private inner class LivePreGameUIProducer(
+        val puuid: String
+    ): RememberObserver {
 
         private val lifetime = SupervisorJob()
-        private val _state = mutableStateOf(LivePreGameUIState.UNSET)
-        private var _puuid: String = ""
-        private var _client: PreGameClient? = null
-        private var _supervisor = SupervisorJob(lifetime)
+        private val state = mutableStateOf(LivePreGameUIState.UNSET)
+        private var client: PreGameClient? = null
         private var rememberedByComposition = false
         private var forgottenByComposition = false
         private var rememberCoroutineScope: CoroutineScope? = null
         private val gamePodsPings = mutableMapOf<String, Int>()
-        private var userRefresh: Job? = null
-        private var autoRefresh: Job? = null
-        private var autoRefreshScheduler: Job? = null
-        private var lastRefreshStamp: Long = -1
+        private var initialDataRefresh: Job? = null
+        private var userDataRefresh: Job? = null
+        private var autoDataRefresh: Job? = null
+        private var latestDataRefresh: Job? = null
+        private var autoDataRefreshScheduler: Job? = null
+        private var pingRefresh: Job? = null
+        private var lastDataRefreshStamp: Long = -1
+        private var lastPingRefreshStamp: Long = -1
+        private var pingRefreshPolls = 0
+            set(value) {
+                check(value >= 0) {
+                    "pingRefreshPolls should not be set to negative value=$value, field=$field"
+                }
+                field = value
+            }
+
 
         @Composable
-        fun produceState(
-            puuid: String
-        ): LivePreGameUIState {
-
-            check(rememberedByComposition) {
-                "produceState is called before onRemembered"
-            }
+        fun produceState(): LivePreGameUIState {
 
             check(!forgottenByComposition) {
                 "produceState is called after onForgotten"
             }
-            
-            if (puuid != _puuid) {
-                newPuuidSideEffect(puuid)
-            }
 
-            return _state.value
+            // remember callback is invoked after successful composition
+            // call it here to prepare immediately
+            onRemembered()
+
+            return state.value
         }
         override fun onAbandoned() {
             dispose()
@@ -120,12 +127,12 @@ class LivePreGamePresenter(
             if (rememberedByComposition) return
             rememberedByComposition = true
             rememberCoroutineScope = CoroutineScope(SupervisorJob(lifetime) + Dispatchers.Main.immediate)
+            prepare()
         }
 
         private fun dispose() {
             lifetime.cancel()
-            _supervisor.cancel()
-            _client?.dispose()
+            client?.dispose()
         }
 
         private fun eventSink(
@@ -141,58 +148,35 @@ class LivePreGamePresenter(
             }
         }
 
-        private fun newPuuidSideEffect(
-            puuid: String
-        ) {
-            _puuid = puuid
-            _state.value = LivePreGameUIState.UNSET
-            _client?.dispose()
-            _client = pregameService.createClient(puuid)
-            _supervisor.cancel()
-            _supervisor = SupervisorJob(lifetime)
-            userRefresh?.cancel()
-            autoRefresh?.cancel()
-            autoRefreshScheduler?.cancel()
-            newClientSideEffect()
-        }
-
-        private fun newClientSideEffect() {
-            if (_puuid.isBlank()) return
-            mutateState(_supervisor) { state ->
-                state
-                    .copy(
-                        eventSink = run {
-                            val client = _client!!
-                            { event -> eventSink(client, event) }
-                        }
-                    )
-                    // TODO: remove when have toggle
-                    .also { it.eventSink(LivePreGameUIState.Event.SET_AUTO_REFRESH(true)) }
-            }
+        private fun prepare() {
+            client = pregameService.createClient(puuid)
+            state.value = initialState()
             initialStateRefresh()
         }
 
+        private fun initialState(): LivePreGameUIState {
+            return LivePreGameUIState.UNSET
+                .copy(
+                    eventSink = run {
+                        val client = client!!
+                        { event -> eventSink(client, event) }
+                    }
+                )
+                // TODO: remove when have toggle
+                .also { it.eventSink(LivePreGameUIState.Event.SET_AUTO_REFRESH(true)) }
+        }
+
         private fun initialStateRefresh() {
-            val supervisor = _supervisor
-            userRefresh = rememberCoroutineScope!!.launch(supervisor) {
-                mutateState(supervisor) { state ->
-                    state.copy(showLoading = true)
-                }
-                val def = _client!!.fetchCurrentPreGameMatchData()
-                def.await()
-                    .onSuccess { data ->
-                        newData(supervisor, data)
-                    }
-                    .onFailure { ex ->
-                        fetchFail(supervisor, ex as Exception)
-                    }
+            initialDataRefresh = rememberCoroutineScope!!.launch(lifetime) {
+                refresh("initialStateRefresh", true)
+            }.also {
+                latestDataRefresh = it
             }
         }
 
         private fun newData(
-            supervisor: Job,
             data: PreGameMatchData
-        ) = mutateState(supervisor) { state ->
+        ) = mutateState("newData") { state ->
             state.copy(
                 inPreGame = true,
                 mapName = ValorantMapIdentity.fromID(data.mapId)?.display_name ?: "UNKNOWN_MAP_NAME",
@@ -204,13 +188,14 @@ class LivePreGamePresenter(
                             "UNKNOWN_GAME_MODE"
                         }
                     },
+                gamePodId = data.gamePodId,
                 gamePodName = toGamePodName(data.gamePodId),
                 gamePodPing = gamePodsPings[data.gamePodId] ?: -1,
                 countDown = data.phaseTimeRemainingNS.nanoseconds,
                 ally = run {
                     val team = data.allyTeam
                         ?: data.teams.find { team ->
-                            team.players.any { player -> player.puuid == _puuid }
+                            team.players.any { player -> player.puuid == puuid }
                         }
                     team?.let { mapToUiPreGameTeam(it) }
                 },
@@ -274,12 +259,12 @@ class LivePreGamePresenter(
         }
 
         private fun fetchFail(
-            supervisor: Job,
             ex: Exception
-        ) = mutateState(supervisor) { state ->
+        ) = mutateState("fetchFail") { state ->
             state.copy(
                 inPreGame = false,
                 mapName = "",
+                gamePodId = "",
                 gameModeName = "",
                 gamePodPing = -1,
                 countDown = Duration.INFINITE,
@@ -295,15 +280,12 @@ class LivePreGamePresenter(
         }
 
         private fun mutateState(
-            supervisor: Job,
+            causeActionName: String,
             mutate: (LivePreGameUIState) -> LivePreGameUIState
         ) {
-            check(
-                Looper.myLooper()
-                    ?.let { it == Looper.getMainLooper() } == true)
-            if (supervisor == _supervisor) {
-                _state.value = mutate(_state.value)
-            }
+            Log.d("LivePreGamePresenter.kt", "LivePreGameUIProducer_mutateState($causeActionName)")
+            expectMainThread("mutateState, cause=$causeActionName")
+            state.value = mutate(state.value)
         }
 
         private fun setAutoRefresh(
@@ -317,12 +299,14 @@ class LivePreGamePresenter(
                 "setAutoRefresh is called after onForgotten"
             }
             if (on) {
-                if (autoRefreshScheduler?.isActive == true) return
-                autoRefreshScheduler = autoRefreshScheduler()
+                if (autoDataRefreshScheduler?.isActive == true) return
+                autoDataRefreshScheduler = autoRefreshScheduler()
             } else {
-                autoRefreshScheduler?.cancel()
+                autoDataRefreshScheduler?.cancel()
             }
-            mutateState(_supervisor) { it.copy(isAutoRefreshOn = autoRefreshScheduler?.isActive == true) }
+            mutateState("setAutoRefresh") { state ->
+                state.copy(isAutoRefreshOn = autoDataRefreshScheduler?.isActive == true)
+            }
         }
 
         private fun onUserRefresh() {
@@ -332,11 +316,13 @@ class LivePreGamePresenter(
             check(!forgottenByComposition) {
                 "onUserRefresh is called after onForgotten"
             }
-            if (userRefresh?.isActive == true) return
-            if (autoRefresh?.isActive == true) autoRefresh?.cancel()
-            val supervisor = _supervisor
-            userRefresh = rememberCoroutineScope!!.launch(supervisor) {
-                refresh(supervisor, true)
+            if (initialDataRefresh?.isActive == true) return
+            if (userDataRefresh?.isActive == true) return
+            if (autoDataRefresh?.isActive == true) autoDataRefresh?.cancel()
+            userDataRefresh = rememberCoroutineScope!!.launch(lifetime) {
+                refresh("onUserRefresh",true)
+            }.also {
+                latestDataRefresh = it
             }
         }
 
@@ -348,43 +334,127 @@ class LivePreGamePresenter(
             check(!forgottenByComposition) {
                 "onAutoRefresh is called after onForgotten"
             }
-            if (userRefresh?.isActive == true) return
-            if (autoRefresh?.isActive == true) return
-            val supervisor = _supervisor
-            autoRefresh = rememberCoroutineScope!!.launch(supervisor) {
-                refresh(supervisor, false)
+            if (initialDataRefresh?.isActive == true) return
+            if (userDataRefresh?.isActive == true) return
+            if (autoDataRefresh?.isActive == true) return
+            autoDataRefresh = rememberCoroutineScope!!.launch(lifetime) {
+                refresh("onAutoRefresh", false)
+            }.also {
+                latestDataRefresh = it
             }
         }
 
         private suspend fun refresh(
-            supervisor: Job,
+            actionName: String,
             showLoading: Boolean
         ) {
-            lastRefreshStamp = SystemClock.elapsedRealtime()
+            lastDataRefreshStamp = SystemClock.elapsedRealtime()
             if (showLoading) {
-                mutateState(supervisor) { state ->
+                mutateState("refreshAction by $actionName") { state ->
                     state.copy(showLoading = true)
                 }
             }
-            val def = _client!!.fetchCurrentPreGameMatchData()
+            val def = client!!.fetchCurrentPreGameMatchData()
             def.await()
                 .onSuccess { data ->
-                    newData(supervisor, data)
+                    newData(data)
+                    pollPingRefresh()
                 }
                 .onFailure { ex ->
-                    fetchFail(supervisor, ex as Exception)
+                    fetchFail(ex as Exception)
+                    cancelPingRefresh()
                 }
+        }
+
+        private fun pollPingRefresh() {
+            expectMainThread("pollPingRefresh")
+            Log.d("LivePreGamePresenter.kt", "LivePreGameUIProducer_pollPingRefresh: incrementing poll from $pingRefreshPolls")
+            if (pingRefreshPolls++ == 0) {
+                Log.d("LivePreGamePresenter.kt", "LivePreGameUIProducer_pollPingRefresh: dispatchingPingRefresh as poll ($pingRefreshPolls) is now 1")
+                dispatchPingRefresh()
+            }
+        }
+
+        private fun cancelPingRefresh() {
+            expectMainThread("clearPingRefresh")
+            Log.d("LivePreGamePresenter.kt", "LivePreGameUIProducer_pollPingRefresh: cancelling poll at $pingRefreshPolls polls")
+            pingRefresh?.cancel()
+            pingRefreshPolls = 0
+            Log.d("LivePreGamePresenter.kt", "LivePreGameUIProducer_pollPingRefresh: poll ($pingRefreshPolls) should now be 0")
+        }
+
+        private fun dispatchPingRefresh() {
+            check(pingRefresh?.isActive != true) {
+                "duplicate ping refresh"
+            }
+            pingRefresh = rememberCoroutineScope!!.launch(lifetime) {
+                if (pingRefreshPolls == 0) return@launch
+                while (true) {
+                    if (
+                        lastPingRefreshStamp != -1L &&
+                        SystemClock.elapsedRealtime() - lastPingRefreshStamp < 1000
+                    ) {
+                        delay(1000 - (SystemClock.elapsedRealtime() - lastPingRefreshStamp))
+                    }
+                    if (pingRefreshPolls > 0) {
+                        val consumePoll = pingRefreshPolls
+                        Log.d("LivePreGamePresenter.kt", "LivePreGameUIProducer_dispatchPingRefresh: recorded poll ($consumePoll) before fetching")
+                        lastPingRefreshStamp = SystemClock.elapsedRealtime()
+                        client!!.fetchPingMillis().await()
+                            .onSuccess { pings ->
+                                gamePodsPings.clear()
+                                pings.forEach { entry ->
+                                    gamePodsPings[entry.key] = entry.value
+                                }
+                                onNewPingData()
+                            }
+                            .onFailure {
+                                gamePodsPings.clear()
+                            }
+                        Log.d("LivePreGamePresenter.kt", "LivePreGameUIProducer_dispatchPingRefresh: consuming poll ($consumePoll) from current poll ($pingRefreshPolls)")
+                        pingRefreshPolls -= consumePoll
+                    }
+                    if (pingRefreshPolls == 0) break
+                }
+            }
+        }
+        private fun onNewPingData() {
+            mutateState("onNewPingData") { state ->
+                state.copy(
+                    gamePodPing = gamePodsPings[state.gamePodId] ?: -1,
+                )
+            }
         }
 
         private fun autoRefreshScheduler(): Job {
             return rememberCoroutineScope!!.launch(lifetime) {
                 while (isActive) {
                     // delay until at least 1 second from the last refresh
-                    delay(1000 - (SystemClock.elapsedRealtime() - lastRefreshStamp))
+                    if (lastPingRefreshStamp != -1L) {
+                        delay(1000 - (SystemClock.elapsedRealtime() - lastDataRefreshStamp))
+                    }
                     onAutoRefresh()
-                    runCatching { autoRefresh?.join() }
+                    runCatching { latestDataRefresh?.join() }
                 }
             }
+        }
+
+        private fun expectMainThread(
+            lazyMessage: () -> String
+        ) {
+            check(
+                value = Looper.myLooper()?.let { it == Looper.getMainLooper() } == true,
+                lazyMessage = lazyMessage
+            )
+        }
+
+        private fun expectMainThread(
+            actionName: String
+        ) {
+            check(
+                value = Looper.myLooper()?.let { it == Looper.getMainLooper() } == true,
+                lazyMessage = { "$actionName was not called in MainThread" }
+            )
         }
     }
 }

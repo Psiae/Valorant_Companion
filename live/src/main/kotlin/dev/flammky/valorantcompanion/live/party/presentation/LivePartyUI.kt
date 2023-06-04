@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
@@ -24,7 +25,7 @@ import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.pvp.party.PartyService
 import dev.flammky.valorantcompanion.pvp.party.PartyState
-import dev.flammky.valorantcompanion.pvp.party.ex.PlayerNotFoundException
+import dev.flammky.valorantcompanion.pvp.ex.PlayerNotFoundException
 import dev.flammky.valorantcompanion.pvp.party.PlayerPartyData as DomainPlayerPartyData
 import dev.flammky.valorantcompanion.pvp.party.PlayerPartyMemberData as DomainPlayerPartyMemberData
 import dev.flammky.valorantcompanion.pvp.party.ex.PlayerPartyNotFoundException
@@ -135,12 +136,26 @@ private fun LivePartyUI(
                     }
                 }
                 if (state.exceptionMessage.isNotBlank()) {
-                    Text(
-                        modifier = Modifier.align(Alignment.Center),
-                        text = "Error: ${state.exceptionMessage}",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.Center)
+                    ) {
+                        Text(
+                            modifier = Modifier.align(Alignment.CenterHorizontally),
+                            text = "Refresh manually to try again",
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            modifier = Modifier,
+                            text = "Error: ${state.exceptionMessage}",
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
             if (state.loading) {

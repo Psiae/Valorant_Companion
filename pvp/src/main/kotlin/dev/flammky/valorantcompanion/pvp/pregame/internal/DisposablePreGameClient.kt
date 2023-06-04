@@ -2,13 +2,16 @@ package dev.flammky.valorantcompanion.pvp.pregame.internal
 
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
+import dev.flammky.valorantcompanion.pvp.PVPClient
 import dev.flammky.valorantcompanion.pvp.TeamID
 import dev.flammky.valorantcompanion.pvp.date.ISO8601
+import dev.flammky.valorantcompanion.pvp.ex.PlayerNotFoundException
 import dev.flammky.valorantcompanion.pvp.ex.UnexpectedResponseException
 import dev.flammky.valorantcompanion.pvp.ext.jsonObjectOrNull
 import dev.flammky.valorantcompanion.pvp.ext.jsonPrimitiveOrNull
 import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
+import dev.flammky.valorantcompanion.pvp.party.ex.PlayerPartyNotFoundException
 import dev.flammky.valorantcompanion.pvp.pregame.*
 import dev.flammky.valorantcompanion.pvp.pregame.ex.PreGameNotFoundException
 import dev.flammky.valorantcompanion.pvp.pregame.ex.UnknownTeamIdException
@@ -21,7 +24,7 @@ internal class DisposablePreGameClient(
     private val puuid: String,
     private val httpClient: HttpClient,
     private val auth: RiotAuthService,
-    private val geo: RiotGeoRepository
+    private val geo: RiotGeoRepository,
 ) : PreGameClient {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
@@ -31,7 +34,7 @@ internal class DisposablePreGameClient(
 
         coroutineScope.launch(Dispatchers.IO) {
             def.complete(
-                getUserLatestPreGameData()
+                fetchUserLatestPreGameData()
                     .onFailure { ex -> ex.printStackTrace() }
             )
         }.invokeOnCompletion { ex ->
@@ -60,6 +63,24 @@ internal class DisposablePreGameClient(
                 }.onFailure { ex -> ex.printStackTrace() }
             )
         }.invokeOnCompletion { ex ->
+            ex?.printStackTrace()
+            ex?.let { def.completeExceptionally(ex) }
+            check(def.isCompleted)
+        }
+
+        return def
+    }
+
+    override fun fetchPingMillis(): Deferred<Result<Map<String, Int>>> {
+        val def = CompletableDeferred<Result<Map<String, Int>>>()
+
+        coroutineScope.launch(Dispatchers.IO) {
+            def.complete(
+                fetchUserGamePodPingsFromParty()
+                    .onFailure { it.printStackTrace() }
+            )
+        }.invokeOnCompletion { ex ->
+            ex?.printStackTrace()
             ex?.let { def.completeExceptionally(ex) }
             check(def.isCompleted)
         }
@@ -79,7 +100,7 @@ internal class DisposablePreGameClient(
         TODO("Not yet implemented")
     }
 
-    private suspend fun getUserLatestPreGameData(): Result<PreGameMatchData> {
+    private suspend fun fetchUserLatestPreGameData(): Result<PreGameMatchData> {
         return runCatching {
             val currentPreGameID = getUserCurrentPreGameMatchID().getOrThrow()
 
@@ -112,10 +133,14 @@ internal class DisposablePreGameClient(
                 400 -> /* TODO: retry */ Unit
                 404 -> {
                     if (
-                        response.body.jsonObjectOrNull
-                            ?.get("errorCode")
-                            ?.jsonPrimitiveOrNull
-                            ?.content == "PREGAME_MNF"
+                        response.body
+                            .expectJsonObject("PlayerPreGameData response")
+                            .expectJsonProperty("errorCode")
+                            .expectJsonPrimitive("errorCode")
+                            .expectNotJsonNull("errorCode")
+                            .content
+                            .also { expectNonBlankJsonString("errorCode", it) }
+                            .equals("PREGAME_MNF")
                     ) {
                         throw PreGameNotFoundException()
                     }
@@ -154,10 +179,14 @@ internal class DisposablePreGameClient(
                400 -> /* TODO: retry */ Unit
                404 -> {
                    if (
-                       response.body.jsonObjectOrNull
-                           ?.get("errorCode")
-                           ?.jsonPrimitiveOrNull
-                           ?.content == "RESOURCE_NOT_FOUND"
+                       response.body
+                           .expectJsonObject("PlayerPreGameMatchInfo response")
+                           .expectJsonProperty("errorCode")
+                           .expectJsonPrimitive("errorCode")
+                           .expectNotJsonNull("errorCode")
+                           .content
+                           .also { expectNonBlankJsonString("errorCode", it) }
+                           .equals("RESOURCE_NOT_FOUND")
                    ) {
                         throw PreGameNotFoundException()
                    }
@@ -165,6 +194,163 @@ internal class DisposablePreGameClient(
            }
 
            unexpectedResponseError("Unable to retrieve user match data (${response.statusCode})")
+        }
+    }
+
+    private suspend fun fetchUserGamePodPingsFromParty(): Result<Map<String, Int>> {
+        return runCatching {
+
+            val partyID = fetchUserPartyId().getOrThrow()
+
+            val access_token = auth.get_authorization(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve access token", it)
+            }.access_token
+
+            val entitlement_token = auth.get_entitlement_token(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve entitlement token", it)
+            }
+            val geo = geo.getGeoShardInfo(puuid) ?: error("Unable to retrieve GeoShard info")
+
+            /*runCatching refreshPing@ {
+                val url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}" +
+                        ".a.pvp.net/parties/v1/parties/$partyID/members/$puuid/refreshPings"
+                val response = httpClient.jsonRequest(
+                    JsonHttpRequest(
+                        method = "POST",
+                        url = url,
+                        headers = listOf(
+                            "X-Riot-ClientVersion" to PVPClient.VERSION,
+                            "X-Riot-Entitlements-JWT" to entitlement_token,
+                            "Authorization" to "Bearer $access_token"
+                        ),
+                        body = null
+                    )
+                )
+            }*/
+
+            val url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}" +
+                    ".a.pvp.net/parties/v1/parties/$partyID"
+            val response = httpClient.jsonRequest(
+                JsonHttpRequest(
+                    method = "GET",
+                    url = url,
+                    headers = listOf(
+                        "X-Riot-Entitlements-JWT" to entitlement_token,
+                        "Authorization" to "Bearer $access_token"
+                    ),
+                    body = null
+                )
+            )
+            when(response.statusCode) {
+                200 -> {
+                    val body = response.body.expectJsonObject("UserPartyData response body")
+                    body
+                        .expectJsonProperty("ID")
+                        .expectJsonPrimitive("ID")
+                        .expectNotJsonNull("ID")
+                        .content
+                        .also { expectNonBlankJsonString("ID", it) }
+                        .let { id ->
+                            if (id != partyID) unexpectedResponseError("PartyID mismatch")
+                        }
+                    body
+                        .expectJsonProperty("Members")
+                        .expectJsonArray("Members")
+                        .forEach { element ->
+                            element
+                                .expectJsonObjectAsJsonArrayElement("Members")
+                                .let { member ->
+                                    member
+                                        .expectJsonProperty("Subject")
+                                        .expectJsonPrimitive("Subject")
+                                        .expectNotJsonNull("Subject")
+                                        .content
+                                        .also {
+                                            expectNonBlankJsonString("Subject", it)
+                                            if (it != puuid) return@forEach
+                                        }
+                                    return@runCatching member
+                                        .expectJsonProperty("Pings")
+                                        .expectJsonArray("Pings")
+                                        .associate { element ->
+                                            val ping = element.expectJsonObjectAsJsonArrayElement("Pings")
+                                            val pingMS = ping
+                                                .expectJsonProperty("Ping")
+                                                .expectJsonPrimitive("Ping")
+                                                .expectNotJsonNull("Ping")
+                                                .content
+                                                .also { expectJsonNumber("Ping", it) }
+                                                .toInt()
+                                            val podID = ping
+                                                .expectJsonProperty("GamePodID")
+                                                .expectJsonPrimitive("GamePodID")
+                                                .expectNotJsonNull("GamePodID")
+                                                .content
+                                                .also { expectNonBlankJsonString("GamePodID", it) }
+                                            podID to pingMS
+                                        }
+                                }
+                        }
+                }
+            }
+
+            unexpectedResponseError("unable to retrieve user party data (${response.statusCode})")
+        }
+    }
+
+    private suspend fun fetchUserPartyId(): Result<String> {
+        return runCatching {
+            val access_token = auth.get_authorization(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve access token", it)
+            }.access_token
+            val entitlement_token = auth.get_entitlement_token(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve entitlement token", it)
+            }
+            val geo = geo
+                .getGeoShardInfo(puuid)
+                ?: error("Unable to retrieve GeoShard info")
+            val url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}.a.pvp.net/parties/v1/players/$puuid"
+            val response = httpClient.jsonRequest(
+                JsonHttpRequest(
+                    method = "GET",
+                    url = url,
+                    headers = listOf(
+                        "X-Riot-ClientVersion" to PVPClient.VERSION,
+                        "X-Riot-Entitlements-JWT" to entitlement_token,
+                        "Authorization" to "Bearer $access_token"
+                    ),
+                    body = null
+                )
+            )
+            when (response.statusCode) {
+                200 -> {
+                    return@runCatching response.body
+                        .expectJsonObject("PlayerPartyInfo response")
+                        .expectJsonProperty("CurrentPartyID")
+                        .expectJsonPrimitive("CurrentPartyID")
+                        .expectNotJsonNull("CurrentPartyID")
+                        .content
+                        .also { expectNonBlankJsonString("CurrentPartyID", it) }
+                }
+                400 -> {
+                    // TODO: retry
+                }
+                404 -> {
+                    response.body
+                        .expectJsonObject("PlayerPartyInfo response")
+                        .expectJsonProperty("errorCode")
+                        .expectJsonPrimitive("errorCode")
+                        .expectNotJsonNull("errorCode")
+                        .content
+                        .also { expectNonBlankJsonString("errorCode", it) }
+                        .let { code ->
+                            if (code == "RESOURCE_NOT_FOUND") throw PlayerPartyNotFoundException()
+                            if (code == "PLAYER_DOES_NOT_EXIST") throw PlayerNotFoundException()
+                        }
+                }
+            }
+
+            unexpectedResponseError("unable to retrieve user party id (${response.statusCode})")
         }
     }
 

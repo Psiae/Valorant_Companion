@@ -35,7 +35,7 @@ class LoginScreenState(
     fun onLogin(
         def: Deferred<*>
     ) {
-        if (loginInstance?.isCompleted() != true) {
+        if (loginInstance?.isCompletedSuccessfully() != true) {
             loginInstance = LoginInstanceState(def)
         }
     }
@@ -47,7 +47,7 @@ class LoginInstanceState(
 
     var loading by mutableStateOf(!def.isCompleted)
 
-    fun isCompleted() = def.isCompleted
+    fun isCompletedSuccessfully() = def.isCompleted && !def.isCancelled
 
     init {
         def.invokeOnCompletion { loading = false }

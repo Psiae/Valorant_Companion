@@ -10,7 +10,7 @@ import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpResponse
 import dev.flammky.valorantcompanion.pvp.party.*
-import dev.flammky.valorantcompanion.pvp.party.ex.PlayerNotFoundException
+import dev.flammky.valorantcompanion.pvp.ex.PlayerNotFoundException
 import dev.flammky.valorantcompanion.pvp.party.ex.PlayerPartyNotFoundException
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*

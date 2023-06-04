@@ -85,7 +85,9 @@ private fun fakeNotInMatchMatchInfoUIState(): UserMatchInfoUIState = UserMatchIn
     mapName = ValorantMapIdentity.ASCENT.display_name,
     gameModeName = "SPIKE RUSH",
     gamePodPingMs = 30,
-    gamePodName = "Singapore-1"
+    gamePodName = "Singapore-1",
+    showLoading = false,
+    errorMessage = ""
 )
 
 private fun fakeInPreGameMatchInfoUIState(): UserMatchInfoUIState = UserMatchInfoUIState(
@@ -94,7 +96,9 @@ private fun fakeInPreGameMatchInfoUIState(): UserMatchInfoUIState = UserMatchInf
     mapName = ValorantMapIdentity.ASCENT.display_name,
     gameModeName = "SPIKE RUSH",
     gamePodPingMs = 30,
-    gamePodName = "Singapore-1"
+    gamePodName = "Singapore-1",
+    showLoading = false,
+    errorMessage = ""
 )
 
 private fun fakeInGameMatchInfoUIState(): UserMatchInfoUIState = UserMatchInfoUIState(
@@ -103,7 +107,9 @@ private fun fakeInGameMatchInfoUIState(): UserMatchInfoUIState = UserMatchInfoUI
     mapName = ValorantMapIdentity.ASCENT.display_name,
     gameModeName = "SPIKE RUSH",
     gamePodPingMs = 30,
-    gamePodName = "Singapore-1"
+    gamePodName = "Singapore-1",
+    showLoading = false,
+    errorMessage = ""
 )
 
 @Composable
