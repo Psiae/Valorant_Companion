@@ -24,8 +24,8 @@ internal class DisposableValorantAssetsLoaderClient(
         return def
     }
 
-    override fun loadMapImageAsync(req: LoadMapImageRequest): Deferred<File> {
-        val def = CompletableDeferred<File>(coroutineScope.coroutineContext.job)
+    override fun loadMapImageAsync(req: LoadMapImageRequest): Deferred<Result<File>> {
+        val def = CompletableDeferred<Result<File>>(coroutineScope.coroutineContext.job)
         loadMapImage(req, def)
         return def
     }
@@ -78,41 +78,40 @@ internal class DisposableValorantAssetsLoaderClient(
 
     private fun loadMapImage(
         req: LoadMapImageRequest,
-        def: CompletableDeferred<File>
+        def: CompletableDeferred<Result<File>>
     ) {
         coroutineScope.launch(Dispatchers.IO) {
-            repository.loadCachedMapImage(req.uuid, req.acceptableTypes, true)
-                .getOrNull()
-                ?.let { file ->
-                    def.complete(file)
-                    return@launch
-                }
-            // TODO: conflate download
-            val image = suspendCancellableCoroutine { cont ->
-                map_asset_downloader.downloadImage(req.uuid, req.acceptableTypes).run {
-                    invokeOnCompletion { t ->
-                        if (t != null) {
-                            def.completeExceptionally(t)
-                            cont.cancel(t)
-                        } else {
-                            cont.resume(requireNotNull(result))
-                        }
+            runCatching {
+                repository.loadCachedMapImage(req.uuid, req.acceptableTypes, true)
+                    .getOrNull()
+                    ?.let { file ->
+                        return@runCatching file
                     }
+                // TODO: conflate download
+                val image = suspendCancellableCoroutine { cont ->
+                    map_asset_downloader
+                        .downloadImage(req.uuid, req.acceptableTypes)
+                        .run {
+                            invokeOnCompletion { t ->
+                                if (t != null) {
+                                    def.completeExceptionally(t)
+                                    cont.cancel(t)
+                                } else {
+                                    cont.resume(requireNotNull(result))
+                                }
+                            }
+                        }
                 }
+                repository.cacheMapImage(
+                    id = image.id,
+                    type = image.type,
+                    data = image.byteArray
+                )
+                repository.loadCachedMapImage(req.uuid, req.acceptableTypes, true)
+                    .getOrElse { ex ->
+                        CancellationException("repository returned null", ex)
+                    }
             }
-            repository.cacheMapImage(
-                id = image.id,
-                type = image.type,
-                data = image.byteArray
-            )
-            repository.loadCachedMapImage(req.uuid, req.acceptableTypes, true)
-                .onSuccess { file ->
-                    file
-                        ?.let { def.complete(it) }
-                        ?: def.completeExceptionally(CancellationException("repository returned null"))
-                }.onFailure {
-                    def.completeExceptionally(it)
-                }
         }.invokeOnCompletion { ex ->
             ex?.let { def.completeExceptionally(ex) }
         }

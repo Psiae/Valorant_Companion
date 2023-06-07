@@ -10,7 +10,8 @@ import dev.flammky.valorantcompanion.live.pregame.presentation.rememberLivePreGa
 
 @Composable
 fun LiveMatchUI(
-    modifier: Modifier
+    modifier: Modifier,
+    openDetail: () -> Unit
 ) {
     val preGamePresenter = rememberLivePreGamePresenter()
     // TODO: val inGamePresenter = rememberLiveInGamePresenter()
@@ -18,7 +19,7 @@ fun LiveMatchUI(
     UserMatchInfoUI(
         modifier = modifier,
         state = presentUserMatchInfoUI(preGameUIState = preGameUIState),
-        openDetail = {},
+        openDetail = openDetail,
         refresh = {
             preGameUIState.eventSink(LivePreGameUIState.Event.USER_REFRESH)
         }

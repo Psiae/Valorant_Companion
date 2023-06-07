@@ -117,27 +117,27 @@ private fun MockableAgentSelectionPoolPreview() {
 
 private fun agentIconOf(agent: ValorantAgent): Int {
     return when(agent) {
-        ValorantAgent.ASTRA -> R_ASSET.raw.astra_displayicon
-        ValorantAgent.BREACH -> R_ASSET.raw.breach_displayicon
-        ValorantAgent.BRIMSTONE -> R_ASSET.raw.brimstone_displayicon
-        ValorantAgent.CHAMBER -> R_ASSET.raw.chamber_displayicon
-        ValorantAgent.CYPHER -> R_ASSET.raw.cypher_displayicon
-        ValorantAgent.FADE -> R_ASSET.raw.fade_displayicon
-        ValorantAgent.GEKKO -> R_ASSET.raw.gekko_displayicon
-        ValorantAgent.HARBOR -> R_ASSET.raw.harbor_displayicon
-        ValorantAgent.JETT -> R_ASSET.raw.jett_displayicon
-        ValorantAgent.KAYO -> R_ASSET.raw.kayo_displayicon
-        ValorantAgent.KILLJOY -> R_ASSET.raw.killjoy_displayicon
-        ValorantAgent.NEON -> R_ASSET.raw.neon_displayicon
-        ValorantAgent.OMEN -> R_ASSET.raw.omen_displayicon
-        ValorantAgent.PHOENIX -> R_ASSET.raw.phoenix_displayicon
-        ValorantAgent.RAZE -> R_ASSET.raw.raze_displayicon
-        ValorantAgent.REYNA -> R_ASSET.raw.reyna_displayicon
-        ValorantAgent.SAGE -> R_ASSET.raw.sage_displayicon
-        ValorantAgent.SKYE -> R_ASSET.raw.skye_displayicon
-        ValorantAgent.SOVA -> R_ASSET.raw.sova_displayicon
-        ValorantAgent.VIPER -> R_ASSET.raw.viper_displayicon
-        ValorantAgent.YORU -> R_ASSET.raw.yoru_displayicon
+        ValorantAgent.ASTRA -> R_ASSET.raw.agent_astra_displayicon
+        ValorantAgent.BREACH -> R_ASSET.raw.agent_breach_displayicon
+        ValorantAgent.BRIMSTONE -> R_ASSET.raw.agent_brimstone_displayicon
+        ValorantAgent.CHAMBER -> R_ASSET.raw.agent_chamber_displayicon
+        ValorantAgent.CYPHER -> R_ASSET.raw.agent_cypher_displayicon
+        ValorantAgent.FADE -> R_ASSET.raw.agent_fade_displayicon
+        ValorantAgent.GEKKO -> R_ASSET.raw.agent_gekko_displayicon
+        ValorantAgent.HARBOR -> R_ASSET.raw.agent_harbor_displayicon
+        ValorantAgent.JETT -> R_ASSET.raw.agent_jett_displayicon
+        ValorantAgent.KAYO -> R_ASSET.raw.agent_kayo_displayicon
+        ValorantAgent.KILLJOY -> R_ASSET.raw.agent_killjoy_displayicon
+        ValorantAgent.NEON -> R_ASSET.raw.agent_neon_displayicon
+        ValorantAgent.OMEN -> R_ASSET.raw.agent_omen_displayicon
+        ValorantAgent.PHOENIX -> R_ASSET.raw.agent_phoenix_displayicon
+        ValorantAgent.RAZE -> R_ASSET.raw.agent_raze_displayicon
+        ValorantAgent.REYNA -> R_ASSET.raw.agent_reyna_displayicon
+        ValorantAgent.SAGE -> R_ASSET.raw.agent_sage_displayicon
+        ValorantAgent.SKYE -> R_ASSET.raw.agent_skye_displayicon
+        ValorantAgent.SOVA -> R_ASSET.raw.agent_sova_displayicon
+        ValorantAgent.VIPER -> R_ASSET.raw.agent_viper_displayicon
+        ValorantAgent.YORU -> R_ASSET.raw.agent_yoru_displayicon
     }
 }
 
@@ -204,5 +204,4 @@ private fun SelectableAgentIcon(
             )
         }
     }
-
 }

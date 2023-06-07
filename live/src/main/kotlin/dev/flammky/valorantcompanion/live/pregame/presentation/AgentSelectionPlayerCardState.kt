@@ -18,4 +18,5 @@ data class AgentSelectionPlayerCardState(
     val tierIcon: LocalImageData<*>?,
     val tierIconKey: Any,
     val isUser: Boolean,
+    val errorMessage: String? = null
 )

@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
+import dev.flammky.valorantcompanion.live.shared.presentation.LocalImageData
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
 import dev.flammky.valorantcompanion.pvp.mode.ValorantGameMode
 import dev.flammky.valorantcompanion.pvp.pregame.*
@@ -111,6 +112,10 @@ class LivePreGamePresenter(
             // call it here to prepare immediately
             onRemembered()
 
+            if (client == null) {
+                prepare()
+            }
+
             return state.value
         }
         override fun onAbandoned() {
@@ -127,7 +132,6 @@ class LivePreGamePresenter(
             if (rememberedByComposition) return
             rememberedByComposition = true
             rememberCoroutineScope = CoroutineScope(SupervisorJob(lifetime) + Dispatchers.Main.immediate)
-            prepare()
         }
 
         private fun dispose() {
@@ -137,12 +141,13 @@ class LivePreGamePresenter(
 
         private fun eventSink(
             client: PreGameClient,
-            event: LivePreGameUIState.Event
+            event: LivePreGameUIState.Event,
+            matchID: String = "",
         ) {
             Log.d("LivePreGamePresenter.kt", "eventSink($event)")
             when (event) {
-                is LivePreGameUIState.Event.LOCK_AGENT -> client.lockAgent(event.uuid)
-                is LivePreGameUIState.Event.SELECT_AGENT -> client.selectAgent(event.uuid)
+                is LivePreGameUIState.Event.LOCK_AGENT -> client.lockAgent(matchID, event.uuid)
+                is LivePreGameUIState.Event.SELECT_AGENT -> client.selectAgent(matchID, event.uuid)
                 is LivePreGameUIState.Event.SET_AUTO_REFRESH -> setAutoRefresh(event.on)
                 LivePreGameUIState.Event.USER_REFRESH -> onUserRefresh()
             }
@@ -160,7 +165,8 @@ class LivePreGamePresenter(
                     eventSink = run {
                         val client = client!!
                         { event -> eventSink(client, event) }
-                    }
+                    },
+                    dataModContinuationKey = Any()
                 )
                 // TODO: remove when have toggle
                 .also { it.eventSink(LivePreGameUIState.Event.SET_AUTO_REFRESH(true)) }
@@ -177,9 +183,18 @@ class LivePreGamePresenter(
         private fun newData(
             data: PreGameMatchData
         ) = mutateState("newData") { state ->
+            val ally = run {
+                val team = data.allyTeam
+                    ?: data.teams.find { team ->
+                        team.players.any { player -> player.puuid == puuid }
+                    }
+                team?.let { mapToUiPreGameTeam(it) }
+            }
             state.copy(
                 inPreGame = true,
+                matchID = data.match_id,
                 mapName = ValorantMapIdentity.fromID(data.mapId)?.display_name ?: "UNKNOWN_MAP_NAME",
+                mapId = data.mapId,
                 gameModeName = ValorantGameMode.fromQueueID(data.queueId)?.displayName
                     ?: run {
                         if (data.provisioningFlow.lowercase() == "CustomGame".lowercase()) {
@@ -192,17 +207,16 @@ class LivePreGamePresenter(
                 gamePodName = toGamePodName(data.gamePodId),
                 gamePodPing = gamePodsPings[data.gamePodId] ?: -1,
                 countDown = data.phaseTimeRemainingNS.nanoseconds,
-                ally = run {
-                    val team = data.allyTeam
-                        ?: data.teams.find { team ->
-                            team.players.any { player -> player.puuid == puuid }
-                        }
-                    team?.let { mapToUiPreGameTeam(it) }
-                },
+                ally = ally,
                 enemy = data.enemyTeam?.let { mapToUiPreGameTeam(it) },
+                user = ally?.players?.find { it.puuid == puuid },
                 isProvisioned = data.state == PreGameState.PROVISIONED,
                 errorMessage = null,
                 showLoading = false,
+                eventSink = run {
+                    val client = client!!
+                    { event -> eventSink(client, event, data.match_id) }
+                }
             )
         }
 
@@ -276,6 +290,10 @@ class LivePreGamePresenter(
                     else -> "unexpected error occurred"
                 },
                 showLoading = false,
+                eventSink = run {
+                    val client = client!!
+                    { event -> eventSink(client, event) }
+                }
             )
         }
 
@@ -285,7 +303,10 @@ class LivePreGamePresenter(
         ) {
             Log.d("LivePreGamePresenter.kt", "LivePreGameUIProducer_mutateState($causeActionName)")
             expectMainThread("mutateState, cause=$causeActionName")
-            state.value = mutate(state.value)
+            val current = state.value
+            val next = mutate(current)
+            state.value = next
+                .copy(dataMod = current.dataMod + 1)
         }
 
         private fun setAutoRefresh(
@@ -326,8 +347,12 @@ class LivePreGamePresenter(
             }
         }
 
+        private fun loadMapAsset(def: CompletableDeferred<LocalImageData<*>>) {
+
+        }
+
         private fun onAutoRefresh() {
-            Log.d("LivePreGamePresenter.kt", "onAutoRefresh()")
+            Log.d("LivePreGamePresenter.kt", "onAutoRefresh() @${System.identityHashCode(this)}")
             check(rememberedByComposition) {
                 "onAutoRefresh is called before onRemembered"
             }
@@ -430,8 +455,10 @@ class LivePreGamePresenter(
             return rememberCoroutineScope!!.launch(lifetime) {
                 while (isActive) {
                     // delay until at least 1 second from the last refresh
-                    if (lastPingRefreshStamp != -1L) {
-                        delay(1000 - (SystemClock.elapsedRealtime() - lastDataRefreshStamp))
+                    if (lastDataRefreshStamp != -1L) {
+                        val ms = 1000 - (SystemClock.elapsedRealtime() - lastDataRefreshStamp)
+                        Log.d("LivePreGamePresenter.kt", "autoRefreshScheduler delaying for ${ms}ms")
+                        delay(ms)
                     }
                     onAutoRefresh()
                     runCatching { latestDataRefresh?.join() }

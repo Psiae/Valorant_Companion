@@ -6,7 +6,9 @@ import kotlin.time.Duration
 @Immutable
 data class LivePreGameUIState(
     val inPreGame: Boolean,
+    val matchID: String,
     val mapName: String,
+    val mapId: String,
     val gameModeName: String,
     val gamePodId: String,
     val gamePodName: String,
@@ -14,11 +16,14 @@ data class LivePreGameUIState(
     val countDown: Duration,
     val ally: PreGameTeam?,
     val enemy: PreGameTeam?,
+    val user: PreGamePlayer?,
     val isProvisioned: Boolean,
     val errorMessage: String?,
     val showLoading: Boolean,
     val isAutoRefreshOn: Boolean,
-    val eventSink: (Event) -> Unit
+    val eventSink: (Event) -> Unit,
+    val dataMod: Long,
+    val dataModContinuationKey: Any,
 ) {
 
     sealed interface Event {
@@ -36,8 +41,10 @@ data class LivePreGameUIState(
         val UNSET by lazy {
             LivePreGameUIState(
                 inPreGame = false,
+                matchID = "",
                 errorMessage = null,
                 mapName = "",
+                mapId = "",
                 gamePodId = "",
                 gameModeName = "",
                 gamePodName = "",
@@ -45,9 +52,12 @@ data class LivePreGameUIState(
                 countDown = Duration.INFINITE,
                 ally = PreGameTeam.UNSET,
                 enemy = PreGameTeam.UNSET,
+                user = PreGamePlayer.UNSET,
                 isProvisioned = false,
                 showLoading = false,
                 isAutoRefreshOn = false,
+                dataMod = 0,
+                dataModContinuationKey = Any(),
                 eventSink = { _ ->  }
             )
         }

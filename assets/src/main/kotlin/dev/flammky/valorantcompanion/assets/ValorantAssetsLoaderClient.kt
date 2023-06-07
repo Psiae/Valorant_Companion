@@ -12,7 +12,7 @@ interface ValorantAssetsLoaderClient {
 
     fun loadMapImageAsync(
         req: LoadMapImageRequest
-    ): Deferred<File>
+    ): Deferred<Result<File>>
 
     fun dispose()
 }

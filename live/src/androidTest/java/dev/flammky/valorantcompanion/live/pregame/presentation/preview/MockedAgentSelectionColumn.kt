@@ -1,7 +1,6 @@
 package dev.flammky.valorantcompanion.live.pregame.presentation.preview
 
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -76,7 +75,7 @@ fun TeamAgentSelectionColumnPreview(
             ) {
                 TopBarPreview(modifier = Modifier)
                 Spacer(modifier = Modifier.height(10.dp))
-                mockedState.ally.players.forEachIndexed { i, player ->
+                mockedState.ally?.players?.forEachIndexed { i, player ->
                     key(i, player) {
                         val name = playerNameFromMockedPUUID(player.puuid)
                         val tag = "0000"
@@ -104,9 +103,9 @@ fun TeamAgentSelectionColumnPreview(
                 Spacer(modifier = Modifier.height(10.dp))
                 LockInButton(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    agentName = agentNameFromMockedAgentId(mockedState.user.characterID),
-                    enabled = mockedState.user.characterSelectionState != CharacterSelectionState.LOCKED,
-                    onClick = mockedState.lockIn
+                    agentName = agentNameFromMockedAgentId(mockedState.user?.characterID ?: ""),
+                    enabled = mockedState.user != null && mockedState.user?.characterSelectionState != CharacterSelectionState.LOCKED,
+                    onClick = { mockedState.lockIn(mockedState.user?.characterID ?: "") }
                 )
                 Spacer(modifier = Modifier.height(20.dp))
                 MockableAgentSelectionPool(
@@ -120,9 +119,9 @@ fun TeamAgentSelectionColumnPreview(
                                     agent != ValorantAgent.BREACH
                         }.map { ValorantAgentIdentity.of(it).uuid }
                     },
-                    disabledAgents = mockedState.ally.players.map { it.characterID },
+                    disabledAgents = mockedState.ally?.players?.map { it.characterID } ?: emptyList(),
                     agentPool = ValorantAgent.asList(),
-                    selectedAgent = mockedState.user.characterID,
+                    selectedAgent = mockedState.user?.characterID,
                     onSelected = mockedState.selectAgent
                 )
             }
@@ -308,32 +307,32 @@ private fun mockPreGamePlayer(
 
 private fun latestPatchTierIcon(tier: Int): Int {
     return when(tier) {
-        0, 1, 2 -> R_ASSET.raw.unranked_smallicon
-        3 -> R_ASSET.raw.iron1_smallicon
-        4 -> R_ASSET.raw.iron2_smallicon
-        5 -> R_ASSET.raw.iron3_smallicon
-        6 -> R_ASSET.raw.bronze1_smallicon
-        7 -> R_ASSET.raw.bronze2_smallicon
-        8 -> R_ASSET.raw.bronze3_smallicon
-        9 -> R_ASSET.raw.silver1_smallicon
-        10 -> R_ASSET.raw.silver2_smallicon
-        11 -> R_ASSET.raw.silver3_smallicon
-        12-> R_ASSET.raw.gold1_smallicon
-        13 -> R_ASSET.raw.gold2_smallicon
-        14 -> R_ASSET.raw.gold3_smallicon
-        15 -> R_ASSET.raw.platinum1_smallicon
-        16 -> R_ASSET.raw.platinum2_smallicon
-        17 -> R_ASSET.raw.platinum3_smallicon
-        18 -> R_ASSET.raw.diamond1_smallicon
-        19 -> R_ASSET.raw.diamond2_smallicon
-        20 -> R_ASSET.raw.diamond3_smallicon
-        21 -> R_ASSET.raw.ascendant1_smallicon
-        22 -> R_ASSET.raw.ascendant2_smallicon
-        23 -> R_ASSET.raw.ascendant3_smallicon
-        24 -> R_ASSET.raw.immortal1_smallicon
-        25 -> R_ASSET.raw.immortal2_smallicon
-        26 -> R_ASSET.raw.immortal3_smallicon
-        27 -> R_ASSET.raw.radiant_smallicon
+        0, 1, 2 -> R_ASSET.raw.rank_unranked_smallicon
+        3 -> R_ASSET.raw.rank_iron1_smallicon
+        4 -> R_ASSET.raw.rank_iron2_smallicon
+        5 -> R_ASSET.raw.rank_iron3_smallicon
+        6 -> R_ASSET.raw.rank_bronze1_smallicon
+        7 -> R_ASSET.raw.rank_bronze2_smallicon
+        8 -> R_ASSET.raw.rank_bronze3_smallicon
+        9 -> R_ASSET.raw.rank_silver1_smallicon
+        10 -> R_ASSET.raw.rank_silver2_smallicon
+        11 -> R_ASSET.raw.rank_silver3_smallicon
+        12-> R_ASSET.raw.rank_gold1_smallicon
+        13 -> R_ASSET.raw.rank_gold2_smallicon
+        14 -> R_ASSET.raw.rank_gold3_smallicon
+        15 -> R_ASSET.raw.rank_platinum1_smallicon
+        16 -> R_ASSET.raw.rank_platinum2_smallicon
+        17 -> R_ASSET.raw.rank_platinum3_smallicon
+        18 -> R_ASSET.raw.rank_diamond1_smallicon
+        19 -> R_ASSET.raw.rank_diamond2_smallicon
+        20 -> R_ASSET.raw.rank_diamond3_smallicon
+        21 -> R_ASSET.raw.rank_ascendant1_smallicon
+        22 -> R_ASSET.raw.rank_ascendant2_smallicon
+        23 -> R_ASSET.raw.rank_ascendant3_smallicon
+        24 -> R_ASSET.raw.rank_immortal1_smallicon
+        25 -> R_ASSET.raw.rank_immortal2_smallicon
+        26 -> R_ASSET.raw.rank_immortal3_smallicon
+        27 -> R_ASSET.raw.rank_radiant_smallicon
         else -> 0
     }
 }
@@ -341,27 +340,27 @@ private fun latestPatchTierIcon(tier: Int): Int {
 private fun agentDisplayIcon(agentName: String): Int {
     // TODO: codename as well
     return when(agentName.lowercase()) {
-        "astra" -> R_ASSET.raw.astra_displayicon
-        "breach" -> R_ASSET.raw.breach_displayicon
-        "brimstone" -> R_ASSET.raw.brimstone_displayicon
-        "chamber" -> R_ASSET.raw.chamber_displayicon
-        "cypher" -> R_ASSET.raw.cypher_displayicon
-        "fade" -> R_ASSET.raw.fade_displayicon
-        "gekko" -> R_ASSET.raw.gekko_displayicon
-        "harbor" -> R_ASSET.raw.harbor_displayicon
-        "jett" -> R_ASSET.raw.jett_displayicon
-        "kayo", "kay/o", "grenadier" -> R_ASSET.raw.grenadier_displayicon
-        "killjoy" -> R_ASSET.raw.killjoy_displayicon
-        "neon" -> R_ASSET.raw.neon_displayicon
-        "omen" -> R_ASSET.raw.omen_displayicon
-        "phoenix" -> R_ASSET.raw.phoenix_displayicon
-        "raze" -> R_ASSET.raw.raze_displayicon
-        "reyna" -> R_ASSET.raw.reyna_displayicon
-        "sage" -> R_ASSET.raw.sage_displayicon
-        "skye" -> R_ASSET.raw.skye_displayicon
-        "sova" -> R_ASSET.raw.sova_displayicon
-        "viper" -> R_ASSET.raw.viper_displayicon
-        "yoru" -> R_ASSET.raw.yoru_displayicon
+        "astra" -> R_ASSET.raw.agent_astra_displayicon
+        "breach" -> R_ASSET.raw.agent_breach_displayicon
+        "brimstone" -> R_ASSET.raw.agent_brimstone_displayicon
+        "chamber" -> R_ASSET.raw.agent_chamber_displayicon
+        "cypher" -> R_ASSET.raw.agent_cypher_displayicon
+        "fade" -> R_ASSET.raw.agent_fade_displayicon
+        "gekko" -> R_ASSET.raw.agent_gekko_displayicon
+        "harbor" -> R_ASSET.raw.agent_harbor_displayicon
+        "jett" -> R_ASSET.raw.agent_jett_displayicon
+        "kayo", "kay/o", "grenadier" -> R_ASSET.raw.agent_grenadier_displayicon
+        "killjoy" -> R_ASSET.raw.agent_killjoy_displayicon
+        "neon" -> R_ASSET.raw.agent_neon_displayicon
+        "omen" -> R_ASSET.raw.agent_omen_displayicon
+        "phoenix" -> R_ASSET.raw.agent_phoenix_displayicon
+        "raze" -> R_ASSET.raw.agent_raze_displayicon
+        "reyna" -> R_ASSET.raw.agent_reyna_displayicon
+        "sage" -> R_ASSET.raw.agent_sage_displayicon
+        "skye" -> R_ASSET.raw.agent_skye_displayicon
+        "sova" -> R_ASSET.raw.agent_sova_displayicon
+        "viper" -> R_ASSET.raw.agent_viper_displayicon
+        "yoru" -> R_ASSET.raw.agent_yoru_displayicon
         else -> 0
     }
 }

@@ -31,7 +31,7 @@ internal class DisposablePlayerLoadoutClientImpl(
                    if (cached != null) return@runCatching cached
                }
                fetchConflator.fetch(puuid) {
-                   val fetch = fetchPlayerLoadoutToRepo(puuid).getOrThrow()
+                   val fetch = fetchPlayerLoadout(puuid).getOrThrow()
                    repo.update(puuid, fetch)
                    fetch
                }
@@ -39,7 +39,19 @@ internal class DisposablePlayerLoadoutClientImpl(
         }
     }
 
-    private suspend fun fetchPlayerLoadoutToRepo(puuid: String): Result<PlayerLoadout> {
+    override fun fetchPlayerLoadoutAsync(puuid: String): Deferred<Result<PlayerLoadout>> {
+        return coroutineScope.async(Dispatchers.IO) {
+            runCatching {
+                fetchConflator.fetch(puuid) {
+                    val fetch = fetchPlayerLoadout(puuid).getOrThrow()
+                    repo.update(puuid, fetch)
+                    fetch
+                }
+            }
+        }
+    }
+
+    private suspend fun fetchPlayerLoadout(puuid: String): Result<PlayerLoadout> {
         val entitlement = auth.get_entitlement_token(puuid).getOrElse {
             return Result.failure(it)
         }

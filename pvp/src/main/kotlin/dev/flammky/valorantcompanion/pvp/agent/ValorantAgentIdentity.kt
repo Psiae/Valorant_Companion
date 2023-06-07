@@ -299,6 +299,10 @@ sealed class ValorantAgentIdentity(
             ValorantAgent.YORU -> YORU
         }
 
+        fun ofID(id: String): ValorantAgentIdentity? {
+            return SubclassesInstance.find { it.uuid == id }
+        }
+
         fun iter(): Iterator<ValorantAgentIdentity> = SubclassesInstance.iterator()
         fun asList(): List<ValorantAgentIdentity> = SubclassesInstance
     }

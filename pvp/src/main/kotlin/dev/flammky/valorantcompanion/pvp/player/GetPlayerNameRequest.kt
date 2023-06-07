@@ -10,5 +10,6 @@ class GetPlayerNameRequest(
 }
 
 class GetPlayerNameRequestResult(
-    private val map: Map<String, Result<PlayerPvpName>>
-): Map<String, Result<PlayerPvpName>> by map {}
+    private val map: Map<String, Result<PlayerPVPName>>,
+    val ex: Exception?
+): Map<String, Result<PlayerPVPName>> by map {}

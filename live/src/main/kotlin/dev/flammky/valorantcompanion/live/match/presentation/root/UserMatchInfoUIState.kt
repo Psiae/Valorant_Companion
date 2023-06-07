@@ -14,6 +14,11 @@ data class UserMatchInfoUIState(
     val errorMessage: String?
 ) {
 
+    sealed class Event {
+        object REFRESH
+        data class SET_AUTO_REFRESH(val on: Boolean)
+    }
+
     companion object {
         val UNSET by lazy {
             UserMatchInfoUIState(

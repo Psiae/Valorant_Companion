@@ -8,4 +8,17 @@ data class PreGamePlayerInfo(
     val preferredLevelBorderID: String,
     val incognito: Boolean,
     val hideAccountLevel: Boolean
-)
+) {
+
+    companion object {
+        val UNSET = PreGamePlayerInfo(
+            puuid = "",
+            cardID = "",
+            titleID = "",
+            accountLevel = 0,
+            preferredLevelBorderID = "",
+            incognito = false,
+            hideAccountLevel = false
+        )
+    }
+}

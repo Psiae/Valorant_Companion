@@ -57,6 +57,7 @@ internal class KtorWrappedHttpClient(
         }
     }
 
+    // TODO: rethrow ktor module exceptions
     override suspend fun jsonRequest(request: JsonHttpRequest): JsonHttpResponse {
         val ktorResponse = self.request(
             HttpRequestBuilder()

@@ -9,5 +9,9 @@ interface PlayerLoadoutClient {
         puuid: String
     ): Deferred<Result<PlayerLoadout>>
 
+    fun fetchPlayerLoadoutAsync(
+        puuid: String
+    ): Deferred<Result<PlayerLoadout>>
+
     fun dispose()
 }

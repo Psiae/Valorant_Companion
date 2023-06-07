@@ -1,23 +1,31 @@
 package dev.flammky.valorantcompanion.pvp.pregame.internal
 
+import dev.flammky.valorantcompanion.PVPClientPlatform
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
+import dev.flammky.valorantcompanion.network.NetworkErrorCodes
 import dev.flammky.valorantcompanion.pvp.PVPClient
 import dev.flammky.valorantcompanion.pvp.TeamID
+import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.date.ISO8601
+import dev.flammky.valorantcompanion.pvp.error.PVPModuleErrorCodes
 import dev.flammky.valorantcompanion.pvp.ex.PlayerNotFoundException
 import dev.flammky.valorantcompanion.pvp.ex.UnexpectedResponseException
-import dev.flammky.valorantcompanion.pvp.ext.jsonObjectOrNull
-import dev.flammky.valorantcompanion.pvp.ext.jsonPrimitiveOrNull
 import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
 import dev.flammky.valorantcompanion.pvp.party.ex.PlayerPartyNotFoundException
 import dev.flammky.valorantcompanion.pvp.pregame.*
 import dev.flammky.valorantcompanion.pvp.pregame.ex.PreGameNotFoundException
 import dev.flammky.valorantcompanion.pvp.pregame.ex.UnknownTeamIdException
+import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
+import dev.flammky.valorantcompanion.pvp.store.DEFAULT_UNLOCKED_AGENTS_IDENTITY
+import dev.flammky.valorantcompanion.pvp.store.ItemType
+import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
+import dev.flammky.valorantcompanion.pvp.tier.ValorantCompetitiveRankResolver
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
+import java.io.IOException
 import kotlin.reflect.KClass
 
 internal class DisposablePreGameClient(
@@ -32,15 +40,23 @@ internal class DisposablePreGameClient(
     override fun fetchCurrentPreGameMatchData(): Deferred<Result<PreGameMatchData>> {
         val def = CompletableDeferred<Result<PreGameMatchData>>()
 
-        coroutineScope.launch(Dispatchers.IO) {
+        val job = coroutineScope.launch(Dispatchers.IO) {
             def.complete(
                 fetchUserLatestPreGameData()
-                    .onFailure { ex -> ex.printStackTrace() }
+                    .onFailure { ex ->
+                        ex.printStackTrace()
+                    }
             )
-        }.invokeOnCompletion { ex ->
-            ex?.printStackTrace()
-            ex?.let { def.completeExceptionally(ex) }
-            check(def.isCompleted)
+        }.apply {
+            invokeOnCompletion { ex ->
+                ex?.printStackTrace()
+                ex?.let { def.completeExceptionally(ex) }
+                check(def.isCompleted)
+            }
+        }
+
+        def.invokeOnCompletion {
+            job.cancel()
         }
 
         return def
@@ -49,11 +65,11 @@ internal class DisposablePreGameClient(
     override fun hasPreGameMatchData(): Deferred<Result<Boolean>> {
         val def = CompletableDeferred<Result<Boolean>>()
 
-        coroutineScope.launch(Dispatchers.IO) {
+        val job = coroutineScope.launch(Dispatchers.IO) {
             def.complete(
                 runCatching {
                     try {
-                        getUserCurrentPreGameMatchID().getOrThrow().isNotBlank()
+                        fetchUserCurrentPreGameMatchID().getOrThrow().isNotBlank()
                     } catch (e: Exception) {
                         when (e) {
                             is PreGameNotFoundException -> false
@@ -62,11 +78,15 @@ internal class DisposablePreGameClient(
                     }
                 }.onFailure { ex -> ex.printStackTrace() }
             )
-        }.invokeOnCompletion { ex ->
-            ex?.printStackTrace()
-            ex?.let { def.completeExceptionally(ex) }
-            check(def.isCompleted)
+        }.apply {
+            invokeOnCompletion { ex ->
+                ex?.printStackTrace()
+                ex?.let { def.completeExceptionally(ex) }
+                check(def.isCompleted)
+            }
         }
+
+        def.invokeOnCompletion { job.cancel() }
 
         return def
     }
@@ -74,15 +94,68 @@ internal class DisposablePreGameClient(
     override fun fetchPingMillis(): Deferred<Result<Map<String, Int>>> {
         val def = CompletableDeferred<Result<Map<String, Int>>>()
 
-        coroutineScope.launch(Dispatchers.IO) {
+        val job = coroutineScope.launch(Dispatchers.IO) {
             def.complete(
                 fetchUserGamePodPingsFromParty()
                     .onFailure { it.printStackTrace() }
             )
-        }.invokeOnCompletion { ex ->
-            ex?.printStackTrace()
-            ex?.let { def.completeExceptionally(ex) }
-            check(def.isCompleted)
+        }.apply {
+            invokeOnCompletion { ex ->
+                ex?.printStackTrace()
+                ex?.let { def.completeExceptionally(ex) }
+                check(def.isCompleted)
+            }
+        }
+
+        def.invokeOnCompletion {
+            job.cancel()
+        }
+
+        return def
+    }
+
+    override fun fetchPlayerMMRData(
+        subjectPUUID: String
+    ): Deferred<PreGameAsyncRequestResult<PreGamePlayerMMRData>> {
+        val def = CompletableDeferred<PreGameAsyncRequestResult<PreGamePlayerMMRData>>()
+
+        val job = coroutineScope.launch(Dispatchers.IO) {
+            def.complete(
+                fetchPlayerMMRDataFromPublicMMREndpoint(subjectPUUID)
+                    .onFailure { exception, errorCode -> exception.printStackTrace() ; exception.cause?.printStackTrace() }
+            )
+        }.apply {
+            invokeOnCompletion { ex ->
+                ex?.printStackTrace()
+                ex?.let { def.completeExceptionally(ex) }
+                check(def.isCompleted)
+            }
+        }
+
+        def.invokeOnCompletion {
+            job.cancel()
+        }
+
+        return def
+    }
+
+    override fun fetchUnlockedAgentsAsync(): Deferred<PreGameAsyncRequestResult<List<ValorantAgentIdentity>>> {
+        val def = CompletableDeferred<PreGameAsyncRequestResult<List<ValorantAgentIdentity>>>()
+
+        val task = coroutineScope.launch(Dispatchers.IO) {
+            def.complete(
+                fetchUserUnlockedAgents()
+                    .onFailure { exception, errorCode -> exception.printStackTrace() }
+            )
+        }.apply {
+            invokeOnCompletion { ex ->
+                ex?.let { def.completeExceptionally(ex)  }
+                check(def.isCompleted)
+            }
+        }
+
+        def.invokeOnCompletion { ex ->
+            if (ex is CancellationException) task.cancel()
         }
 
         return def
@@ -92,17 +165,62 @@ internal class DisposablePreGameClient(
         coroutineScope.cancel()
     }
 
-    override fun lockAgent(agentID: String): Deferred<Result<Boolean>> {
-        TODO("Not yet implemented")
+    override fun lockAgent(
+        matchID: String,
+        agentID: String
+    ): Deferred<PreGameAsyncRequestResult<PreGameMatchData>> {
+        val def = CompletableDeferred<PreGameAsyncRequestResult<PreGameMatchData>>()
+
+        val task = coroutineScope.launch(Dispatchers.IO) {
+            def.complete(
+                postUserLockAgent(matchID, agentID)
+                    .onFailure { exception, errorCode ->
+                        exception.printStackTrace()
+                    }
+            )
+        }.apply {
+            invokeOnCompletion { ex ->
+                ex?.let { def.completeExceptionally(ex)  }
+                check(def.isCompleted)
+            }
+        }
+
+        def.invokeOnCompletion { ex ->
+            if (ex is CancellationException) task.cancel()
+        }
+
+        return def
     }
 
-    override fun selectAgent(agentID: String): Deferred<Result<Boolean>> {
-        TODO("Not yet implemented")
+    override fun selectAgent(
+        matchID: String,
+        agentID: String
+    ): Deferred<PreGameAsyncRequestResult<PreGameMatchData>> {
+        val def = CompletableDeferred<PreGameAsyncRequestResult<PreGameMatchData>>()
+
+        val task = coroutineScope.launch(Dispatchers.IO) {
+            def.complete(
+                postUserSelectAgent(matchID, agentID)
+                    .onFailure { exception, errorCode ->
+                        exception.printStackTrace()
+                    }
+            )
+        }.apply {
+            invokeOnCompletion { ex ->
+                ex?.let { def.completeExceptionally(ex)  }
+                check(def.isCompleted)
+            }
+        }
+
+        def.invokeOnCompletion { ex ->
+            if (ex is CancellationException) task.cancel()
+        }
+
+        return def
     }
 
-    private suspend fun fetchUserLatestPreGameData(): Result<PreGameMatchData> {
-        return runCatching {
-            val currentPreGameID = getUserCurrentPreGameMatchID().getOrThrow()
+    private suspend fun fetchUserUnlockedAgents(): PreGameAsyncRequestResult<List<ValorantAgentIdentity>> {
+        return PreGameAsyncRequestResult.buildCatching {
 
             val access_token = auth.get_authorization(puuid).getOrElse {
                 throw IllegalStateException("Unable to retrieve access token", it)
@@ -112,6 +230,160 @@ internal class DisposablePreGameClient(
             }
             val geo = geo.getGeoShardInfo(puuid)
                 ?: error("Unable to retrieve GeoShard info")
+
+            val response = runCatching {
+                httpClient.jsonRequest(
+                    JsonHttpRequest(
+                        method = "GET",
+                        url = "https://pd.${geo.shard.assignedUrlName}.a.pvp.net/store/v1/" +
+                                "entitlements/$puuid/${ItemType.Agent.id}",
+                        headers = listOf(
+                            "X-Riot-Entitlements-JWT" to entitlement_token,
+                            "Authorization" to "Bearer $access_token"
+                        ),
+                        body = null
+                    )
+                )
+            }.getOrElse { ex ->
+                // TODO: handle http request exception appropriately
+                return@buildCatching failure(
+                    ex as Exception,
+                    NetworkErrorCodes.NETWORK_ERROR
+                )
+            }
+
+            // TODO: other status code
+            when(response.statusCode) {
+                200 -> return@buildCatching success(
+                    userUnlockedAgents(parseStoreOwnedAgentsResponse(response.body))
+                )
+            }
+
+            error("")
+        }
+    }
+
+    private suspend fun postUserSelectAgent(
+        matchID: String,
+        agentID: String
+    ): PreGameAsyncRequestResult<PreGameMatchData> {
+        return PreGameAsyncRequestResult.buildCatching {
+            val access_token = auth.get_authorization(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve access token", it)
+            }.access_token
+            val entitlement_token = auth.get_entitlement_token(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve entitlement token", it)
+            }
+            val geo = geo.getGeoShardInfo(puuid)
+                ?: error("Unable to retrieve GeoShard info")
+
+            val response = runCatching {
+                httpClient.jsonRequest(
+                    JsonHttpRequest(
+                        method = "POST",
+                        url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}" +
+                                ".a.pvp.net/pregame/v1/matches/$matchID/select/$agentID",
+                        headers = listOf(
+                            "X-Riot-Entitlements-JWT" to entitlement_token,
+                            "Authorization" to "Bearer $access_token"
+                        ),
+                        body = null
+                    )
+                )
+            }.getOrElse { ex ->
+                return@buildCatching failure(
+                    ex as Exception,
+                    NetworkErrorCodes.NETWORK_ERROR
+                )
+            }
+
+            when (response.statusCode) {
+                200 -> return@buildCatching success(
+                    mapPreGameMatchDataResponseToModel(matchID, response.body)
+                )
+                404 -> {
+                    val errorCode = response.body
+                        .expectJsonObject("PlayerPreGameData response")
+                        .expectJsonProperty("errorCode")
+                        .expectJsonPrimitive("errorCode")
+                        .expectNotJsonNull("errorCode")
+                        .content
+                        .also { expectNonBlankJsonString("errorCode", it) }
+                    if (errorCode == "PREGAME_MNF") throw PreGameNotFoundException()
+                }
+            }
+
+            unexpectedResponseError("Unable to POST agent lock request (${response.statusCode})")
+        }
+    }
+
+    private suspend fun postUserLockAgent(
+        matchID: String,
+        agentID: String
+    ): PreGameAsyncRequestResult<PreGameMatchData> {
+        return PreGameAsyncRequestResult.buildCatching {
+            val access_token = auth.get_authorization(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve access token", it)
+            }.access_token
+            val entitlement_token = auth.get_entitlement_token(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve entitlement token", it)
+            }
+            val geo = geo.getGeoShardInfo(puuid)
+                ?: error("Unable to retrieve GeoShard info")
+
+            val response = runCatching {
+                httpClient.jsonRequest(
+                    JsonHttpRequest(
+                        method = "POST",
+                        url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}" +
+                                ".a.pvp.net/pregame/v1/matches/$matchID/lock/$agentID",
+                        headers = listOf(
+                            "X-Riot-Entitlements-JWT" to entitlement_token,
+                            "Authorization" to "Bearer $access_token"
+                        ),
+                        body = null
+                    )
+                )
+            }.getOrElse { ex ->
+                return@buildCatching failure(
+                    ex as Exception,
+                    NetworkErrorCodes.NETWORK_ERROR
+                )
+            }
+
+            when (response.statusCode) {
+                200 -> return@buildCatching success(
+                    mapPreGameMatchDataResponseToModel(matchID, response.body)
+                )
+                404 -> {
+                    val errorCode = response.body
+                        .expectJsonObject("PlayerPreGameData response")
+                        .expectJsonProperty("errorCode")
+                        .expectJsonPrimitive("errorCode")
+                        .expectNotJsonNull("errorCode")
+                        .content
+                        .also { expectNonBlankJsonString("errorCode", it) }
+                    if (errorCode == "PREGAME_MNF") throw PreGameNotFoundException()
+                }
+            }
+
+            unexpectedResponseError("Unable to POST agent lock request (${response.statusCode})")
+        }
+    }
+
+    private suspend fun fetchUserLatestPreGameData(): Result<PreGameMatchData> {
+        return runCatching {
+            val currentPreGameID = fetchUserCurrentPreGameMatchID().getOrThrow()
+
+            val access_token = auth.get_authorization(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve access token", it)
+            }.access_token
+            val entitlement_token = auth.get_entitlement_token(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve entitlement token", it)
+            }
+            val geo = geo.getGeoShardInfo(puuid)
+                ?: error("Unable to retrieve GeoShard info")
+
             val response = httpClient.jsonRequest(
                 JsonHttpRequest(
                     method = "GET",
@@ -151,7 +423,7 @@ internal class DisposablePreGameClient(
         }
     }
 
-    private suspend fun getUserCurrentPreGameMatchID(): Result<String> {
+    private suspend fun fetchUserCurrentPreGameMatchID(): Result<String> {
        return runCatching {
            val access_token = auth.get_authorization(puuid).getOrElse {
                throw IllegalStateException("Unable to retrieve access token", it)
@@ -351,6 +623,80 @@ internal class DisposablePreGameClient(
             }
 
             unexpectedResponseError("unable to retrieve user party id (${response.statusCode})")
+        }
+    }
+
+    private suspend fun fetchPlayerMMRDataFromPublicMMREndpoint(
+        subject: String
+    ): PreGameAsyncRequestResult<PreGamePlayerMMRData> {
+        val handle = this.puuid
+        return PreGameAsyncRequestResult.buildCatching {
+            val access_token = auth.get_authorization(handle).getOrElse { ex ->
+                return failure(
+                    IllegalStateException("Unable to retrieve access token", ex),
+                    PVPModuleErrorCodes.AUTH_TOKEN_UNAVAILABLE
+                )
+            }.access_token
+
+            val entitlement_token = auth.get_entitlement_token(handle).getOrElse { ex ->
+                return failure(
+                    IllegalStateException("Unable to retrieve entitlement token", ex),
+                    PVPModuleErrorCodes.AUTH_TOKEN_UNAVAILABLE
+                )
+            }
+
+            // we can assume that the user is in the same shard as the subject
+            val geo = geo.getGeoShardInfo(handle)
+                ?: return failure(
+                    IllegalStateException("Unable to retrieve GeoShard info"),
+                    PVPModuleErrorCodes.GEOLOCATION_UNAVAILABLE
+                )
+
+            val url = "https://pd.${geo.shard.assignedUrlName}.a.pvp.net/mmr/v1/players/$subject"
+
+            val response = runCatching {
+                httpClient.jsonRequest(
+                    JsonHttpRequest(
+                        method = "GET",
+                        url = url,
+                        headers = listOf(
+                            "X-Riot-ClientPlatform" to PVPClientPlatform.BASE_64,
+                            "X-Riot-ClientVersion" to PVPClient.VERSION,
+                            "X-Riot-Entitlements-JWT" to entitlement_token,
+                            "Authorization" to "Bearer $access_token"
+                        ),
+                        body = null
+                    )
+                )
+            }.getOrElse { ex ->
+                return@buildCatching failure(
+                    exception = ex as Exception,
+                    errorCode = when(ex) {
+                        is IOException ->  NetworkErrorCodes.NETWORK_ERROR
+                        else -> PVPModuleErrorCodes.UNHANDLED_REMOTE_EXCEPTION
+                    }
+                )
+            }
+
+            when (response.statusCode) {
+                200 -> runCatching {
+                    parseCurrentSeasonMMRDataFromPublicMMREndpoint(
+                        subject,
+                        response.body
+                    )
+                }.onSuccess { data ->
+                    return@buildCatching success(
+                        data
+                    )
+                }.onFailure { ex ->
+                    return@buildCatching failure(
+                        ex as Exception,
+                        PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE
+                    )
+                }
+            }
+
+            error("Unhandled HTTP response Code (${response.statusCode})")
         }
     }
 
@@ -765,6 +1111,183 @@ internal class DisposablePreGameClient(
                     .toBooleanStrict()
             },
         )
+    }
+
+    private fun parseCurrentSeasonMMRDataFromPublicMMREndpoint(
+        expectedPUUID: String,
+        body: JsonElement,
+    ): PreGamePlayerMMRData {
+        val obj = body.expectJsonObject("MMR response body")
+
+        return PreGamePlayerMMRData(
+            subject = run {
+                val prop = "Subject"
+                obj
+                    .expectJsonProperty(prop)
+                    .expectJsonPrimitive(prop)
+                    .expectNotJsonNull(prop)
+                    .content
+                    .also { id ->
+                        expectNonBlankJsonString(prop, id)
+                        if (id != expectedPUUID) unexpectedResponseError("PUUID mismatch")
+                    }
+            },
+            version = run {
+                val prop = "Version"
+                obj
+                    .expectJsonProperty(prop)
+                    .expectJsonPrimitive(prop)
+                    .expectNotJsonNull(prop)
+                    .content
+                    .also { version -> expectJsonNumber(prop, version) }
+            },
+            competitiveRank = run {
+                val prop = "QueueSkills"
+                val currentSeason = ValorantSeasons.ACTIVE_STAGED
+                obj
+                    .expectJsonProperty(prop)
+                    .expectJsonObject(prop)
+                    .let { skills ->
+                        val prop = "competitive"
+                        skills
+                            .expectJsonProperty(prop)
+                            .expectJsonObject(prop)
+                    }.let { competitiveSkill ->
+                        val prop = "SeasonalInfoBySeasonID"
+                        competitiveSkill
+                            .expectJsonProperty(prop)
+                            .ifJsonNull {
+                                return@run CompetitiveRank.UNRANKED
+                            }
+                            .expectJsonObject(prop)
+                    }.let { seasonalInfo ->
+                        val prop = currentSeason.act.id
+                        seasonalInfo
+                            .get(prop)
+                            ?.expectJsonObject(prop)
+                            ?: return@run CompetitiveRank.UNRANKED
+                    }.let { info ->
+                        val prop = "CompetitiveTier"
+                        info
+                            .expectJsonProperty(prop)
+                            .expectJsonPrimitive(prop)
+                            .expectNotJsonNull(prop)
+                            .content
+                            .also { tier -> expectJsonNumber(prop, tier) }
+                            .toInt()
+                            .let { tier ->
+                                ValorantCompetitiveRankResolver
+                                    .getResolverOfSeason(currentSeason.episode.num, currentSeason.act.num)
+                                    .getByTier(tier)
+                                    ?: unexpectedJsonValueError(prop, "Unknown Competitive tier ($tier)")
+                            }
+                    }
+            },
+            competitiveRankRating = run {
+                val prop = "QueueSkills"
+                val currentSeason = ValorantSeasons.ACTIVE_STAGED
+                obj
+                    .expectJsonProperty(prop)
+                    .expectJsonObject(prop)
+                    .let { skills ->
+                        val prop = "competitive"
+                        skills
+                            .expectJsonProperty(prop)
+                            .expectJsonObject(prop)
+                    }.let { competitiveSkill ->
+                        val prop = "SeasonalInfoBySeasonID"
+                        competitiveSkill
+                            .expectJsonProperty(prop)
+                            .expectJsonObject(prop)
+                    }.let { seasonalInfo ->
+                        val prop = currentSeason.act.id
+                        seasonalInfo
+                            .get(prop)
+                            ?.expectJsonObject(prop)
+                            ?: return@run 0
+                    }.let { info ->
+                        val prop = "RankedRating"
+                        info
+                            .expectJsonProperty(prop)
+                            .expectJsonPrimitive(prop)
+                            .expectNotJsonNull(prop)
+                            .content
+                            .also { tier -> expectJsonNumber(prop, tier) }
+                            .toInt()
+                            .also { tier ->
+                                if (tier !in 0..100) unexpectedJsonValueError(
+                                    prop,
+                                    "RankedRating was not in range of 0..100 inclusive"
+                                )
+                            }
+                    }
+            }
+        )
+    }
+
+    private fun parseStoreOwnedAgentsResponse(
+        body: JsonElement
+    ): List<ValorantAgentIdentity> {
+        val obj = body.expectJsonObject("Store Owned Agent response")
+        val itemTypeProp = "ItemTypeID"
+        obj
+            .expectJsonProperty(itemTypeProp)
+            .expectJsonPrimitive(itemTypeProp)
+            .expectNotJsonNull(itemTypeProp)
+            .content
+            .also {
+                expectNonBlankJsonString(itemTypeProp, it)
+                if (it != ItemType.Agent.id) unexpectedJsonValueError(
+                    itemTypeProp,
+                    "ItemTypeID mismatch, expected Agent"
+                )
+            }
+        val entitlementsProp = "Entitlements"
+        return obj
+            .expectJsonProperty(entitlementsProp)
+            .expectJsonArray(entitlementsProp)
+            .mapNotNull {
+                val element = it.expectJsonObjectAsJsonArrayElement(entitlementsProp)
+
+                run {
+                    val prop = "TypeID"
+
+                    element
+                        .expectJsonProperty(prop)
+                        .expectJsonPrimitive(prop)
+                        .expectNotJsonNull(prop)
+                        .content
+                        .also { content -> expectNonBlankJsonString(itemTypeProp, content) }
+                }
+
+               run {
+                   val prop = "ItemID"
+
+                   element
+                       .expectJsonProperty(prop)
+                       .expectJsonPrimitive(prop)
+                       .expectNotJsonNull(prop)
+                       .content
+                       .also { content ->
+                           expectNonBlankJsonString(itemTypeProp, content)
+                       }
+                       .let { id ->
+                           ValorantAgentIdentity.ofID(id)
+                       }
+               }
+            }
+    }
+
+    private fun userUnlockedAgents(
+        owned: List<ValorantAgentIdentity>
+    ): List<ValorantAgentIdentity> {
+        return persistentListOf<ValorantAgentIdentity>()
+            .builder()
+            .apply {
+                addAll(DEFAULT_UNLOCKED_AGENTS_IDENTITY)
+                addAll(owned)
+            }
+            .build()
     }
 
     private fun unexpectedResponseError(msg: String): Nothing {

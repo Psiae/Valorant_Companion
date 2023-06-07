@@ -41,7 +41,9 @@ class MockedAgentSelectionPresenter() {
                 lockIn = {
                     val c = upAlly.value
                     upAlly.value = c.copy(p2 = c.p2.copy(characterSelectionState = CharacterSelectionState.LOCKED))
-                }
+                },
+                partyMembers = persistentListOf(),
+                stateVersion = 0L
             )
         }
     }

@@ -21,14 +21,14 @@ private fun AgentSelectionPlayerCardPreviewWithNeon() {
             playerGameNameTag = "0000",
             hasSelectedAgent = true,
             selectedAgentName = "Neon",
-            selectedAgentIcon = LocalImageData.Resource(AssetResource.raw.neon_displayicon),
+            selectedAgentIcon = LocalImageData.Resource(AssetResource.raw.agent_neon_displayicon),
             selectedAgentIconKey = Unit,
             selectedAgentRoleName = "Duelist",
             selectedAgentRoleIcon = LocalImageData.Resource(AssetResource.raw.role_duelist_displayicon),
             selectedAgentRoleIconKey = Unit,
             isLockedIn = false,
             tierName = "Ascendant 1",
-            tierIcon = LocalImageData.Resource(AssetResource.raw.ascendant1_smallicon),
+            tierIcon = LocalImageData.Resource(AssetResource.raw.rank_ascendant1_smallicon),
             tierIconKey = Unit,
             isUser = true
         )
