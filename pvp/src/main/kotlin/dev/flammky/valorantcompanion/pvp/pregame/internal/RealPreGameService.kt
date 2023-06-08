@@ -3,7 +3,7 @@ package dev.flammky.valorantcompanion.pvp.pregame.internal
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
 import dev.flammky.valorantcompanion.pvp.http.ktor.KtorWrappedHttpClient
-import dev.flammky.valorantcompanion.pvp.pregame.PreGameClient
+import dev.flammky.valorantcompanion.pvp.pregame.PreGameUserClient
 import dev.flammky.valorantcompanion.pvp.pregame.PreGameService
 import kotlinx.coroutines.SupervisorJob
 
@@ -14,8 +14,8 @@ class RealPreGameService(
 
     private val lifetime = SupervisorJob()
 
-    override fun createClient(puuid: String): PreGameClient {
-        return DisposablePreGameClient(
+    override fun createUserClient(puuid: String): PreGameUserClient {
+        return DisposablePreGameUserClient(
             puuid = puuid,
             httpClient = KtorWrappedHttpClient(lifetime = lifetime),
             auth = authService,

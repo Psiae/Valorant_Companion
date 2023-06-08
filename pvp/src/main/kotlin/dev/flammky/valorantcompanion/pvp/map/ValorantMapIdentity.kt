@@ -1,6 +1,5 @@
 package dev.flammky.valorantcompanion.pvp.map
 
-import dev.flammky.valorantcompanion.pvp.util.mapSealedObjectInstancesToPersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlin.reflect.KClass
 
@@ -101,7 +100,7 @@ sealed class ValorantMapIdentity(
         }
 
 
-        fun fromID(id: String): ValorantMapIdentity? {
+        fun ofID(id: String): ValorantMapIdentity? {
             return SUBCLASSES.find { it.map_id == id }
         }
     }

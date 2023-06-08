@@ -11,7 +11,7 @@ import dev.flammky.valorantcompanion.live.shared.presentation.LocalImageData
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
 import dev.flammky.valorantcompanion.pvp.mode.ValorantGameMode
 import dev.flammky.valorantcompanion.pvp.pregame.*
-import dev.flammky.valorantcompanion.pvp.pregame.ex.PreGameNotFoundException
+import dev.flammky.valorantcompanion.pvp.pregame.ex.PreGameMatchNotFoundException
 import dev.flammky.valorantcompanion.pvp.pregame.PreGamePlayerState as DomainPreGamePlayerState
 import kotlinx.collections.immutable.persistentListOf
 import dev.flammky.valorantcompanion.pvp.TeamID as DomainTeamID
@@ -79,7 +79,7 @@ class LivePreGamePresenter(
 
         private val lifetime = SupervisorJob()
         private val state = mutableStateOf(LivePreGameUIState.UNSET)
-        private var client: PreGameClient? = null
+        private var client: PreGameUserClient? = null
         private var rememberedByComposition = false
         private var forgottenByComposition = false
         private var rememberCoroutineScope: CoroutineScope? = null
@@ -140,7 +140,7 @@ class LivePreGamePresenter(
         }
 
         private fun eventSink(
-            client: PreGameClient,
+            client: PreGameUserClient,
             event: LivePreGameUIState.Event,
             matchID: String = "",
         ) {
@@ -154,7 +154,7 @@ class LivePreGamePresenter(
         }
 
         private fun prepare() {
-            client = pregameService.createClient(puuid)
+            client = pregameService.createUserClient(puuid)
             state.value = initialState()
             initialStateRefresh()
         }
@@ -193,7 +193,7 @@ class LivePreGamePresenter(
             state.copy(
                 inPreGame = true,
                 matchID = data.match_id,
-                mapName = ValorantMapIdentity.fromID(data.mapId)?.display_name ?: "UNKNOWN_MAP_NAME",
+                mapName = ValorantMapIdentity.ofID(data.mapId)?.display_name ?: "UNKNOWN_MAP_NAME",
                 mapId = data.mapId,
                 gameModeName = ValorantGameMode.fromQueueID(data.queueId)?.displayName
                     ?: run {
@@ -286,9 +286,29 @@ class LivePreGamePresenter(
                 enemy = null,
                 isProvisioned = false,
                 errorMessage = when (ex) {
-                    is PreGameNotFoundException -> null
+                    is PreGameMatchNotFoundException -> null
                     else -> "unexpected error occurred"
                 },
+                showLoading = false,
+                eventSink = run {
+                    val client = client!!
+                    { event -> eventSink(client, event) }
+                }
+            )
+        }
+
+        private fun noMatch() = mutateState("noMatch") { state ->
+            state.copy(
+                inPreGame = false,
+                mapName = "",
+                gamePodId = "",
+                gameModeName = "",
+                gamePodPing = -1,
+                countDown = Duration.INFINITE,
+                ally = null,
+                enemy = null,
+                isProvisioned = false,
+                errorMessage = null,
                 showLoading = false,
                 eventSink = run {
                     val client = client!!
@@ -379,8 +399,24 @@ class LivePreGamePresenter(
                     state.copy(showLoading = true)
                 }
             }
-            val def = client!!.fetchCurrentPreGameMatchData()
-            def.await()
+
+            client!!.hasPreGameMatchData()
+                .await()
+                .onSuccess { bool ->
+                    if (!bool) {
+                        noMatch()
+                        cancelPingRefresh()
+                        return
+                    }
+                }
+                .onFailure { ex ->
+                    fetchFail(ex as Exception)
+                    cancelPingRefresh()
+                    return
+                }
+
+            client!!.fetchCurrentPreGameMatchData()
+                .await()
                 .onSuccess { data ->
                     newData(data)
                     pollPingRefresh()

@@ -13,39 +13,9 @@ fun LiveMatchUI(
     modifier: Modifier,
     openDetail: () -> Unit
 ) {
-    val preGamePresenter = rememberLivePreGamePresenter()
-    // TODO: val inGamePresenter = rememberLiveInGamePresenter()
-    val preGameUIState = preGamePresenter.present()
     UserMatchInfoUI(
         modifier = modifier,
-        state = presentUserMatchInfoUI(preGameUIState = preGameUIState),
+        state = rememberUserMatchInfoPresenter().present(),
         openDetail = openDetail,
-        refresh = {
-            preGameUIState.eventSink(LivePreGameUIState.Event.USER_REFRESH)
-        }
     )
-}
-
-@Composable
-private fun presentUserMatchInfoUI(
-    preGameUIState: LivePreGameUIState
-): UserMatchInfoUIState  {
-    Log.d("LiveMatchUI.kt", "presentUserMatchInfoUI($preGameUIState)")
-    val state = remember {
-        mutableStateOf(UserMatchInfoUIState.UNSET)
-    }
-    return remember(preGameUIState) {
-        state.apply {
-            value = UserMatchInfoUIState(
-                inPreGame = preGameUIState.inPreGame,
-                inGame = false,
-                mapName = preGameUIState.mapName,
-                gameModeName = preGameUIState.gameModeName,
-                gamePodName = preGameUIState.gamePodName,
-                gamePodPingMs = preGameUIState.gamePodPing,
-                showLoading = preGameUIState.showLoading,
-                errorMessage = preGameUIState.errorMessage
-            )
-        }
-    }.value
 }

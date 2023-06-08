@@ -1,17 +1,21 @@
 package dev.flammky.valorantcompanion.live.pregame.presentation.preview
 
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,10 +23,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.Paragraph
+import androidx.compose.ui.text.ParagraphIntrinsics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.createFontFamilyResolver
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.live.pingStrengthInRangeOf4
@@ -136,6 +147,7 @@ fun TeamAgentSelectionColumnPreview(
 private fun TopBarPreview(
     modifier: Modifier = Modifier
 ) {
+    val stepTimeLeft = 100f
     DefaultMaterial3Theme {
         Surface(
             modifier = modifier,
@@ -148,49 +160,96 @@ private fun TopBarPreview(
                     contentDescription = "Map Ascent",
                     contentScale = ContentScale.Crop,
                 )
-                Column(
+                Row(
                     modifier = Modifier
-                        .padding(5.dp)
-                        .clip(RoundedCornerShape(15.dp))
-                        .background(Material3Theme.surfaceVariantColorAsState().value.copy(alpha = 0.97f))
-                        .padding(12.dp)
+                        .fillMaxWidth()
+                        .padding(5.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    val textColor = if (LocalIsThemeDark.current) Color.White else Color.Black
-                    Text(
-                        "Map - Ascent".uppercase(),
-                        color = textColor,
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        "Spike Rush".uppercase(),
-                        color = textColor,
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f, false)
+                            .clip(RoundedCornerShape(15.dp))
+                            .background(Material3Theme.surfaceVariantColorAsState().value.copy(alpha = 0.97f))
+                            .padding(12.dp)
+                    ) {
+                        val textColor = if (LocalIsThemeDark.current) Color.White else Color.Black
                         Text(
-                            "Singapore-1",
+                            "Map - AscentTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT".uppercase(),
                             color = textColor,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
-                            "(25ms)",
+                            "Spike Rush".uppercase(),
                             color = textColor,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Spacer(modifier = Modifier.width(1.dp))
-                        Draw4PingBar(modifier = Modifier
-                            .height(8.dp)
-                            .align(Alignment.CenterVertically), pingMs = 25)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row {
+                            Text(
+                                modifier = Modifier.weight(1f, false),
+                                text = "Singapore-1",
+                                color = textColor,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                modifier = Modifier.weight(1f, false),
+                                text = "(25ms)",
+                                color = textColor,
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.width(1.dp))
+                            Draw4PingBar(modifier = Modifier
+                                .height(8.dp)
+                                .align(Alignment.CenterVertically), pingMs = 25)
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(68.dp)
+                            .align(Alignment.CenterVertically)
+                            .clip(CircleShape)
+                            .background(Material3Theme.surfaceVariantColorAsState().value.copy(alpha = 0.97f))
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .align(Alignment.Center),
+                            progress = stepTimeLeft / 85,
+                            strokeWidth = 2.dp,
+                            color = if (stepTimeLeft <= 10f) Color.Red else Color.Green
+                        )
+                        val text = stepTimeLeft.toInt().toString()
+                        Text(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(6.dp),
+                            text = text,
+                            textAlign = TextAlign.Center,
+                            color = if (LocalIsThemeDark.current) Color.White else Color.Black,
+                            style = MaterialTheme.typography.labelLarge
+                                .copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize =  when (text.length) {
+                                        1 -> 43.sp
+                                        else -> ((68.dp - 6.dp - 2.dp) / text.length).value.sp
+                                    }.also {
+                                        Log.d(
+                                            "LivePreGame.kt",
+                                            "TopBarInfo_countDown@: fontSize=$it")
+                                    }
+                                )
+                        )
                     }
                 }
             }

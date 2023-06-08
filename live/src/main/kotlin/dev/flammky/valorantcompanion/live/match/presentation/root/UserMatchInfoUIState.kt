@@ -6,30 +6,37 @@ import androidx.compose.runtime.Immutable
 data class UserMatchInfoUIState(
     val inPreGame: Boolean,
     val inGame: Boolean,
+    val mapId: String,
     val mapName: String,
     val gameModeName: String,
     val gamePodName: String,
     val gamePodPingMs: Int,
     val showLoading: Boolean,
-    val errorMessage: String?
+    val showLoadingOnly: Boolean,
+    val errorMessage: String?,
+    val needManualRefresh: Boolean,
+    val autoRefreshOn: Boolean,
+    val userRefresh: () -> Unit,
+    val setAutoRefresh: (Boolean) -> Unit
 ) {
-
-    sealed class Event {
-        object REFRESH
-        data class SET_AUTO_REFRESH(val on: Boolean)
-    }
 
     companion object {
         val UNSET by lazy {
             UserMatchInfoUIState(
                 inPreGame = false,
                 inGame = false,
+                mapId = "",
                 mapName = "",
                 gameModeName = "",
                 gamePodName = "",
                 gamePodPingMs = -1,
                 showLoading = false,
-                errorMessage = null
+                showLoadingOnly = false,
+                errorMessage = null,
+                needManualRefresh = false,
+                autoRefreshOn = false,
+                userRefresh = {},
+                setAutoRefresh = {}
             )
         }
     }

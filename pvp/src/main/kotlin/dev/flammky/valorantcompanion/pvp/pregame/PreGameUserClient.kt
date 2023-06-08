@@ -3,7 +3,7 @@ package dev.flammky.valorantcompanion.pvp.pregame
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import kotlinx.coroutines.Deferred
 
-interface PreGameClient {
+interface PreGameUserClient {
 
     fun fetchCurrentPreGameMatchData(): Deferred<Result<PreGameMatchData>>
 

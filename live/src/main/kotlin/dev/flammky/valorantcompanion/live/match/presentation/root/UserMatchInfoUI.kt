@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.assets.R as ASSET_R
 import dev.flammky.valorantcompanion.base.theme.material3.*
@@ -29,7 +30,6 @@ fun UserMatchInfoUI(
     modifier: Modifier,
     state: UserMatchInfoUIState,
     openDetail: () -> Unit,
-    refresh: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -67,7 +67,7 @@ fun UserMatchInfoUI(
             Icon(
                 modifier = Modifier
                     .size(24.dp)
-                    .clickable(onClick = refresh),
+                    .clickable(onClick = state.userRefresh),
                 painter = painterResource(id = ASSET_R.drawable.refresh_fill0_wght400_grad0_opsz48),
                 contentDescription = "refresh",
                 tint = Material3Theme.surfaceContentColorAsState().value
@@ -80,11 +80,28 @@ fun UserMatchInfoUI(
             color = Material3Theme.surfaceVariantColorAsState().value
         )
         Box() {
-            Box(
+            Column(
                 modifier = Modifier
-                    .alpha(if (state.showLoading) 0.38f else 1f)
+                    .alpha(
+                        when {
+                            state.showLoadingOnly -> 0f
+                            state.showLoading -> 0.38f
+                            else -> 1f
+                        }
+                    )
             ) {
+                if (state.needManualRefresh) {
+                    Text(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        text = "Refresh manually to try again",
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
                 when {
+                    state === UserMatchInfoUIState.UNSET -> {}
                     state.inPreGame -> PreGameInfoUICard(
                         mapName = state.mapName,
                         gameModeName = state.gameModeName,
@@ -208,8 +225,8 @@ private fun ErrorUI(
         .padding(vertical = 8.dp, horizontal = 10.dp)
 ) {
     Text(
-        modifier = Modifier.align(Alignment.Center),
-        text = errorMessage.ifEmpty { "unexpected error occurred" },
+        modifier = Modifier.align(Alignment.CenterStart),
+        text = "Error: ${errorMessage.ifEmpty { "unexpected error occurred" }}",
         color = MaterialTheme.colorScheme.error,
         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
     )

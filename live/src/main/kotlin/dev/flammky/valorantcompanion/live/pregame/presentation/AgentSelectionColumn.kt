@@ -160,7 +160,7 @@ private fun rankLookup(
         value += poll
     }
     val preGameClient = remember(preGameService, user) {
-        preGameService.createClient(user)
+        preGameService.createUserClient(user)
     }
     val upLookupPuuid = rememberUpdatedState(newValue = lookupPuuid)
     val coroutineScope = rememberCoroutineScope()

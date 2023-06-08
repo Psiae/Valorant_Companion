@@ -1,15 +1,17 @@
 package dev.flammky.valorantcompanion.live.pregame.presentation
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.Surface
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -22,8 +24,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import dev.flammky.valorantcompanion.assets.R as ASSET_R
@@ -31,7 +35,6 @@ import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.map.ValorantMapImageType
 import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
-import dev.flammky.valorantcompanion.auth.riot.AccountModel
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
 import dev.flammky.valorantcompanion.base.di.koin.getFromKoin
@@ -40,10 +43,10 @@ import dev.flammky.valorantcompanion.live.pingStrengthInRangeOf4
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgent
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.pregame.PreGameService
-import dev.flammky.valorantcompanion.pvp.pregame.onFailure
 import dev.flammky.valorantcompanion.pvp.pregame.onSuccess
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlin.time.Duration
 
 @Composable
 fun LivePreGame(
@@ -142,7 +145,7 @@ private fun unlockedAgents(
     val upContinuation = rememberUpdatedState(newValue = versionContinuationKey)
     val upReturns = rememberUpdatedState(newValue = returns)
     val client = remember(preGameService, puuid) {
-        preGameService.createClient(puuid)
+        preGameService.createUserClient(puuid)
     }
     val coroutineScope = rememberCoroutineScope()
     DisposableEffect(
@@ -294,50 +297,103 @@ private fun TopBarInfo(
                     contentDescription = "Map ${state.mapName}",
                     contentScale = ContentScale.Crop,
                 )
-                Column(
+                Row(
                     modifier = Modifier
-                        .padding(5.dp)
-                        .clip(RoundedCornerShape(15.dp))
-                        .background(Material3Theme.surfaceVariantColorAsState().value.copy(alpha = 0.97f))
-                        .padding(12.dp)
+                        .fillMaxWidth()
+                        .padding(5.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    val textColor = if (LocalIsThemeDark.current) Color.White else Color.Black
-                    Text(
-                        "Map - ${state.mapName}".uppercase(),
-                        color = textColor,
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        state.gameModeName.uppercase(),
-                        color = textColor,
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f, false)
+                            .clip(RoundedCornerShape(15.dp))
+                            .background(Material3Theme.surfaceVariantColorAsState().value.copy(alpha = 0.97f))
+                            .padding(12.dp)
+                    ) {
+                        val textColor = if (LocalIsThemeDark.current) Color.White else Color.Black
                         Text(
-                            state.gamePodName.ifBlank { state.gamePodId },
+                            text = "Map - ${state.mapName}".uppercase(),
                             color = textColor,
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        if (state.gamePodPing > -1) {
-                            Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = state.gameModeName.uppercase(),
+                            color = textColor,
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row {
                             Text(
-                                "(${state.gamePodPing}ms)",
+                                modifier = Modifier.weight(1f, false),
+                                text = state.gamePodName.ifBlank { state.gamePodId },
                                 color = textColor,
                                 style = MaterialTheme.typography.labelSmall,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            Spacer(modifier = Modifier.width(1.dp))
-                            Draw4PingBar(modifier = Modifier
-                                .height(8.dp)
-                                .align(Alignment.CenterVertically), pingMs = 25)
+                            if (state.gamePodPing > -1) {
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    modifier = Modifier.weight(1f, false),
+                                    text = "(${state.gamePodPing}ms)",
+                                    color = textColor,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(modifier = Modifier.width(1.dp))
+                                Draw4PingBar(modifier = Modifier
+                                    .height(8.dp)
+                                    .align(Alignment.CenterVertically), pingMs = 25)
+                            }
+                        }
+                    }
+                    run countdown@ {
+                        val stepSec = state.countDown.inWholeSeconds
+                        Log.d("LivePreGame.kt", "TopBarInfo_countDown@: stepSec=$stepSec")
+                        if (stepSec < 0 || stepSec == Duration.INFINITE.inWholeSeconds) return@countdown
+                        Spacer(modifier = Modifier.width(12.dp))
+                        BoxWithConstraints(
+                            modifier = Modifier
+                                .size(68.dp)
+                                .align(Alignment.CenterVertically)
+                                .clip(CircleShape)
+                                .background(Material3Theme.surfaceVariantColorAsState().value.copy(alpha = 0.97f))
+                        ) {
+
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .align(Alignment.Center),
+                                progress = stepSec.toFloat() / 85,
+                                strokeWidth = 2.dp,
+                                color = if (stepSec <= 10f) Color.Red else Color.Green
+                            )
+                            val text = stepSec.toInt().toString()
+                            Text(
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .padding(6.dp),
+                                text = text,
+                                textAlign = TextAlign.Center,
+                                color = if (LocalIsThemeDark.current) Color.White else Color.Black,
+                                style = MaterialTheme.typography.labelLarge
+                                    .copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize =  when (text.length) {
+                                            1 -> 43.sp
+                                            else -> ((68.dp - 6.dp - 2.dp) / text.length).value.sp
+                                        }.also {
+                                            Log.d(
+                                                "LivePreGame.kt",
+                                                "TopBarInfo_countDown@: fontSize=$it")
+                                        }
+                                    )
+                            )
                         }
                     }
                 }

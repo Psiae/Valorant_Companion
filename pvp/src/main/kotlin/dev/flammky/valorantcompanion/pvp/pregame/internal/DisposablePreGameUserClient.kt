@@ -15,7 +15,7 @@ import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
 import dev.flammky.valorantcompanion.pvp.party.ex.PlayerPartyNotFoundException
 import dev.flammky.valorantcompanion.pvp.pregame.*
-import dev.flammky.valorantcompanion.pvp.pregame.ex.PreGameNotFoundException
+import dev.flammky.valorantcompanion.pvp.pregame.ex.PreGameMatchNotFoundException
 import dev.flammky.valorantcompanion.pvp.pregame.ex.UnknownTeamIdException
 import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
 import dev.flammky.valorantcompanion.pvp.store.DEFAULT_UNLOCKED_AGENTS_IDENTITY
@@ -28,12 +28,12 @@ import kotlinx.serialization.json.*
 import java.io.IOException
 import kotlin.reflect.KClass
 
-internal class DisposablePreGameClient(
+internal class DisposablePreGameUserClient(
     private val puuid: String,
     private val httpClient: HttpClient,
     private val auth: RiotAuthService,
     private val geo: RiotGeoRepository,
-) : PreGameClient {
+) : PreGameUserClient {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
@@ -72,7 +72,7 @@ internal class DisposablePreGameClient(
                         fetchUserCurrentPreGameMatchID().getOrThrow().isNotBlank()
                     } catch (e: Exception) {
                         when (e) {
-                            is PreGameNotFoundException -> false
+                            is PreGameMatchNotFoundException -> false
                             else -> throw e
                         }
                     }
@@ -309,7 +309,7 @@ internal class DisposablePreGameClient(
                         .expectNotJsonNull("errorCode")
                         .content
                         .also { expectNonBlankJsonString("errorCode", it) }
-                    if (errorCode == "PREGAME_MNF") throw PreGameNotFoundException()
+                    if (errorCode == "PREGAME_MNF") throw PreGameMatchNotFoundException()
                 }
             }
 
@@ -363,7 +363,7 @@ internal class DisposablePreGameClient(
                         .expectNotJsonNull("errorCode")
                         .content
                         .also { expectNonBlankJsonString("errorCode", it) }
-                    if (errorCode == "PREGAME_MNF") throw PreGameNotFoundException()
+                    if (errorCode == "PREGAME_MNF") throw PreGameMatchNotFoundException()
                 }
             }
 
@@ -414,7 +414,7 @@ internal class DisposablePreGameClient(
                             .also { expectNonBlankJsonString("errorCode", it) }
                             .equals("PREGAME_MNF")
                     ) {
-                        throw PreGameNotFoundException()
+                        throw PreGameMatchNotFoundException()
                     }
                 }
             }
@@ -460,7 +460,7 @@ internal class DisposablePreGameClient(
                            .also { expectNonBlankJsonString("errorCode", it) }
                            .equals("RESOURCE_NOT_FOUND")
                    ) {
-                        throw PreGameNotFoundException()
+                        throw PreGameMatchNotFoundException()
                    }
                }
            }
@@ -1198,6 +1198,9 @@ internal class DisposablePreGameClient(
                         val prop = "SeasonalInfoBySeasonID"
                         competitiveSkill
                             .expectJsonProperty(prop)
+                            .ifJsonNull {
+                                return@run 0
+                            }
                             .expectJsonObject(prop)
                     }.let { seasonalInfo ->
                         val prop = currentSeason.act.id
