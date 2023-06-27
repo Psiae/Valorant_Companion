@@ -1,11 +1,12 @@
 package dev.flammky.valorantcompanion.assets.internal
 
-import android.util.Log
-import dev.flammky.valorantcompanion.assets.LoadPlayerCardRequest
+import dev.flammky.valorantcompanion.assets.LocalImage
+import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
 import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.map.ValorantMapAssetDownloader
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardAssetDownloader
+import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import kotlinx.coroutines.*
 import java.io.File
 import kotlin.coroutines.resume
@@ -17,6 +18,22 @@ internal class DisposableValorantAssetsLoaderClient(
 ) : ValorantAssetsLoaderClient {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
+
+    override fun loadMemoryCachedAgentIcon(agentId: String): LocalImage<*>? {
+        TODO("Not yet implemented")
+    }
+
+    override fun loadMemoryCachedRoleIcon(roleId: String): LocalImage<*>? {
+        TODO("Not yet implemented")
+    }
+
+    override fun loadAgentIconAsync(agentId: String): Deferred<Result<LocalImage<*>>> {
+        TODO("Not yet implemented")
+    }
+
+    override fun loadCompetitiveRankIconAsync(rank: CompetitiveRank): Deferred<Result<LocalImage<*>>> {
+        TODO("Not yet implemented")
+    }
 
     override fun loadUserPlayerCardAsync(req: LoadPlayerCardRequest): Deferred<File> {
         val def = CompletableDeferred<File>(coroutineScope.coroutineContext.job)

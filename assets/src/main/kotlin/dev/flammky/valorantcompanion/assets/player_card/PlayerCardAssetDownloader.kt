@@ -1,8 +1,6 @@
 package dev.flammky.valorantcompanion.assets.player_card
 
 import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
-import dev.flammky.valorantcompanion.assets.PlayerCardArtType
-import dev.flammky.valorantcompanion.assets.map.ValorantMapImage
 import io.ktor.util.*
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.coroutines.*
@@ -33,10 +31,10 @@ class PlayerCardAssetDownloader(
                     runCatching {
                         // TODO: handle status code
                         val response = assetHttpClient
-                            .get(endpoint.buildArtUrl(instance.id, instance.acceptableTypes.first()))
+                            . get(endpoint.buildArtUrl(instance.id, instance.acceptableTypes.first()))
                         // TODO: should be less than 500kb
                         val bb = ByteBuffer.allocate(1_000_000)
-                        response.contentChannel.read(bb)
+                        response.contentChannel.consume(bb)
                         instance.completeWith(
                             Result.success(
                                 PlayerCardArt(

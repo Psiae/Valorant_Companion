@@ -6,9 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import dev.flammky.valorantcompanion.base.runRemember
+import dev.flammky.valorantcompanion.live.ingame.LiveInGame
 import dev.flammky.valorantcompanion.live.match.presentation.root.LiveMatchUI
 import dev.flammky.valorantcompanion.live.party.presentation.LivePartyUI
 import dev.flammky.valorantcompanion.live.pregame.presentation.LivePreGame
@@ -21,34 +19,46 @@ fun LiveMain() {
         mutableStateOf(false)
     }
 
+    val showInGameScreen = remember {
+        mutableStateOf(false)
+    }
+
     LiveMainPlacement(
-        showPreGame = showPreGameScreen.value,
+        showMatchDetail = showPreGameScreen.value || showInGameScreen.value,
         liveParty = {
             LivePartyUI(modifier = Modifier)
         },
         liveMatch = {
             LiveMatchUI(
                 modifier = Modifier,
-                openDetail = { showPreGameScreen.value = true }
+                openPreGameDetail = { showPreGameScreen.value = true },
+                openInGameDetail = { showInGameScreen.value = true }
             )
         },
-        preGame = {
-            LivePreGame(
-                modifier = Modifier,
-                isVisible = showPreGameScreen.value,
-                state = rememberLivePreGamePresenter().present(),
-                dismiss = { showPreGameScreen.value = false }
-            )
-        }
+        matchDetail = {
+            if (showPreGameScreen.value) {
+                LivePreGame(
+                    modifier = Modifier,
+                    isVisible = showPreGameScreen.value,
+                    state = rememberLivePreGamePresenter().present(),
+                    dismiss = { showPreGameScreen.value = false }
+                )
+            } else if (showInGameScreen.value) {
+                LiveInGame(
+                    modifier = Modifier,
+                    dismiss = { showInGameScreen.value = false }
+                )
+            }
+        },
     )
 }
 
 @Composable
 private fun LiveMainPlacement(
-    showPreGame: Boolean,
+    showMatchDetail: Boolean,
     liveParty: @Composable () -> Unit,
     liveMatch: @Composable () -> Unit,
-    preGame: @Composable () -> Unit
+    matchDetail: @Composable () -> Unit,
 ) {
     Box {
         Column(
@@ -62,6 +72,6 @@ private fun LiveMainPlacement(
             liveParty()
             liveMatch()
         }
-        if (showPreGame) preGame()
+        if (showMatchDetail) matchDetail()
     }
 }

@@ -1,5 +1,7 @@
 package dev.flammky.valorantcompanion.pvp.mode
 
+
+// TODO: unrated and competitive is not a Game Mode, both is a "bomb" game mode
 sealed class ValorantGameMode(
     val displayName: String,
     val queueId: String

@@ -18,7 +18,7 @@ data class ValorantAct(
     val end: ISO8601
 )
 
-data class ValorantSeason(
+open class ValorantSeason internal constructor(
     val episode: ValorantEpisode,
     val acts: List<ValorantAct>
 )
@@ -242,4 +242,11 @@ object ValorantSeasons {
     }
 
     fun asList() = ALL
+
+    fun ofId(id: String): ValorantActiveSeason? {
+        ALL.forEach { season ->
+            season.acts.find { it.id == id }?.let { return ValorantActiveSeason(season.episode, it) }
+        }
+        return null
+    }
 }

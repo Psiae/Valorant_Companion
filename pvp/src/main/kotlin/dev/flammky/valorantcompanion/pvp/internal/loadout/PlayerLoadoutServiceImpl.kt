@@ -9,7 +9,7 @@ internal class PlayerLoadoutServiceImpl(
     private val repo: PlayerLoadoutRepositoryImpl,
     private val authProvider: AuthProvider,
     private val geoProvider: GeoProvider,
-    private val httpClient: HttpClient
+    private val httpClientFactory: () -> HttpClient
 ) : PlayerLoadoutService {
 
     override fun createClient(): DisposablePlayerLoadoutClientImpl {
@@ -17,7 +17,7 @@ internal class PlayerLoadoutServiceImpl(
             repo,
             authProvider,
             geoProvider,
-            httpClient
+            httpClientFactory()
         )
     }
 }

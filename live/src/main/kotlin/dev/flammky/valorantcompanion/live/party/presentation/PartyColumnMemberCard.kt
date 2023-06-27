@@ -19,9 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import dev.flammky.valorantcompanion.assets.PlayerCardArtType
+import dev.flammky.valorantcompanion.assets.player_card.PlayerCardArtType
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
-import dev.flammky.valorantcompanion.assets.LoadPlayerCardRequest
+import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.base.theme.material3.LocalIsThemeDark
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundContentColorAsState

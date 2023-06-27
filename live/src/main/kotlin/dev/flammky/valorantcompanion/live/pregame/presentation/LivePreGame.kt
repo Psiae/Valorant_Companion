@@ -39,11 +39,14 @@ import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
 import dev.flammky.valorantcompanion.base.di.koin.getFromKoin
 import dev.flammky.valorantcompanion.base.theme.material3.*
+import dev.flammky.valorantcompanion.base.util.mutableValeContainerOf
 import dev.flammky.valorantcompanion.live.pingStrengthInRangeOf4
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgent
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.pregame.PreGameService
 import dev.flammky.valorantcompanion.pvp.pregame.onSuccess
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.time.Duration
@@ -66,16 +69,15 @@ fun LivePreGame(
         state.eventSink(LivePreGameUIState.Event.SET_AUTO_REFRESH(true))
     }
 
-    val unlockedAgents = unlockedAgents(
+    val unlockedAgents = rememberUnlockedAgents(
         puuid = state.user?.puuid ?: "",
         version = state.dataMod,
         versionContinuationKey = state.dataModContinuationKey
     )
 
-    val disabledAgents = state.ally?.players
-        ?.filter { it.characterSelectionState == CharacterSelectionState.LOCKED }
-        ?.map { it.characterID }
-        ?: emptyList()
+    val disabledAgents = rememberDisabledAgents(
+        players = state.ally?.players ?: persistentListOf()
+    )
 
     LivePreGamePlacement(
         modifier,
@@ -88,13 +90,13 @@ fun LivePreGame(
                 state
             )
          },
-        AgentSelectionTeamMembersColumn = { placementModifier ->
+        AgentSelectionTeamMembersColumn = @Composable { placementModifier ->
             AgentSelectionColumn(
                 modifier = placementModifier,
                 state = rememberAgentSelectionPresenter().present(state)
             )
         },
-        AgentSelectionLockInButton = { placementModifier ->
+        AgentSelectionLockInButton = @Composable { placementModifier ->
             AgentSelectionLockInButton(
                 modifier = placementModifier,
                 agentName = when {
@@ -111,7 +113,7 @@ fun LivePreGame(
                 }
             )
         },
-        AgentSelectionPool = { placementModifier ->
+        AgentSelectionPool = @Composable { placementModifier ->
             AgentSelectionPool(
                 modifier = placementModifier,
                 unlockedAgents = unlockedAgents,
@@ -127,7 +129,7 @@ fun LivePreGame(
 }
 
 @Composable
-private fun unlockedAgents(
+private fun rememberUnlockedAgents(
     preGameService: PreGameService = getFromKoin(),
     puuid: String,
     version: Long,
@@ -182,6 +184,27 @@ private fun unlockedAgents(
         }
     )
     return returns.value ?: emptyList()
+}
+
+@Composable
+private fun rememberDisabledAgents(
+    players: ImmutableList<PreGamePlayer>
+): List<String> {
+    val source = remember {
+        mutableValeContainerOf(players)
+    }
+    return remember {
+        mutableStateOf(emptyList<String>(), neverEqualPolicy())
+    }.apply {
+        if (source.value === players) {
+            return@apply
+        }
+        source.value = players
+        val new = players
+            .filter { it.characterSelectionState == CharacterSelectionState.LOCKED }
+            .map { it.characterID }
+        if (value != new) value = new
+    }.value
 }
 
 @Composable
@@ -259,7 +282,7 @@ private fun TopBarInfo(
         mutableStateOf<ImageRequest?>(null)
     }.apply {
         value =
-            presentMapModel(mapId = state.mapId, retryHash = retryHash.value)
+            presentMapModel(mapId = state.mapId, reloadKey = retryHash.value)
                 .let { model ->
                     model.getOrElse {
                         mapImageErrorFlag.value = true
@@ -346,7 +369,7 @@ private fun TopBarInfo(
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Spacer(modifier = Modifier.width(1.dp))
-                                Draw4PingBar(modifier = Modifier
+                                DrawLiveInGameTopBar4PingBar(modifier = Modifier
                                     .height(8.dp)
                                     .align(Alignment.CenterVertically), pingMs = 25)
                             }
@@ -362,7 +385,11 @@ private fun TopBarInfo(
                                 .size(68.dp)
                                 .align(Alignment.CenterVertically)
                                 .clip(CircleShape)
-                                .background(Material3Theme.surfaceVariantColorAsState().value.copy(alpha = 0.97f))
+                                .background(
+                                    Material3Theme.surfaceVariantColorAsState().value.copy(
+                                        alpha = 0.97f
+                                    )
+                                )
                         ) {
 
                             CircularProgressIndicator(
@@ -405,7 +432,7 @@ private fun TopBarInfo(
 @Composable
 private fun presentMapModel(
     mapId: String,
-    retryHash: Any,
+    reloadKey: Any,
 ): Result<ImageRequest> {
     val ctx = LocalContext.current
 
@@ -418,7 +445,7 @@ private fun presentMapModel(
     val retryHashState = remember(mapId) {
         mutableStateOf<Any>(0)
     }.apply {
-        value = retryHash
+        value = reloadKey
     }
 
     val assetService = getFromKoin<ValorantAssetsService>()
@@ -477,7 +504,7 @@ private fun presentMapModel(
 }
 
 @Composable
-private fun Draw4PingBar(
+private fun DrawLiveInGameTopBar4PingBar(
     modifier: Modifier,
     pingMs: Int
 ) {

@@ -4,5 +4,5 @@ import java.nio.ByteBuffer
 
 fun interface ReadableAssetByteChannel {
 
-    suspend fun read(dst: ByteBuffer)
+    suspend fun consume(dst: ByteBuffer)
 }

@@ -3,11 +3,10 @@ package dev.flammky.valorantcompanion.assets.internal
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
-import dev.flammky.valorantcompanion.assets.PlayerCardArtType
+import dev.flammky.valorantcompanion.assets.player_card.PlayerCardArtType
 import dev.flammky.valorantcompanion.assets.conflate.CacheWriteMutex
 import dev.flammky.valorantcompanion.assets.conflate.ConflatedCacheWriteMutex
 import dev.flammky.valorantcompanion.assets.filesystem.PlatformFileSystem
-import dev.flammky.valorantcompanion.assets.map.ValorantMapImage
 import dev.flammky.valorantcompanion.assets.map.ValorantMapImageType
 import dev.flammky.valorantcompanion.assets.sync
 import kotlinx.collections.immutable.ImmutableSet

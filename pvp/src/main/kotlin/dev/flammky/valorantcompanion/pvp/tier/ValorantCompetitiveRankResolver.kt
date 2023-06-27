@@ -7,6 +7,10 @@ interface ValorantCompetitiveRankResolver {
 
     fun getByTier(tier: Int): CompetitiveRank?
 
+    fun localizeTier(competitiveRank: CompetitiveRank): Int
+
+    fun isRankPresent(competitiveRank: CompetitiveRank): Boolean
+
     companion object {
 
         fun getResolverOfSeason(
@@ -14,6 +18,8 @@ interface ValorantCompetitiveRankResolver {
             act: Int
         ): ValorantCompetitiveRankResolver {
             return RealValorantCompetitiveRankResolver(
+                episode = episode,
+                act = act,
                 isImmortalMerged = (episode == 2) || (episode == 3 && act < 2),
                 hasAscendant = episode > 5
             )

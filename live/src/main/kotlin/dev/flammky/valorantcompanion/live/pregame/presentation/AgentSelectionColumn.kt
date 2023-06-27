@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
 import dev.flammky.valorantcompanion.base.di.koin.getFromKoin
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
-import dev.flammky.valorantcompanion.pvp.player.NameService
+import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
 import dev.flammky.valorantcompanion.pvp.player.PlayerPVPName
 import dev.flammky.valorantcompanion.pvp.pregame.PreGameService
 import dev.flammky.valorantcompanion.pvp.pregame.onFailure
@@ -65,7 +65,7 @@ fun AgentSelectionColumn(
 
 @Composable
 private fun nameLookup(
-    nameService: NameService = getFromKoin(),
+    nameService: ValorantNameService = getFromKoin(),
     geoRepository: RiotGeoRepository = getFromKoin(),
     user: String,
     lookupPuuid: List<String>,
@@ -211,6 +211,7 @@ private fun rankLookup(
                                                                     Result.success(data.competitiveRank)
                                                                 )
                                                             }
+                                                            .build()
                                                 }
                                                 .onFailure { ex, _ ->
                                                     returns.value =
@@ -220,6 +221,7 @@ private fun rankLookup(
                                                                 putAll(returns.value)
                                                                 put(subject, Result.failure(ex))
                                                             }
+                                                            .build()
                                                 }
                                         }
                                     }
@@ -230,7 +232,7 @@ private fun rankLookup(
                                 polls.value -= consume
                                 Log.d("AgentSelectionColumn.kt", "rankLookup: end poll (${polls.value}, $consume)")
                                 check(polls.value >= 0)
-                                delay(500)
+                                delay(1000)
                             }
                         }
                     }

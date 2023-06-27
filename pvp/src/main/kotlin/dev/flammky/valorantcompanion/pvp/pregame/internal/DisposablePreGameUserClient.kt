@@ -16,7 +16,7 @@ import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
 import dev.flammky.valorantcompanion.pvp.party.ex.PlayerPartyNotFoundException
 import dev.flammky.valorantcompanion.pvp.pregame.*
 import dev.flammky.valorantcompanion.pvp.pregame.ex.PreGameMatchNotFoundException
-import dev.flammky.valorantcompanion.pvp.pregame.ex.UnknownTeamIdException
+import dev.flammky.valorantcompanion.pvp.match.ex.UnknownTeamIdException
 import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
 import dev.flammky.valorantcompanion.pvp.store.DEFAULT_UNLOCKED_AGENTS_IDENTITY
 import dev.flammky.valorantcompanion.pvp.store.ItemType
@@ -62,7 +62,7 @@ internal class DisposablePreGameUserClient(
         return def
     }
 
-    override fun hasPreGameMatchData(): Deferred<Result<Boolean>> {
+    override fun hasPreGameMatchDataAsync(): Deferred<Result<Boolean>> {
         val def = CompletableDeferred<Result<Boolean>>()
 
         val job = coroutineScope.launch(Dispatchers.IO) {
@@ -163,6 +163,7 @@ internal class DisposablePreGameUserClient(
 
     override fun dispose() {
         coroutineScope.cancel()
+        httpClient.dispose()
     }
 
     override fun lockAgent(
@@ -259,7 +260,7 @@ internal class DisposablePreGameUserClient(
                 )
             }
 
-            error("")
+            unexpectedResponseError("unable to GET user unlocked agents (${response.statusCode})")
         }
     }
 
@@ -412,7 +413,9 @@ internal class DisposablePreGameUserClient(
                             .expectNotJsonNull("errorCode")
                             .content
                             .also { expectNonBlankJsonString("errorCode", it) }
-                            .equals("PREGAME_MNF")
+                            .let { code ->
+                                code == "PREGAME_MNF" || code == "RESOURCE_NOT_FOUND"
+                            }
                     ) {
                         throw PreGameMatchNotFoundException()
                     }
@@ -678,6 +681,7 @@ internal class DisposablePreGameUserClient(
                 )
             }
 
+            // TODO: Client version mismatch can cause the API to return 404
             when (response.statusCode) {
                 200 -> runCatching {
                     parseCurrentSeasonMMRDataFromPublicMMREndpoint(
@@ -1046,7 +1050,7 @@ internal class DisposablePreGameUserClient(
         val identity = element.expectJsonObject(propertyName)
         return PreGamePlayerIdentity(
             puuid = run {
-                val propName = "PlayerCardID"
+                val propName = "Subject"
                 identity
                     .expectJsonProperty(propName)
                     .expectJsonPrimitive(propName)

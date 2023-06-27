@@ -20,7 +20,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import dev.flammky.valorantcompanion.assets.R
 import dev.flammky.valorantcompanion.base.runRemember
-import dev.flammky.valorantcompanion.live.shared.presentation.LocalImageData
+import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgent
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 
@@ -56,7 +56,7 @@ fun AgentSelectionPool(
                     enabled = !userAgent && unlocked && !disabled,
                     locked = !unlocked,
                     // TODO: should get the icon via AssetLoader
-                    data = LocalImageData.Resource(agentIconOf(agent)),
+                    data = LocalImage.Resource(agentIconOf(agent)),
                     dataKey = agent,
                     agentName = identity.displayName,
                     onSelected = { upOnSelected.value(identity.uuid) }
@@ -74,7 +74,7 @@ private fun SelectableAgentIcon(
     modifier: Modifier,
     enabled: Boolean,
     locked: Boolean,
-    data: LocalImageData<*>?,
+    data: LocalImage<*>?,
     dataKey: Any,
     agentName: String,
     onSelected: () -> Unit
@@ -110,7 +110,7 @@ private fun SelectableAgentIcon(
                     ImageRequest.Builder(ctx)
                         .setParameter("retry_hash", hash)
                         .run {
-                            if (inspection && data is LocalImageData.Resource) {
+                            if (inspection && data is LocalImage.Resource) {
                                 placeholder(data.value)
                             } else {
                                 data(data?.value)

@@ -1,22 +1,24 @@
 package dev.flammky.valorantcompanion.pvp.player.internal
 
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
+import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
 import dev.flammky.valorantcompanion.pvp.BuildConfig
 import dev.flammky.valorantcompanion.pvp.ex.UnexpectedResponseException
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
 import dev.flammky.valorantcompanion.pvp.http.ktor.KtorWrappedHttpClient
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequestResult
-import dev.flammky.valorantcompanion.pvp.player.NameService
+import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
 import dev.flammky.valorantcompanion.pvp.player.PlayerPVPName
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 
-internal class RealNameService(
+internal class RealValorantNameService(
     // TODO: should provide builder
     private val httpClient: KtorWrappedHttpClient,
-    private val authService: RiotAuthService
-) : NameService {
+    private val authService: RiotAuthService,
+    private val geoRepository: RiotGeoRepository
+) : ValorantNameService {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
@@ -33,10 +35,14 @@ internal class RealNameService(
                     .getOrElse { error("Unable to get authorization token") }.access_token
                 val entitlement_token = authService.get_entitlement_token(request.signedInUserPUUID)
                     .getOrElse { error("Unable to get entitlement token") }
+                val shard = request.shard
+                    ?: geoRepository.getGeoShardInfo(request.signedInUserPUUID)
+                        ?.shard
+                    ?: error("Unable to get GeoInfo")
                 val response = httpClient.jsonRequest(
                     JsonHttpRequest(
                         method = "PUT",
-                        url ="https://pd.${request.shard.assignedUrlName}.a.pvp.net/name-service/v2/players",
+                        url ="https://pd.${shard.assignedUrlName}.a.pvp.net/name-service/v2/players",
                         headers = buildList {
                             add("Authorization" to "Bearer $auth_token")
                             add("X-Riot-Entitlements-JWT" to entitlement_token)

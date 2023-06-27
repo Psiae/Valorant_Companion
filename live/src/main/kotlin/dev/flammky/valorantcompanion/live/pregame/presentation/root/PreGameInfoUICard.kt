@@ -69,7 +69,7 @@ fun PreGameInfoUICard(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = if (gamePodName.isNotBlank()) {
-                    val pingStr = if (gamePodPingMs >= 0) "(${gamePodPingMs}ms)" else ""
+                    val pingStr = if (gamePodPingMs >= 0) "(${gamePodPingMs}ms)" else "(???)"
                     "$gamePodName $pingStr"
                 } else "",
                 color = Material3Theme.backgroundContentColorAsState().value,

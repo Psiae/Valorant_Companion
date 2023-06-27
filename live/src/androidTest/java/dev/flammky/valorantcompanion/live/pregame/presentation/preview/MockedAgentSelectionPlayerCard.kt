@@ -10,7 +10,7 @@ import dev.flammky.valorantcompanion.base.theme.material3.surfaceColorAsState
 import dev.flammky.valorantcompanion.assets.R as AssetResource
 import dev.flammky.valorantcompanion.live.pregame.presentation.AgentSelectionPlayerCard
 import dev.flammky.valorantcompanion.live.pregame.presentation.AgentSelectionPlayerCardState
-import dev.flammky.valorantcompanion.live.shared.presentation.LocalImageData
+import dev.flammky.valorantcompanion.assets.LocalImage
 
 @Composable
 @Preview
@@ -21,14 +21,14 @@ private fun AgentSelectionPlayerCardPreviewWithNeon() {
             playerGameNameTag = "0000",
             hasSelectedAgent = true,
             selectedAgentName = "Neon",
-            selectedAgentIcon = LocalImageData.Resource(AssetResource.raw.agent_neon_displayicon),
+            selectedAgentIcon = LocalImage.Resource(AssetResource.raw.agent_neon_displayicon),
             selectedAgentIconKey = Unit,
             selectedAgentRoleName = "Duelist",
-            selectedAgentRoleIcon = LocalImageData.Resource(AssetResource.raw.role_duelist_displayicon),
+            selectedAgentRoleIcon = LocalImage.Resource(AssetResource.raw.role_duelist_displayicon),
             selectedAgentRoleIconKey = Unit,
             isLockedIn = false,
             tierName = "Ascendant 1",
-            tierIcon = LocalImageData.Resource(AssetResource.raw.rank_ascendant1_smallicon),
+            tierIcon = LocalImage.Resource(AssetResource.raw.rank_ascendant1_smallicon),
             tierIconKey = Unit,
             isUser = true
         )

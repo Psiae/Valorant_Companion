@@ -15,7 +15,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,12 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.Paragraph
-import androidx.compose.ui.text.ParagraphIntrinsics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -38,7 +32,7 @@ import coil.compose.AsyncImage
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.live.pingStrengthInRangeOf4
 import dev.flammky.valorantcompanion.live.pregame.presentation.*
-import dev.flammky.valorantcompanion.live.shared.presentation.LocalImageData
+import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgent
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentRole
@@ -307,14 +301,14 @@ private fun mockPlayerCardState(
     playerGameNameTag = nameTag.takeIf { !maskName } ?: "",
     hasSelectedAgent = true,
     selectedAgentName = selectedAgentName,
-    selectedAgentIcon = LocalImageData.Resource(agentDisplayIcon(selectedAgentName)),
+    selectedAgentIcon = LocalImage.Resource(agentDisplayIcon(selectedAgentName)),
     selectedAgentIconKey = Unit,
     selectedAgentRoleName = selectedAgentRoleName,
-    selectedAgentRoleIcon = LocalImageData.Resource(agentRoleIconForName(selectedAgentRoleName)),
+    selectedAgentRoleIcon = LocalImage.Resource(agentRoleIconForName(selectedAgentRoleName)),
     selectedAgentRoleIconKey = Unit,
     isLockedIn = lockedIn,
     tierName = "",
-    tierIcon = LocalImageData.Resource(latestPatchTierIcon(tier)),
+    tierIcon = LocalImage.Resource(latestPatchTierIcon(tier)),
     tierIconKey = Unit,
     isUser = isUser
 )

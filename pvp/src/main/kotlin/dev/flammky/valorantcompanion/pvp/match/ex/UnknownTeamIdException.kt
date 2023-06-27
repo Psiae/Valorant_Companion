@@ -1,4 +1,4 @@
-package dev.flammky.valorantcompanion.pvp.pregame.ex
+package dev.flammky.valorantcompanion.pvp.match.ex
 
 import dev.flammky.valorantcompanion.pvp.party.ex.PVPModuleException
 

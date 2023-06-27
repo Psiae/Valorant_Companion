@@ -1,4 +1,4 @@
-package dev.flammky.valorantcompanion.assets
+package dev.flammky.valorantcompanion.assets.player_card
 
 sealed class PlayerCardArtType(
     val widthPx: Int,

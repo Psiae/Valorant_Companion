@@ -6,7 +6,7 @@ import dev.flammky.valorantcompanion.live.BuildConfig
 import dev.flammky.valorantcompanion.pvp.party.PartyChangePreferredPodsRequest
 import dev.flammky.valorantcompanion.pvp.party.PartyService
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
-import dev.flammky.valorantcompanion.pvp.player.NameService
+import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentMapOf
@@ -15,7 +15,7 @@ import org.koin.androidx.compose.get as getFromKoin
 
 @Composable
 fun rememberLivePartyColumnPresenter(
-    nameService: NameService = getFromKoin(),
+    nameService: ValorantNameService = getFromKoin(),
     geo: RiotGeoRepository = getFromKoin(),
     partyService: PartyService = getFromKoin()
 ): LivePartyColumnPresenter {
@@ -23,7 +23,7 @@ fun rememberLivePartyColumnPresenter(
 }
 
 class LivePartyColumnPresenter(
-    private val nameService: NameService,
+    private val nameService: ValorantNameService,
     private val geo: RiotGeoRepository,
     private val partyService: PartyService
 ) {

@@ -6,8 +6,10 @@ import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
-import dev.flammky.valorantcompanion.base.compose.SnapshotRead
+import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.di.koin.getFromKoin
+import dev.flammky.valorantcompanion.pvp.ingame.*
+import dev.flammky.valorantcompanion.pvp.ingame.ex.InGameMatchNotFoundException
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
 import dev.flammky.valorantcompanion.pvp.mode.ValorantGameMode
 import dev.flammky.valorantcompanion.pvp.pregame.PreGameMatchData
@@ -16,8 +18,10 @@ import dev.flammky.valorantcompanion.pvp.pregame.PreGameService
 import dev.flammky.valorantcompanion.pvp.pregame.ex.PreGameMatchNotFoundException
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+
 class UserMatchInfoPresenter(
     private val pregameService: PreGameService,
+    private val inGameService: InGameService,
     private val authRepository: RiotAuthRepository,
 ) {
 
@@ -34,12 +38,11 @@ class UserMatchInfoPresenter(
         ) {
             val listener = ActiveAccountListener { old, new ->
                 activeAccountState.value = new
+                initialized.value = true
             }
             authRepository.registerActiveAccountChangeListener(
                 listener
             )
-            // listener should already be invoked
-            initialized.value = true
             onDispose {
                 authRepository.unRegisterActiveAccountListener(listener)
             }
@@ -77,6 +80,7 @@ class UserMatchInfoPresenter(
         private var _coroutineScope: CoroutineScope? = null
         // lateinit
         private var _preGameUserClient: PreGameUserClient? = null
+        private var _inGameUserClient: InGameUserClient? = null
 
         private var lastDataRefreshStamp: Long = -1L
         private var lastPingRefreshStamp: Long = -1L
@@ -88,6 +92,10 @@ class UserMatchInfoPresenter(
         private val preGameUserClient: PreGameUserClient
             get() = _preGameUserClient
                 ?: error("preGameUserClient is not initialized")
+
+        private val inGameUserClient: InGameUserClient
+            get() = _inGameUserClient
+                ?: error("inGameUerClient is not initialized")
 
         private val gamePodsPings = mutableMapOf<String, Int>()
 
@@ -135,12 +143,14 @@ class UserMatchInfoPresenter(
         private fun dispose() {
             _coroutineScope?.cancel()
             _preGameUserClient?.dispose()
+            _inGameUserClient?.dispose()
         }
 
         private fun initialize() {
             check(init)
             init = false
             _preGameUserClient = pregameService.createUserClient(puuid)
+            _inGameUserClient = inGameService.createUserClient(puuid)
             mutateState("initialize") {
                 UserMatchInfoUIState.UNSET
             }
@@ -215,6 +225,11 @@ class UserMatchInfoPresenter(
                         runCatching { currentUserInitiatedRefresh?.join() }
                         continue
                     }
+                    // TODO: just stop the scheduler
+                    if (needManualRefresh()) {
+                        delay(1000)
+                        continue
+                    }
                     currentAutoInitiatedRefresh = launch { refresh("autoRefreshScheduler") }
                     runCatching { currentAutoInitiatedRefresh?.join() }
                 }
@@ -228,28 +243,42 @@ class UserMatchInfoPresenter(
 
             var preGameFetchEx: Exception? = null
             val preGame = run {
-                preGameUserClient
-                    .hasPreGameMatchData()
-                    .await()
-                    .onSuccess { hasData ->
-                        if (!hasData) return@run null
-                    }
-                    .onFailure { ex ->
-                        ex as Exception
-                        preGameFetchEx = ex
-                        return@run null
-                    }
 
-                preGameUserClient
-                    .fetchCurrentPreGameMatchData()
-                    .await()
-                    .getOrElse { ex ->
-                        ex as Exception
-                        if (ex !is PreGameMatchNotFoundException) {
-                            preGameFetchEx = ex
+                run hasData@ {
+                    val def = preGameUserClient.hasPreGameMatchDataAsync()
+                    val result = runCatching { def.await() }
+                        .getOrElse { ex ->
+                            def.cancel()
+                            throw ex
                         }
-                        null
-                    }
+
+                    result
+                        .onSuccess { hasGame ->
+                            if (!hasGame) return@run null
+                        }
+                        .onFailure { ex ->
+                            preGameFetchEx = ex as Exception
+                            return@run null
+                        }
+                }
+
+                run fetchData@ {
+                    val def = preGameUserClient.fetchCurrentPreGameMatchData()
+                    val result = runCatching { def.await() }
+                        .getOrElse { ex ->
+                            def.cancel()
+                            throw ex
+                        }
+
+                    result
+                        .getOrElse { ex ->
+                            ex as Exception
+                            if (ex !is PreGameMatchNotFoundException) {
+                                preGameFetchEx = ex
+                            }
+                            null
+                        }
+                }
             }
 
             if (preGame != null) {
@@ -261,12 +290,56 @@ class UserMatchInfoPresenter(
             // Although preGame fetch might've throw exception we still fetch for inGame either way
 
             var inGameFetchEx: Exception? = null
+            var inGameFetchErrorCode: Int? = null
             val inGame = run {
-                null
+
+                val matchID = run matchID@ {
+                    val def = inGameUserClient.fetchUserCurrentMatchIDAsync()
+                    val result = runCatching { def.await() }
+                        .getOrElse { ex ->
+                            def.cancel()
+                            throw ex
+                        }
+
+                    result
+                        .getOrElse { exception, errorCode ->
+                            if (exception !is InGameMatchNotFoundException) {
+                                inGameFetchEx = exception
+                                inGameFetchErrorCode = errorCode
+                            }
+                            return@run null
+                        }
+                }
+
+                val client = inGameUserClient.createMatchClient(matchID)
+
+                val result = runCatching {
+                    val def = client.fetchMatchInfoAsync()
+                    val result = runCatching { def.await() }
+                        .getOrElse { ex ->
+                            def.cancel()
+                            throw ex
+                        }
+                    result
+                        .getOrElse { exception, errorCode ->
+                            if (exception !is InGameMatchNotFoundException) {
+                                inGameFetchEx = exception
+                                inGameFetchErrorCode = errorCode
+                            }
+                            null
+                        }
+                }.getOrElse { ex ->
+                    client.dispose()
+                    throw ex
+                }
+
+                result
             }
 
             if (inGame != null) {
-                // newInGameData(inGame)
+                newInGameData(inGame)
+                pollUpdatePing()
+                return
             }
 
             if (preGameFetchEx != null) {
@@ -276,7 +349,9 @@ class UserMatchInfoPresenter(
             }
 
             if (inGameFetchEx != null) {
-                // inGameFetchFailure(inGameFetchEx as Exception)
+                inGameFetchFailure(inGameFetchEx as Exception, inGameFetchErrorCode as Int)
+                cancelUpdatePing()
+                return
             }
 
             notInAnyMatch()
@@ -307,7 +382,37 @@ class UserMatchInfoPresenter(
                         stateGamePodID = data.gamePodId
                         gamePodsPings[data.gamePodId] ?: -1
                     },
-                    errorMessage = "",
+                    errorMessage = null,
+                )
+            }
+        }
+
+        private fun newInGameData(
+            data: InGameMatchData
+        ) {
+            mutateState("newInGameData") { state ->
+                state.copy(
+                    // we can assume that we are not in any preGame
+                    inPreGame = false,
+                    inGame = true,
+                    mapId = data.mapID,
+                    mapName = ValorantMapIdentity.ofID(data.mapID)?.display_name
+                        ?: "UNKNOWN_MAP_NAME",
+                    gameModeName = data.queueID?.let { queueID ->
+                        ValorantGameMode.fromQueueID(queueID)?.displayName
+                    } ?: run {
+                        when(data.provisioningFlow.lowercase()) {
+                            "CustomGame".lowercase() -> "Custom Game"
+                            "NewPlayerExperience".lowercase() -> "NewPlayer Experience"
+                            else -> "UNKNOWN_GAME_MODE"
+                        }
+                    },
+                    gamePodName = parseGamePodName(data.gamePodID),
+                    gamePodPingMs = run {
+                        stateGamePodID = data.gamePodID
+                        gamePodsPings[data.gamePodID] ?: -1
+                    },
+                    errorMessage = null
                 )
             }
         }
@@ -352,6 +457,26 @@ class UserMatchInfoPresenter(
             }
         }
 
+        private fun inGameFetchFailure(
+            cause: Exception,
+            errorCode: Int
+        ) {
+            this.refreshErrorMessage = "unexpected error occurred" // + " ($errorCode)"
+            mutateState("inGameFetchFailure") { state ->
+                state.copy(
+                    inPreGame = false,
+                    inGame = false,
+                    mapId = "",
+                    mapName = "",
+                    gameModeName = "",
+                    gamePodName = "",
+                    gamePodPingMs = -1,
+                    errorMessage = currentErrorMessage(),
+                    needManualRefresh = needManualRefresh()
+                )
+            }
+        }
+
         private fun pollUpdatePing() {
             pingPollHandle = Any()
             if (pingPollScheduler?.isActive != true) {
@@ -372,10 +497,11 @@ class UserMatchInfoPresenter(
             return coroutineScope.launch {
                 var polling: Any? = null
                 var polled: Any? = null
+                val snapshotFlow = snapshotFlow { pingPollHandle }
                 while (true) {
-                    snapshotFlow { pingPollHandle }.first { it != polled }
+                    snapshotFlow.first { it != polled }
                     polling = pingPollHandle
-                    if (polling != CancellationException()) {
+                    if (polling !is CancellationException) {
                         currentUpdatePing = launch {
                             if (lastPingRefreshStamp != -1L) {
                                 val elapsed = SystemClock.elapsedRealtime() - lastPingRefreshStamp
@@ -386,7 +512,7 @@ class UserMatchInfoPresenter(
                                 .fetchPingMillis()
                                 .await()
                                 .onSuccess { pings -> onNewPingData(pings) }
-                                .onFailure { gamePodsPings.clear() }
+                                .onFailure { fetchPingFailure() }
                         }.also {
                             runCatching { it.join() }
                         }
@@ -403,6 +529,17 @@ class UserMatchInfoPresenter(
             data.forEach { ping -> gamePodsPings[ping.key] = ping.value }
             mutateState("onNewPingData") { state ->
                 state.copy(gamePodPingMs = gamePodsPings[stateGamePodID] ?: -1)
+            }
+        }
+
+        private fun fetchPingFailure(
+
+        ) {
+            gamePodsPings.clear()
+            mutateState("fetchPingFailure") { state ->
+                state.copy(
+                    gamePodPingMs = -1
+                )
             }
         }
 
@@ -446,11 +583,13 @@ class UserMatchInfoPresenter(
 @Composable
 fun rememberUserMatchInfoPresenter(
     pregameService: PreGameService = getFromKoin(),
+    inGameService: InGameService = getFromKoin(),
     authRepository: RiotAuthRepository = getFromKoin()
 ): UserMatchInfoPresenter {
-    return remember(pregameService, authRepository) {
+    return remember(pregameService, inGameService, authRepository) {
         UserMatchInfoPresenter(
             pregameService = pregameService,
+            inGameService = inGameService,
             authRepository = authRepository
         )
     }

@@ -7,7 +7,8 @@ import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
-import dev.flammky.valorantcompanion.live.shared.presentation.LocalImageData
+import dev.flammky.valorantcompanion.base.inMainLooper
+import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
 import dev.flammky.valorantcompanion.pvp.mode.ValorantGameMode
 import dev.flammky.valorantcompanion.pvp.pregame.*
@@ -110,6 +111,7 @@ class LivePreGamePresenter(
 
             // remember callback is invoked after successful composition
             // call it here to prepare immediately
+            // TODO: There's a known concurrency issue because of Jetpack Compose Threading model
             onRemembered()
 
             if (client == null) {
@@ -129,6 +131,7 @@ class LivePreGamePresenter(
         }
 
         override fun onRemembered() {
+            check(inMainLooper())
             if (rememberedByComposition) return
             rememberedByComposition = true
             rememberCoroutineScope = CoroutineScope(SupervisorJob(lifetime) + Dispatchers.Main.immediate)
@@ -367,7 +370,7 @@ class LivePreGamePresenter(
             }
         }
 
-        private fun loadMapAsset(def: CompletableDeferred<LocalImageData<*>>) {
+        private fun loadMapAsset(def: CompletableDeferred<LocalImage<*>>) {
 
         }
 
@@ -400,7 +403,7 @@ class LivePreGamePresenter(
                 }
             }
 
-            client!!.hasPreGameMatchData()
+            client!!.hasPreGameMatchDataAsync()
                 .await()
                 .onSuccess { bool ->
                     if (!bool) {

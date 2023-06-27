@@ -29,7 +29,8 @@ import dev.flammky.valorantcompanion.live.pregame.presentation.root.PreGameInfoU
 fun UserMatchInfoUI(
     modifier: Modifier,
     state: UserMatchInfoUIState,
-    openDetail: () -> Unit,
+    openPreGameDetail: () -> Unit,
+    openInGameDetail: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -107,14 +108,14 @@ fun UserMatchInfoUI(
                         gameModeName = state.gameModeName,
                         gamePodName = state.gamePodName,
                         gamePodPingMs = state.gamePodPingMs,
-                        openDetail = openDetail
+                        openDetail = openPreGameDetail
                     )
                     state.inGame -> InGameInfoUI(
                         mapName = state.mapName,
                         gameModeName = state.gameModeName,
                         gamePodName = state.gamePodName,
                         gamePodPingMs = state.gamePodPingMs,
-                        openDetail = openDetail
+                        openDetail = openInGameDetail
                     )
                     state.errorMessage != null -> ErrorUI(errorMessage = state.errorMessage)
                     else -> NotInMatchUI()
@@ -182,7 +183,7 @@ private fun InGameInfoUI(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = if (gamePodName.isNotBlank()) {
-                    val pingStr = if (gamePodPingMs >= 0) "(${gamePodPingMs}ms)" else ""
+                    val pingStr = if (gamePodPingMs >= 0) "(${gamePodPingMs}ms)" else "(???)"
                     "$gamePodName $pingStr"
                 } else "",
                 color = Material3Theme.backgroundContentColorAsState().value,

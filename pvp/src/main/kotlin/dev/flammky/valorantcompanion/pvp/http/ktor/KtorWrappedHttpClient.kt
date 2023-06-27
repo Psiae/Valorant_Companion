@@ -1,6 +1,7 @@
 package dev.flammky.valorantcompanion.pvp.http.ktor
 
 import android.util.Log
+import androidx.compose.animation.ContentTransform
 import dev.flammky.valorantcompanion.auth.BuildConfig
 import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
@@ -76,5 +77,9 @@ internal class KtorWrappedHttpClient(
             ktorResponse.status.value,
             Json.decodeFromString(ktorResponse.bodyAsText())
         )
+    }
+
+    override fun dispose() {
+        self.close()
     }
 }

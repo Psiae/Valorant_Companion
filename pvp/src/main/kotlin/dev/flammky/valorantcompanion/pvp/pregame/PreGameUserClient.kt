@@ -7,7 +7,7 @@ interface PreGameUserClient {
 
     fun fetchCurrentPreGameMatchData(): Deferred<Result<PreGameMatchData>>
 
-    fun hasPreGameMatchData(): Deferred<Result<Boolean>>
+    fun hasPreGameMatchDataAsync(): Deferred<Result<Boolean>>
 
     fun fetchPingMillis(): Deferred<Result<Map<String, Int>>>
 

@@ -62,7 +62,8 @@ internal class DisposablePartyServiceClient(
     }
 
     override fun dispose() {
-
+        coroutineScope.cancel()
+        httpClient.dispose()
     }
 
     private suspend fun getPartyId(

@@ -407,6 +407,8 @@ internal class DisposablePlayerLoadoutClientImpl(
     }
 
     override fun dispose() {
+        coroutineScope.cancel()
+        httpClient.dispose()
     }
 }
 

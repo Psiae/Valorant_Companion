@@ -3,7 +3,7 @@ package dev.flammky.valorantcompanion.live.pregame.presentation
 import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.base.di.koin.getFromKoin
-import dev.flammky.valorantcompanion.live.shared.presentation.LocalImageData
+import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentRole
 import dev.flammky.valorantcompanion.pvp.player.PlayerPVPName
@@ -63,8 +63,8 @@ class AgentSelectionPlayerCardPresenter(
         }
 
         val agentIcon = remember(selectedAgentIdentity) {
-            mutableStateOf<LocalImageData<*>?>(
-                LocalImageData
+            mutableStateOf<LocalImage<*>?>(
+                LocalImage
                     .Resource(
                         agentDisplayIconByName(selectedAgentIdentity?.displayName ?: "")))
         }
@@ -76,11 +76,11 @@ class AgentSelectionPlayerCardPresenter(
         val agentRole = selectedAgentIdentity?.role
 
         val agentRoleIcon = remember() {
-            mutableStateOf<LocalImageData<*>?>(null)
+            mutableStateOf<LocalImage<*>?>(null)
         }.apply {
             value = remember(agentRole) {
                 if (agentRole == null) return@remember null
-                LocalImageData.Resource(
+                LocalImage.Resource(
                     when(agentRole) {
                         ValorantAgentRole.Controller -> ASSET_R.raw.role_controller_displayicon
                         ValorantAgentRole.Duelist -> ASSET_R.raw.role_duelist_displayicon
@@ -102,7 +102,7 @@ class AgentSelectionPlayerCardPresenter(
         val rank = rankData?.getOrNull()
 
         val tierIcon = remember(rankData) {
-            LocalImageData.Resource(rankData?.getOrNull()?.let { competitiveRankIcon(it) } ?: 0)
+            LocalImage.Resource(rankData?.getOrNull()?.let { competitiveRankIcon(it) } ?: 0)
         }
 
         val tierIconRetryKey = remember(tierIcon) {

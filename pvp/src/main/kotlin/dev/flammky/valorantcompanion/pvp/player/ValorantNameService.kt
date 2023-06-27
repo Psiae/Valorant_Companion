@@ -2,7 +2,7 @@ package dev.flammky.valorantcompanion.pvp.player
 
 import kotlinx.coroutines.Deferred
 
-interface NameService {
+interface ValorantNameService {
 
     fun getPlayerNameAsync(
         request: GetPlayerNameRequest

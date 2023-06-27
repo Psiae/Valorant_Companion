@@ -35,7 +35,7 @@ class ValorantMapAssetDownloader(
                 runCatching {
                     val response = assetHttpClient.get(endpoint.buildImageUrl(instance.id, type))
                     val bb = ByteBuffer.allocate(4_000_000)
-                    response.contentChannel.read(bb)
+                    response.contentChannel.consume(bb)
                     instance.completeWith(
                         Result.success(
                             ValorantMapImage(

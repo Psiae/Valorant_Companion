@@ -1,6 +1,10 @@
 package dev.flammky.valorantcompanion.assets.ktor
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Log
+import android.widget.ImageView
+import androidx.core.content.FileProvider
 import dev.flammky.valorantcompanion.assets.ReadableAssetByteChannel
 import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
 import dev.flammky.valorantcompanion.assets.http.AssetHttpResponse
@@ -15,6 +19,7 @@ class KtorWrappedHttpClient(
     private val self: KtorHttpClient
 ) : AssetHttpClient() {
 
+    // TODO: limit download, simply prepare custom execute block, the call will be closed once it returns
     override suspend fun get(url: String): AssetHttpResponse {
         val response = self.get(url) {
             onDownload { bytesSentTotal, contentLength ->

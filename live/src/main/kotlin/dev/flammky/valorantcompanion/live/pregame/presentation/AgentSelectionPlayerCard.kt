@@ -1,11 +1,9 @@
 package dev.flammky.valorantcompanion.live.pregame.presentation
 
-import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -18,16 +16,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import dev.flammky.valorantcompanion.base.runRemember
-import dev.flammky.valorantcompanion.base.theme.material3.DefaultMaterial3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.LocalIsThemeDark
-import dev.flammky.valorantcompanion.live.shared.presentation.LocalImageData
+import dev.flammky.valorantcompanion.assets.LocalImage
 
 @Composable
 fun AgentSelectionPlayerCard(
@@ -101,6 +96,7 @@ private fun AgentSelectionPlayerCardPlacement(
                 subtitle(Modifier.align(Alignment.CenterVertically))
             }
         }
+        Spacer(modifier = Modifier.width(8.dp))
         competitiveTierIcon(
             Modifier
                 .fillMaxHeight(1f)
@@ -112,7 +108,7 @@ private fun AgentSelectionPlayerCardPlacement(
 @Composable
 private fun AgentPicture(
     modifier: Modifier,
-    res: LocalImageData<*>?,
+    res: LocalImage<*>?,
     key: Any,
     agentName: String,
 ) {
@@ -132,7 +128,7 @@ private fun AgentPicture(
             ImageRequest.Builder(ctx)
                 .setParameter("retry_hash", retryHash, null)
                 .run {
-                    if (inspection && res is LocalImageData.Resource) placeholder(res.value) else this
+                    if (inspection && res is LocalImage.Resource) placeholder(res.value) else this
                 }
                 .data(res?.value)
                 .build()
@@ -199,7 +195,7 @@ private fun AgentIdentity(
     modifier: Modifier,
     agentName: String,
     roleName: String,
-    roleIcon: LocalImageData<*>?,
+    roleIcon: LocalImage<*>?,
     roleIconKey: Any,
     lockedIn: Boolean
 ) {
@@ -222,7 +218,7 @@ private fun AgentIdentity(
                 model = remember(roleIconRetryHash) {
                     ImageRequest.Builder(ctx)
                         .run {
-                            if (inspection && roleIcon is LocalImageData.Resource) {
+                            if (inspection && roleIcon is LocalImage.Resource) {
                                 placeholder(roleIcon.value)
                             } else {
                                 data(roleIcon.value)
@@ -252,7 +248,7 @@ private fun AgentIdentity(
 @Composable
 private fun CompetitiveTierIcon(
     modifier: Modifier,
-    res: LocalImageData<*>?,
+    res: LocalImage<*>?,
     key: Any,
     tierName: String
 ) {
@@ -269,7 +265,7 @@ private fun CompetitiveTierIcon(
             ImageRequest.Builder(ctx)
                 .setParameter("retry_hash", retryHash, null)
                 .run {
-                    if (inspection && res is LocalImageData.Resource) placeholder(res.value) else this
+                    if (inspection && res is LocalImage.Resource) placeholder(res.value) else this
                 }
                 .data(res?.value)
                 .build()
