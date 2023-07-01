@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -16,17 +17,24 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dev.flammky.valorantcompanion.MainActivity
+import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
+import dev.flammky.valorantcompanion.base.di.koin.compose.KoinDependencyInjector
 import dev.flammky.valorantcompanion.base.runRemember
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundColorAsState
 import dev.flammky.valorantcompanion.base.theme.material3.primaryColorAsState
 import dev.flammky.valorantcompanion.base.theme.material3.surfaceColorAsState
+import org.koin.core.context.GlobalContext
 import kotlin.math.ln
 
 fun MainActivity.setRootContent() = setContent {
     ValorantCompanionTheme {
         ApplySystemUI()
-        RootLayout()
+        CompositionLocalProvider(
+            LocalDependencyInjector provides remember { KoinDependencyInjector(GlobalContext) }
+        ) {
+            RootLayout()
+        }
     }
 }
 

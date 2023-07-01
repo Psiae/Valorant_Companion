@@ -15,40 +15,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import dev.flammky.valorantcompanion.base.theme.material3.DefaultMaterial3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.LocalIsThemeDark
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.surfaceColorAsState
 import dev.flammky.valorantcompanion.assets.LocalImage
-import dev.flammky.valorantcompanion.assets.R as R_ASSET
 
 @Composable
-@Preview
-internal fun FakeLiveInGameTeamMemberCardPreview() = DefaultMaterial3Theme(dark = true) {
-    FakeLiveInGameTeamMemberCard(
-        modifier = Modifier,
-        state = LiveInGameTeamMemberCardState(
-            isUser = true,
-            username = "Dokka",
-            tagline = "zap",
-            agentIcon = LocalImage.Resource(R_ASSET.raw.agent_neon_displayicon),
-            agentIconKey = Any(),
-            agentName = "Neon",
-            roleName = "Duelist",
-            roleIcon = LocalImage.Resource(R_ASSET.raw.role_duelist_displayicon),
-            roleIconKey = Any(),
-            competitiveTierIcon = LocalImage.Resource(R_ASSET.raw.rank_ascendant3_smallicon),
-            competitiveTierIconKey = Any()
-        )
-    )
-}
-
-@Composable
-internal fun FakeLiveInGameTeamMemberCard(
+internal fun LiveInGameTeamMemberCard(
     modifier: Modifier,
     state: LiveInGameTeamMemberCardState
 ) = FakeLiveInGameTeamMemberCardPlacement(

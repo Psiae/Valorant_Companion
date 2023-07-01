@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.live.pregame.presentation
 
+import android.app.AlarmManager
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -80,7 +82,7 @@ fun LivePreGame(
     )
 
     LivePreGamePlacement(
-        modifier,
+        modifier.pointerInput(Unit) {},
         Background = {
             Background()
         },

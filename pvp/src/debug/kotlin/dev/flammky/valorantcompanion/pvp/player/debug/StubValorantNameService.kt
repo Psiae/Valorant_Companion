@@ -34,4 +34,69 @@ class StubValorantNameService(
             )
         )
     }
+
+    companion object {
+        val DEFAULT_FAKE_NAMES = persistentMapOf(
+            "dokka" to PlayerPVPName(
+                "dokka",
+                "Dokka",
+                "Dokka",
+                "zap"
+            ),
+            "dex" to PlayerPVPName(
+                "dex",
+                "Dex",
+                "Dex",
+                "301"
+            ),
+            "moon" to PlayerPVPName(
+                "moon",
+                "Moon",
+                "Moon",
+                "301"
+            ),
+            "hive" to PlayerPVPName(
+                "hive",
+                "Hive",
+                "Hive",
+                "301"
+            ),
+            "lock" to PlayerPVPName(
+                "lock",
+                "Lock",
+                "Lock",
+                "301"
+            ),
+            "player1" to PlayerPVPName(
+                "player1",
+                "Player1",
+                "Player1",
+                "fake"
+            ),
+            "player2" to PlayerPVPName(
+                "player1",
+                "Player1",
+                "Player1",
+                "fake"
+            ),
+            "player3" to PlayerPVPName(
+                "player1",
+                "Player1",
+                "Player1",
+                "fake"
+            ),
+            "player4" to PlayerPVPName(
+                "player1",
+                "Player1",
+                "Player1",
+                "fake"
+            ),
+            "player5" to PlayerPVPName(
+                "player1",
+                "Player1",
+                "Player1",
+                "fake"
+            )
+        )
+    }
 }

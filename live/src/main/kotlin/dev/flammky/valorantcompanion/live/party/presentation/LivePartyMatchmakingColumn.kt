@@ -227,6 +227,25 @@ private fun QueueIdDropDown(
                         onClick = { changeQueue("ggteam") }
                     )
                 }
+                run {
+                    val enabled = eligibles.any { it.equals("hurm", true) }
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = "TEAM DEATHMATCH",
+                                color = if (LocalIsThemeDark.current) {
+                                    Color.White
+                                } else {
+                                    Color.Black
+                                }.let {
+                                    if (enabled) it else it.copy(alpha = 0.38f)
+                                }
+                            )
+                        },
+                        enabled = enabled,
+                        onClick = { changeQueue("hurm") }
+                    )
+                }
             }
         }
     }
@@ -318,6 +337,7 @@ private fun parseAndNormalizeMatchmakingIdToUiString(id: String?): String {
     return when (id.lowercase()) {
         "ggteam" -> "escalation"
         "spikerush" -> "spike rush"
+        "hurm" -> "team deathmatch"
         else -> id
     }
 }

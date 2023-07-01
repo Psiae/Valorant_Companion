@@ -88,8 +88,11 @@ internal class DisposableValorantAssetsLoaderClient(
                 }.onFailure {
                     def.completeExceptionally(it)
                 }
-        }.invokeOnCompletion { ex ->
-            ex?.let { def.completeExceptionally(ex) }
+        }.apply {
+            invokeOnCompletion { ex ->
+                ex?.let { def.completeExceptionally(ex) }
+            }
+            def.invokeOnCompletion { cancel() }
         }
     }
 
@@ -129,8 +132,11 @@ internal class DisposableValorantAssetsLoaderClient(
                         CancellationException("repository returned null", ex)
                     }
             }
-        }.invokeOnCompletion { ex ->
-            ex?.let { def.completeExceptionally(ex) }
+        }.apply {
+            invokeOnCompletion { ex ->
+                ex?.let { def.completeExceptionally(ex) }
+            }
+            def.invokeOnCompletion { cancel() }
         }
     }
 }

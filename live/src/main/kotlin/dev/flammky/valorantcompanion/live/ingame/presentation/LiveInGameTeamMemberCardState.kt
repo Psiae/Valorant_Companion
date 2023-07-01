@@ -1,4 +1,4 @@
-package dev.flammky.valorantcompanion.live.ingame
+package dev.flammky.valorantcompanion.live.ingame.presentation
 
 import dev.flammky.valorantcompanion.base.UNSET
 import dev.flammky.valorantcompanion.base.C as C_BASE

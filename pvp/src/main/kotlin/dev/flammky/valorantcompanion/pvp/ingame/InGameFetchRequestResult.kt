@@ -61,6 +61,10 @@ class InGameFetchRequestResult <T> private constructor(
             return runCatching { build(block) }
                 .getOrElse { ex -> failure(ex as Exception, PVPModuleErrorCodes.UNHANDLED_EXCEPTION) }
         }
+
+        fun <T> InGameFetchRequestResult<T>.asKtResult(): Result<T> {
+            return if (isSuccess) Result.success(data!!) else Result.failure(ex!!)
+        }
     }
 }
 

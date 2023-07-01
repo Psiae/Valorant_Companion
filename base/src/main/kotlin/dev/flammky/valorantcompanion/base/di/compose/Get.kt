@@ -4,6 +4,6 @@ import androidx.compose.runtime.Composable
 import dev.flammky.valorantcompanion.base.di.requireInject
 
 @Composable
-inline fun <reified T: Any> runtimeInject(): T {
-    return LocalRuntimeDependencyInjector.current.requireInject<T>()
+inline fun <reified T: Any> inject(): T {
+    return LocalDependencyInjector.current.requireInject<T>()
 }

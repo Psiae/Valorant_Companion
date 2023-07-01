@@ -10,7 +10,7 @@ import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
 import dev.flammky.valorantcompanion.base.inMainLooper
 import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
-import dev.flammky.valorantcompanion.pvp.mode.ValorantGameMode
+import dev.flammky.valorantcompanion.pvp.mode.ValorantGameType
 import dev.flammky.valorantcompanion.pvp.pregame.*
 import dev.flammky.valorantcompanion.pvp.pregame.ex.PreGameMatchNotFoundException
 import dev.flammky.valorantcompanion.pvp.pregame.PreGamePlayerState as DomainPreGamePlayerState
@@ -198,7 +198,7 @@ class LivePreGamePresenter(
                 matchID = data.match_id,
                 mapName = ValorantMapIdentity.ofID(data.mapId)?.display_name ?: "UNKNOWN_MAP_NAME",
                 mapId = data.mapId,
-                gameModeName = ValorantGameMode.fromQueueID(data.queueId)?.displayName
+                gameModeName = ValorantGameType.fromQueueID(data.queueId)?.displayName
                     ?: run {
                         if (data.provisioningFlow.lowercase() == "CustomGame".lowercase()) {
                             "Custom Game"

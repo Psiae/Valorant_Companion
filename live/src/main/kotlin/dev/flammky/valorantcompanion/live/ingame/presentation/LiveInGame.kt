@@ -1,4 +1,4 @@
-package dev.flammky.valorantcompanion.live.ingame
+package dev.flammky.valorantcompanion.live.ingame.presentation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
@@ -14,10 +14,12 @@ internal fun LiveInGame(
     // TODO
     BackHandler(onBack = dismiss)
 
+    val state = rememberLiveInGameScreenPresenter().present()
+
     LiveInGamePlacement(
         modifier = modifier,
-        background = { LiveInGameBackground(it) },
-        content = { LiveInGameContent(it) }
+        background = { bgModifier -> LiveInGameBackground(bgModifier) },
+        content = { contentModifier -> LiveInGameContent(contentModifier, state) }
     )
 }
 

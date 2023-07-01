@@ -1,15 +1,12 @@
 package dev.flammky.valorantcompanion.base.di.koin.compose
 
-import dev.flammky.valorantcompanion.base.di.RuntimeDependencyInjector
-import dev.flammky.valorantcompanion.base.di.koin.getFromKoin
-import org.koin.core.context.GlobalContext
+import dev.flammky.valorantcompanion.base.di.DependencyInjector
 import org.koin.core.context.KoinContext
-import org.koin.core.scope.get
 import kotlin.reflect.KClass
 
-class KoinRuntimeDependencyInjector(
+class KoinDependencyInjector(
     private val context: KoinContext
-): RuntimeDependencyInjector {
+): DependencyInjector {
 
     override fun <T : Any> requireInject(clazz: KClass<T>): T {
         val koin = context.get()

@@ -7,7 +7,7 @@ data class InGameMatchData(
     val provisioningFlow: String,
     val gamePodID: String,
     val gameModeID: String,
-    val queueID: String?,
     val players: List<InGamePlayer>,
-    val isRanked: Boolean
+    val queueID: String?,
+    val isRanked: Boolean?,
 )

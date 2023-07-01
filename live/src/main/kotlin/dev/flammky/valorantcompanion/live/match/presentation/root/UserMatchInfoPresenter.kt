@@ -11,7 +11,7 @@ import dev.flammky.valorantcompanion.base.di.koin.getFromKoin
 import dev.flammky.valorantcompanion.pvp.ingame.*
 import dev.flammky.valorantcompanion.pvp.ingame.ex.InGameMatchNotFoundException
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
-import dev.flammky.valorantcompanion.pvp.mode.ValorantGameMode
+import dev.flammky.valorantcompanion.pvp.mode.ValorantGameType
 import dev.flammky.valorantcompanion.pvp.pregame.PreGameMatchData
 import dev.flammky.valorantcompanion.pvp.pregame.PreGameUserClient
 import dev.flammky.valorantcompanion.pvp.pregame.PreGameService
@@ -369,7 +369,7 @@ class UserMatchInfoPresenter(
                     mapId = data.mapId,
                     mapName = ValorantMapIdentity.ofID(data.mapId)?.display_name
                         ?: "UNKNOWN_MAP_NAME",
-                    gameModeName = ValorantGameMode.fromQueueID(data.queueId)?.displayName
+                    gameModeName = ValorantGameType.fromQueueID(data.queueId)?.displayName
                         ?: run {
                             if (data.provisioningFlow.lowercase() == "CustomGame".lowercase()) {
                                 "Custom Game"
@@ -399,7 +399,7 @@ class UserMatchInfoPresenter(
                     mapName = ValorantMapIdentity.ofID(data.mapID)?.display_name
                         ?: "UNKNOWN_MAP_NAME",
                     gameModeName = data.queueID?.let { queueID ->
-                        ValorantGameMode.fromQueueID(queueID)?.displayName
+                        ValorantGameType.fromQueueID(queueID)?.displayName
                     } ?: run {
                         when(data.provisioningFlow.lowercase()) {
                             "CustomGame".lowercase() -> "Custom Game"

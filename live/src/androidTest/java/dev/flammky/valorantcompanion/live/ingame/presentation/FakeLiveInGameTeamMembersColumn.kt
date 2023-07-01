@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.live.ingame.presentation
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -9,8 +10,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.debug.DebugValorantAssetService
-import dev.flammky.valorantcompanion.base.di.compose.LocalRuntimeDependencyInjector
-import dev.flammky.valorantcompanion.base.di.koin.compose.KoinRuntimeDependencyInjector
+import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
+import dev.flammky.valorantcompanion.base.di.koin.compose.KoinDependencyInjector
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.mmr.SeasonalMMRData
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
@@ -23,18 +24,17 @@ import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import dev.flammky.valorantcompanion.pvp.tier.ValorantCompetitiveRankResolver
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
-import org.koin.android.ext.koin.androidLogger
+import kotlinx.collections.immutable.toPersistentList
 import org.koin.core.context.GlobalContext
-import org.koin.core.context.startKoin
-import org.koin.core.logger.Level
 import org.koin.dsl.module
 
 @Composable
 internal fun FakeLiveInGameTeamMembersColumn(
+    modifier: Modifier,
     matchKey: Any,
     user: String,
     members: List<TeamMember>
-) = Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+) = Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
     members.forEach { member ->
         FakeLiveInGameTeamMemberCard(
             modifier = Modifier.padding(horizontal = 5.dp),
@@ -188,13 +188,11 @@ private fun FakeLiveInGameTeamMembersPreview() {
     )
 
     CompositionLocalProvider(
-        LocalRuntimeDependencyInjector provides KoinRuntimeDependencyInjector(GlobalContext)
+        LocalDependencyInjector provides KoinDependencyInjector(GlobalContext)
     ) {
         if (provisionedState.value) {
-            FakeLiveInGameTeamMembersColumn(
-                matchKey = remember { Any() },
-                user = remember { "dokka" },
-                members = remember {
+            val members = remember {
+                mutableStateOf(
                     persistentListOf(
                         TeamMember(
                             "dokka",
@@ -232,7 +230,13 @@ private fun FakeLiveInGameTeamMembersPreview() {
                             false
                         )
                     )
-                }
+                )
+            }
+            FakeLiveInGameTeamMembersColumn(
+                modifier = Modifier.clickable { members.value = members.value.shuffled().toPersistentList() },
+                matchKey = remember { Any() },
+                user = remember { "dokka" },
+                members = members.value
             )
         }
     }

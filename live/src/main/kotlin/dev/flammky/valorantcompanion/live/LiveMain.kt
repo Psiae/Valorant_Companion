@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import dev.flammky.valorantcompanion.live.ingame.LiveInGame
+import dev.flammky.valorantcompanion.live.ingame.presentation.LiveInGame
 import dev.flammky.valorantcompanion.live.match.presentation.root.LiveMatchUI
 import dev.flammky.valorantcompanion.live.party.presentation.LivePartyUI
 import dev.flammky.valorantcompanion.live.pregame.presentation.LivePreGame

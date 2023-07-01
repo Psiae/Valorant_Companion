@@ -15,7 +15,7 @@ import kotlin.reflect.KClass
 
 internal class RealInGameUserMatchClient(
     private val puuid: String,
-    private val matchID: String,
+    override val matchID: String,
     private val httpClient: HttpClient,
     private val auth: RiotAuthService,
     private val geo: RiotGeoRepository,

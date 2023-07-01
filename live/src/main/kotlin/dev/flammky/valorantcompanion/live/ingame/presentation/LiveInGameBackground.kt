@@ -1,4 +1,4 @@
-package dev.flammky.valorantcompanion.live.ingame
+package dev.flammky.valorantcompanion.live.ingame.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

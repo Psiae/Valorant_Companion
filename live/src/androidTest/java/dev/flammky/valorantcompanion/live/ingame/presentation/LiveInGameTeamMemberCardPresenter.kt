@@ -1,14 +1,14 @@
 package dev.flammky.valorantcompanion.live.ingame.presentation
 
+import android.util.Log
 import androidx.annotation.MainThread
 import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.base.compose.BaseRememberObserver
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
-import dev.flammky.valorantcompanion.base.di.compose.runtimeInject
+import dev.flammky.valorantcompanion.base.di.compose.inject
 import dev.flammky.valorantcompanion.base.inMainLooper
-import dev.flammky.valorantcompanion.live.ingame.LiveInGameTeamMemberCardState
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
 import dev.flammky.valorantcompanion.pvp.mmr.MMRUserClient
@@ -16,16 +16,15 @@ import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
 import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
 import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
 import kotlinx.coroutines.*
-import org.koin.core.context.GlobalContext
 
 @Composable
 internal fun rememberLiveInGameTeamMemberCardStatePresenter(
-    assetsService: ValorantAssetsService = runtimeInject(),
-    nameService: ValorantNameService = runtimeInject(),
-    mmrService: ValorantMMRService = runtimeInject()
-): LiveInGameTeamMemberCardStatePresenter {
+    assetsService: ValorantAssetsService = inject(),
+    nameService: ValorantNameService = inject(),
+    mmrService: ValorantMMRService = inject()
+): LiveInGameTeamMemberCardPresenter {
     return remember(assetsService, nameService, mmrService) {
-        RealLiveInGameTeamMemberStatePresenter(assetsService, nameService, mmrService)
+        RealLiveInGameTeamMemberPresenter(assetsService, nameService, mmrService)
     }
 }
 
@@ -45,11 +44,11 @@ internal interface LiveInGameTeamMemberCardStatePresenter {
     ): LiveInGameTeamMemberCardState
 }
 
-private class RealLiveInGameTeamMemberStatePresenter(
+private class RealLiveInGameTeamMemberPresenter(
     private val assetsService: ValorantAssetsService,
     private val nameService: ValorantNameService,
     private val mmrService: ValorantMMRService
-) : LiveInGameTeamMemberCardStatePresenter {
+) : LiveInGameTeamMemberCardPresenter {
 
     @Composable
     override fun present(
@@ -64,7 +63,7 @@ private class RealLiveInGameTeamMemberStatePresenter(
         val producer = remember(user, matchKey) { StateProducer(user) }
 
         SideEffect {
-            producer.produceParams(user, id, playerAgentID, playerCardID, accountLevel, incognito)
+            producer.produceParams(id, playerAgentID, playerCardID, accountLevel, incognito)
         }
 
         return producer.readSnapshot()
@@ -104,7 +103,6 @@ private class RealLiveInGameTeamMemberStatePresenter(
 
         @MainThread
         fun produceParams(
-            user: String,
             id: String,
             playerAgentID: String,
             playerCardID: String,
@@ -113,19 +111,10 @@ private class RealLiveInGameTeamMemberStatePresenter(
         ) {
             check(inMainLooper())
             check(remembered)
-            val isUser = user == id
-            if (isUser != this.isUser) {
-                newIsUser(isUser)
-            }
             if (id != this.playerId) {
                 newPlayerID(id)
             }
             playerDataParam(playerAgentID, playerCardID, accountLevel, incognito)
-        }
-
-        private fun newIsUser(isUser: Boolean) {
-            this.isUser = isUser
-            mutateState("newIsUser") { it.copy(isUser = isUser) }
         }
 
         private fun newPlayerID(
@@ -137,6 +126,7 @@ private class RealLiveInGameTeamMemberStatePresenter(
 
             mutateState("newPlayerID") { state ->
                 state.copy(
+                    isUser = user == id,
                     username = state.UNSET.username,
                     tagline = state.UNSET.tagline,
                     competitiveTierIcon = state.UNSET.competitiveTierIcon,
@@ -227,6 +217,7 @@ private class RealLiveInGameTeamMemberStatePresenter(
             actionName: String,
             mutate: (state: LiveInGameTeamMemberCardState) -> LiveInGameTeamMemberCardState
         ) {
+            Log.d("LiveInGameTeamMemberCardStatePresenter", "mutateState($actionName)")
             check(inMainLooper())
             _state.value = mutate(stateValueOrUnset())
         }
@@ -235,8 +226,8 @@ private class RealLiveInGameTeamMemberStatePresenter(
             val playerId = this.playerId!!
 
             coroutineScope.launch(playerIdSupervisor!!) {
+                ensureActive()
                 val nameResult = run {
-                    ensureActive()
                     val def = nameService.getPlayerNameAsync(
                         GetPlayerNameRequest(shard = null, signedInUserPUUID = user, listOf(playerId))
                     )

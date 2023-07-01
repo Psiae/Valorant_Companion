@@ -2,43 +2,48 @@ package dev.flammky.valorantcompanion.pvp.mode
 
 
 // TODO: unrated and competitive is not a Game Mode, both is a "bomb" game mode
-sealed class ValorantGameMode(
+sealed class ValorantGameType(
     val displayName: String,
     val queueId: String
 ) {
 
-    object UNRATED : ValorantGameMode(
+    object UNRATED : ValorantGameType(
         displayName = "unrated",
         queueId = "unrated"
     )
 
-    object COMPETITIVE : ValorantGameMode(
+    object COMPETITIVE : ValorantGameType(
         displayName = "competitive",
         queueId = "competitive"
     )
 
-    object SWIFTPLAY : ValorantGameMode(
+    object SWIFTPLAY : ValorantGameType(
         displayName = "swiftplay",
         queueId = "swiftplay"
     )
 
-    object SPIKERUSH : ValorantGameMode(
+    object SPIKERUSH : ValorantGameType(
         displayName = "spike rush",
         queueId = "spikerush"
     )
 
-    object DEATHMATCH : ValorantGameMode(
+    object DEATHMATCH : ValorantGameType(
         displayName = "deathmatch",
         queueId = "deathmatch"
     )
 
-    object ESCALATION : ValorantGameMode(
+    object ESCALATION : ValorantGameType(
         displayName = "escalation",
         queueId = "ggteam"
     )
 
+    object TEAM_DEATHMATCH : ValorantGameType(
+        displayName = "team deathmatch",
+        queueId = "hurm"
+    )
+
     companion object {
-        fun fromQueueID(str: String): ValorantGameMode? {
+        fun fromQueueID(str: String): ValorantGameType? {
             return when(str.lowercase()) {
                 UNRATED.queueId -> UNRATED
                 COMPETITIVE.queueId -> COMPETITIVE
@@ -46,11 +51,12 @@ sealed class ValorantGameMode(
                 SPIKERUSH.queueId -> SPIKERUSH
                 DEATHMATCH.queueId -> DEATHMATCH
                 ESCALATION.queueId -> ESCALATION
+                TEAM_DEATHMATCH.queueId -> TEAM_DEATHMATCH
                 else -> null
             }
         }
 
-        fun fromQueueIDStrict(str: String): ValorantGameMode? {
+        fun fromQueueIDStrict(str: String): ValorantGameType? {
             return when(str) {
                 UNRATED.queueId -> UNRATED
                 COMPETITIVE.queueId -> COMPETITIVE
