@@ -28,6 +28,8 @@ data class ValorantActiveSeason(
     val act: ValorantAct
 )
 
+
+// TODO: add episode 7
 object ValorantSeasons {
 
     val CLOSED_BETA = ValorantSeason(

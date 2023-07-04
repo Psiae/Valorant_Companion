@@ -1,4 +1,4 @@
-package dev.flammky.valorantcompanion.pvp.player.debug
+package dev.flammky.valorantcompanion.pvp.mmr.debug
 
 import dev.flammky.valorantcompanion.pvp.ex.PlayerNotFoundException
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest

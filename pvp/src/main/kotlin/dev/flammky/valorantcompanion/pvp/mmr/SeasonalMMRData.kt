@@ -6,6 +6,7 @@ import dev.flammky.valorantcompanion.pvp.season.ValorantSeason
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 
 data class SeasonalMMRData(
+    val subject: String,
     val season: ValorantActiveSeason,
     val competitiveTier: Int,
     val competitiveRank: CompetitiveRank,

@@ -388,7 +388,7 @@ class UserMatchInfoPresenter(
         }
 
         private fun newInGameData(
-            data: InGameMatchData
+            data: InGameMatchInfo
         ) {
             mutateState("newInGameData") { state ->
                 state.copy(

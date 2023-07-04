@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 
 @Composable
 internal fun LiveInGame(
@@ -30,7 +31,7 @@ private fun LiveInGamePlacement(
     content: @Composable (Modifier) -> Unit
 ) {
     Box(modifier) {
-        background(Modifier.fillMaxSize())
+        background(Modifier.fillMaxSize().pointerInput(Unit) {})
         content(Modifier.fillMaxSize())
     }
 }

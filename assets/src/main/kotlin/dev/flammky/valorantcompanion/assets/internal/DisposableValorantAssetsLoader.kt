@@ -3,6 +3,7 @@ package dev.flammky.valorantcompanion.assets.internal
 import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
+import dev.flammky.valorantcompanion.assets.debug.DebugValorantAssetService
 import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.map.ValorantMapAssetDownloader
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardAssetDownloader
@@ -20,11 +21,18 @@ internal class DisposableValorantAssetsLoaderClient(
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
     override fun loadMemoryCachedAgentIcon(agentId: String): LocalImage<*>? {
-        TODO("Not yet implemented")
+        // TODO: decide on whether agent icon should be packaged with the app (likely yes)
+       return DebugValorantAssetService.AGENT_ICON_MAPPING[agentId]
     }
 
     override fun loadMemoryCachedRoleIcon(roleId: String): LocalImage<*>? {
-        TODO("Not yet implemented")
+        // TODO: decide on whether role icon should be packaged with the app (likely yes)
+        return DebugValorantAssetService.ROLE_ICON_MAPPING[roleId]
+    }
+
+    override fun loadMemoryCachedCompetitiveRankIcon(rank: CompetitiveRank): LocalImage<*>? {
+        // TODO: decide on whether rank icon should be packaged with the app (likely yes)
+        return DebugValorantAssetService.COMPETITIVE_RANK_MAPPING[rank]
     }
 
     override fun loadAgentIconAsync(agentId: String): Deferred<Result<LocalImage<*>>> {

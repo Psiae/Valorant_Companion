@@ -15,5 +15,7 @@ sealed class TeamID {
             "blue" -> BLUE
             else -> null
         }
+
+        fun not(id: TeamID): TeamID = if (id != BLUE) BLUE else RED
     }
 }

@@ -17,8 +17,8 @@ import dev.flammky.valorantcompanion.pvp.mmr.SeasonalMMRData
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
 import dev.flammky.valorantcompanion.pvp.player.PlayerPVPName
 import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
-import dev.flammky.valorantcompanion.pvp.player.debug.StubValorantMMRService
-import dev.flammky.valorantcompanion.pvp.player.debug.StubValorantNameService
+import dev.flammky.valorantcompanion.pvp.mmr.debug.StubValorantMMRService
+import dev.flammky.valorantcompanion.pvp.mmr.debug.StubValorantNameService
 import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import dev.flammky.valorantcompanion.pvp.tier.ValorantCompetitiveRankResolver

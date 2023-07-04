@@ -6,7 +6,7 @@ interface InGameUserMatchClient {
 
     val matchID: String
 
-    fun fetchMatchInfoAsync(): Deferred<InGameFetchRequestResult<InGameMatchData>>
+    fun fetchMatchInfoAsync(): Deferred<InGameFetchRequestResult<InGameMatchInfo>>
 
     fun dispose()
 }

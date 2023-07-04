@@ -4,7 +4,7 @@ package dev.flammky.valorantcompanion.pvp.mode
 // TODO: unrated and competitive is not a Game Mode, both is a "bomb" game mode
 sealed class ValorantGameType(
     val displayName: String,
-    val queueId: String
+    val queueId: String?
 ) {
 
     object UNRATED : ValorantGameType(
@@ -42,6 +42,11 @@ sealed class ValorantGameType(
         queueId = "hurm"
     )
 
+    object CUSTOM : ValorantGameType(
+        displayName = "custom",
+        queueId = "custom"
+    )
+
     companion object {
         fun fromQueueID(str: String): ValorantGameType? {
             return when(str.lowercase()) {
@@ -64,6 +69,13 @@ sealed class ValorantGameType(
                 SPIKERUSH.queueId -> SPIKERUSH
                 DEATHMATCH.queueId -> DEATHMATCH
                 ESCALATION.queueId -> ESCALATION
+                else -> null
+            }
+        }
+
+        fun fromProvisioningFlow(provisioningFlow: String): ValorantGameType? {
+            return when(provisioningFlow.lowercase()) {
+                "customgame" -> CUSTOM
                 else -> null
             }
         }

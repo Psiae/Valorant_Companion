@@ -9,6 +9,8 @@ import dev.flammky.valorantcompanion.pvp.internal.loadout.PlayerLoadoutRepositor
 import dev.flammky.valorantcompanion.pvp.internal.loadout.PlayerLoadoutServiceImpl
 import dev.flammky.valorantcompanion.pvp.loadout.PlayerLoadoutRepository
 import dev.flammky.valorantcompanion.pvp.loadout.PlayerLoadoutService
+import dev.flammky.valorantcompanion.pvp.mmr.RealValorantMMRService
+import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
 import dev.flammky.valorantcompanion.pvp.party.PartyService
 import dev.flammky.valorantcompanion.pvp.party.internal.RealPartyService
 import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
@@ -48,6 +50,13 @@ val KoinPvpModule = module {
     }
     single<InGameService> {
         RealInGameService(
+            authService = get(),
+            geoRepository = get(),
+            httpClientFactory = { KtorWrappedHttpClient() }
+        )
+    }
+    single<ValorantMMRService> {
+        RealValorantMMRService(
             authService = get(),
             geoRepository = get(),
             httpClientFactory = { KtorWrappedHttpClient() }

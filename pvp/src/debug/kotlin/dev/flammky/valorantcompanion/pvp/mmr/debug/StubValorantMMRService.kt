@@ -1,7 +1,7 @@
-package dev.flammky.valorantcompanion.pvp.player.debug
+package dev.flammky.valorantcompanion.pvp.mmr.debug
 
 import dev.flammky.valorantcompanion.pvp.ex.SeasonalMMRDataNotFoundException
-import dev.flammky.valorantcompanion.pvp.mmr.MMRUserClient
+import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRUserClient
 import dev.flammky.valorantcompanion.pvp.mmr.SeasonalMMRData
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
 import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
@@ -15,31 +15,38 @@ class StubValorantMMRService(
     private val provider: StubSeasonalMMRProvider
 ) : ValorantMMRService {
 
-    override fun createUserClient(puuid: String): MMRUserClient {
-        return StubValorantMMRUserClient()
+
+
+    override fun createUserClient(puuid: String): ValorantMMRUserClient {
+        return StubValorantValorantMMRUserClient()
     }
 
-    private inner class StubValorantMMRUserClient: MMRUserClient {
+    private inner class StubValorantValorantMMRUserClient: ValorantMMRUserClient {
 
         private val coroutineScope = CoroutineScope(SupervisorJob())
 
-        override fun fetchSeasonalMMR(
+        override fun fetchSeasonalMMRAsync(
             season: String,
             subject: String
         ): Deferred<Result<SeasonalMMRData>> {
             val def = CompletableDeferred<Result<SeasonalMMRData>>()
 
-            val task = coroutineScope.launch(Dispatchers.IO) {
+            coroutineScope.launch(Dispatchers.IO) {
                 def.complete(
                     provider(season, subject)
                         ?.let { Result.success(it) }
                         ?: Result.failure(SeasonalMMRDataNotFoundException())
                 )
+            }.apply {
+                invokeOnCompletion { ex -> if (ex is CancellationException) def.cancel() }
+                def.invokeOnCompletion { ex -> if (ex is CancellationException) cancel() }
             }
 
-            def.invokeOnCompletion { task.cancel() }
-
             return def
+        }
+
+        override fun dispose() {
+            coroutineScope.cancel()
         }
     }
 
@@ -60,6 +67,7 @@ class StubValorantMMRService(
                         if (ascendantPresent) CompetitiveRank.ASCENDANT_3
                         else CompetitiveRank.DIAMOND_3
                     SeasonalMMRData(
+                        subject = subject,
                         season = resolveSeason,
                         competitiveTier = rankResolver.localizeTier(seasonalRank),
                         competitiveRank = seasonalRank,
@@ -73,6 +81,7 @@ class StubValorantMMRService(
                         if (ascendantPresent) CompetitiveRank.ASCENDANT_2
                         else CompetitiveRank.DIAMOND_3
                     SeasonalMMRData(
+                        subject = subject,
                         season = resolveSeason,
                         competitiveTier = rankResolver.localizeTier(seasonalRank),
                         competitiveRank = seasonalRank,
@@ -86,6 +95,7 @@ class StubValorantMMRService(
                         if (immortalPresent) CompetitiveRank.IMMORTAL_1
                         else CompetitiveRank.IMMORTAL_MERGED
                     SeasonalMMRData(
+                        subject = subject,
                         season = resolveSeason,
                         competitiveTier = rankResolver.localizeTier(seasonalRank),
                         competitiveRank = seasonalRank,
@@ -95,6 +105,7 @@ class StubValorantMMRService(
                 "hive" -> {
                     val seasonalRank = CompetitiveRank.DIAMOND_3
                     SeasonalMMRData(
+                        subject = subject,
                         season = resolveSeason,
                         competitiveTier = rankResolver.localizeTier(seasonalRank),
                         competitiveRank = seasonalRank,
@@ -108,6 +119,7 @@ class StubValorantMMRService(
                         if (immortalPresent) CompetitiveRank.IMMORTAL_2
                         else CompetitiveRank.IMMORTAL_MERGED
                     SeasonalMMRData(
+                        subject = subject,
                         season = resolveSeason,
                         competitiveTier = rankResolver.localizeTier(seasonalRank),
                         competitiveRank = seasonalRank,

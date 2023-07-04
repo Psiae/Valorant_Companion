@@ -45,7 +45,7 @@ fun LiveMain() {
                 )
             } else if (showInGameScreen.value) {
                 LiveInGame(
-                    modifier = Modifier,
+                    modifier = Modifier.statusBarsPadding(),
                     dismiss = { showInGameScreen.value = false }
                 )
             }

@@ -28,6 +28,10 @@ class DebugValorantAssetsLoaderClient(
         return roleIconMapping[roleId]
     }
 
+    override fun loadMemoryCachedCompetitiveRankIcon(rank: CompetitiveRank): LocalImage<*>? {
+        return competitiveRankIconMapping[rank]
+    }
+
     override fun loadCompetitiveRankIconAsync(rank: CompetitiveRank): Deferred<Result<LocalImage<*>>> {
         return CompletableDeferred(
             value = competitiveRankIconMapping[rank]

@@ -11,7 +11,7 @@ import dev.flammky.valorantcompanion.base.di.compose.inject
 import dev.flammky.valorantcompanion.base.inMainLooper
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
-import dev.flammky.valorantcompanion.pvp.mmr.MMRUserClient
+import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRUserClient
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
 import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
 import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
@@ -86,7 +86,7 @@ private class RealLiveInGameTeamMemberPresenter(
         private var _assetLoader: ValorantAssetsLoaderClient? = null
         private val assetLoader get() = _assetLoader!!
 
-        private var _mmrClient: MMRUserClient? = null
+        private var _mmrClient: ValorantMMRUserClient? = null
         private val mmrClient get() = _mmrClient!!
 
         private var playerIdSupervisor: Job? = null
@@ -193,7 +193,7 @@ private class RealLiveInGameTeamMemberPresenter(
             forgotten = true
             coroutineScope.cancel()
             _assetLoader?.dispose()
-            _mmrClient = mmrService.createUserClient(user)
+            _mmrClient?.dispose()
         }
 
         override fun onRemembered() {
@@ -244,7 +244,7 @@ private class RealLiveInGameTeamMemberPresenter(
             coroutineScope.launch(playerIdSupervisor!!) {
                 ensureActive()
                 val mmrResult = run {
-                    val def = mmrClient.fetchSeasonalMMR(ValorantSeasons.ACTIVE_STAGED.act.id, playerId)
+                    val def = mmrClient.fetchSeasonalMMRAsync(ValorantSeasons.ACTIVE_STAGED.act.id, playerId)
                     runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
                 }.getOrElse { ex ->
                     mutateState("newPlayerIdSideEffect_mmrResult_fail") { state ->
@@ -256,6 +256,8 @@ private class RealLiveInGameTeamMemberPresenter(
                     return@launch
                 }
                 val iconResult = run {
+                    assetLoader.loadMemoryCachedCompetitiveRankIcon(mmrResult.competitiveRank)
+                        ?.let { return@run Result.success(it) }
                     val def = assetLoader.loadCompetitiveRankIconAsync(mmrResult.competitiveRank)
                     runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
                 }.getOrElse {

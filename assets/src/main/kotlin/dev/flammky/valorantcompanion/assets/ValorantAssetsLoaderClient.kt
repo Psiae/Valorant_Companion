@@ -16,6 +16,10 @@ interface ValorantAssetsLoaderClient {
         roleId: String
     ): LocalImage<*>?
 
+    fun loadMemoryCachedCompetitiveRankIcon(
+        rank: CompetitiveRank
+    ): LocalImage<*>?
+
     fun loadCompetitiveRankIconAsync(
         rank: CompetitiveRank
     ): Deferred<Result<LocalImage<*>>>

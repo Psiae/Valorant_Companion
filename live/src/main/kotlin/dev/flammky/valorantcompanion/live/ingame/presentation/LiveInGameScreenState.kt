@@ -6,11 +6,16 @@ data class LiveInGameScreenState(
     val user: String,
     val inMatch: Boolean?,
     val matchKey: Any?,
-    val showLoading: Boolean,
+    val pollingForMatch: Boolean,
+    val userRefreshing: Boolean,
+    val explicitLoading: Boolean,
+    val explicitLoadingMessage: String?,
     val mapName: String?,
     val gameTypeName: String?,
     val gamePodName: String?,
     val gamePodPingMs: Int?,
+    val allyMembersProvided: Boolean,
+    val enemyMembersProvided: Boolean,
     val ally: InGameTeam?,
     val enemy: InGameTeam?,
     val errorMessage: String?,
@@ -20,18 +25,23 @@ data class LiveInGameScreenState(
     companion object : UNSET<LiveInGameScreenState> {
 
         override val UNSET = LiveInGameScreenState(
-            "",
-            false,
-            null,
-            false,
-            "",
-            "",
-            "",
-            -1,
-            null,
-            null,
-            "",
-            {}
+            user = "",
+            inMatch = false,
+            matchKey = null,
+            pollingForMatch = false,
+            userRefreshing = false,
+            explicitLoading = false,
+            explicitLoadingMessage = "",
+            mapName = "",
+            gameTypeName = "",
+            gamePodName = "",
+            gamePodPingMs = -1,
+            allyMembersProvided = false,
+            enemyMembersProvided = false,
+            ally = null,
+            enemy = null,
+            errorMessage = "",
+            errorRefresh = {}
         )
     }
 }

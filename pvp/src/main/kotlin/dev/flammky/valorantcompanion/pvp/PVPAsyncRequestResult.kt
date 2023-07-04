@@ -1,14 +1,16 @@
-package dev.flammky.valorantcompanion.pvp.ingame
-import dev.flammky.valorantcompanion.pvp.error.PVPModuleErrorCodes
+package dev.flammky.valorantcompanion.pvp
 
-class InGameFetchRequestResult <T> private constructor(
+import dev.flammky.valorantcompanion.pvp.error.PVPModuleErrorCodes
+import dev.flammky.valorantcompanion.pvp.party.ex.PVPModuleException
+
+class PVPAsyncRequestResult <T> private constructor(
     private val data: T?,
     private val ex: Exception?,
     private val errorCode: Int?
 ) {
 
     val isSuccess: Boolean
-        get() = ex == null
+        get() = data != null
 
     fun getOrNull(): T? = data
 
@@ -21,20 +23,20 @@ class InGameFetchRequestResult <T> private constructor(
         fun failure(
             exception: Exception,
             errorCode: Int
-        ): InGameFetchRequestResult<T> {
-            return InGameFetchRequestResult.failure(exception, errorCode)
+        ): PVPAsyncRequestResult<T> {
+            return PVPAsyncRequestResult.failure(exception, errorCode)
         }
 
         fun success(
             data: T
-        ): InGameFetchRequestResult<T> {
-            return InGameFetchRequestResult.success(data)
+        ): PVPAsyncRequestResult<T> {
+            return PVPAsyncRequestResult.success(data)
         }
     }
 
     companion object {
 
-        internal fun <T> success(data: T) = InGameFetchRequestResult<T>(
+        internal fun <T> success(data: T) = PVPAsyncRequestResult<T>(
             data = data,
             ex = null,
             errorCode = null
@@ -43,64 +45,68 @@ class InGameFetchRequestResult <T> private constructor(
         internal fun <T> failure(
             ex: Exception,
             errorCode: Int
-        ) = InGameFetchRequestResult<T>(
+        ) = PVPAsyncRequestResult<T>(
             data = null,
             ex = ex,
             errorCode = errorCode
         )
 
         internal inline fun <T> build(
-            block: Builder<T>.() -> InGameFetchRequestResult<T>
-        ): InGameFetchRequestResult<T> {
+            block: Builder<T>.() -> PVPAsyncRequestResult<T>
+        ): PVPAsyncRequestResult<T> {
             return Builder<T>().block()
         }
 
         internal inline fun <T> buildCatching(
-            block: Builder<T>.() -> InGameFetchRequestResult<T>
-        ): InGameFetchRequestResult<T> {
+            block: Builder<T>.() -> PVPAsyncRequestResult<T>
+        ): PVPAsyncRequestResult<T> {
             return runCatching { build(block) }
                 .getOrElse { ex -> failure(ex as Exception, PVPModuleErrorCodes.UNHANDLED_EXCEPTION) }
-        }
-
-        fun <T> InGameFetchRequestResult<T>.asKtResult(): Result<T> {
-            return if (isSuccess) Result.success(data!!) else Result.failure(ex!!)
         }
     }
 }
 
-inline fun <T> InGameFetchRequestResult<T>.onSuccess(
+inline fun <T> PVPAsyncRequestResult<T>.onSuccess(
     block: (data: T) -> Unit
-): InGameFetchRequestResult<T> {
+): PVPAsyncRequestResult<T> {
     if (isSuccess) {
-        block(getOrNull()!!)
+        block(getOrNull() as T)
     }
     return this
 }
 
-inline fun <T> InGameFetchRequestResult<T>.onFailure(
+inline fun <T> PVPAsyncRequestResult<T>.onFailure(
     block: (exception: Exception, errorCode: Int) -> Unit
-): InGameFetchRequestResult<T> {
+): PVPAsyncRequestResult<T> {
     if (!isSuccess) {
         block(getExceptionOrNull()!!, getErrorCodeOrNull()!!)
     }
     return this
 }
 
-inline fun <T, R> InGameFetchRequestResult<T>.getOrElse(
-    block: (exception: Exception, errorCode: Int) -> R
-): R where T : R {
+inline fun <T> PVPAsyncRequestResult<T>.getOrElse(
+    block: (exception: Exception, errorCode: Int) -> T
+): T {
     return if (!isSuccess) {
         block(getExceptionOrNull()!!, getErrorCodeOrNull()!!)
     } else {
-        getOrNull()!!
+        getOrNull() as T
     }
 }
 
-inline fun <T> InGameFetchRequestResult<T>.getOrThrow(): T {
+inline fun <T> PVPAsyncRequestResult<T>.getOrThrow(): T {
     return if (!isSuccess) {
         throw getExceptionOrNull()!!
     } else {
-        getOrNull()!!
+        getOrNull() as T
+    }
+}
+
+inline fun <T> PVPAsyncRequestResult<T>.asKtResult(): Result<T> {
+    return if (isSuccess) {
+        Result.success(getOrNull() as T)
+    } else {
+        Result.failure(getExceptionOrNull()!!)
     }
 }
 

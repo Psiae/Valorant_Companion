@@ -10,8 +10,8 @@ import dev.flammky.valorantcompanion.pvp.TeamID
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
 import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
-import dev.flammky.valorantcompanion.pvp.player.debug.StubValorantMMRService
-import dev.flammky.valorantcompanion.pvp.player.debug.StubValorantNameService
+import dev.flammky.valorantcompanion.pvp.mmr.debug.StubValorantMMRService
+import dev.flammky.valorantcompanion.pvp.mmr.debug.StubValorantNameService
 import kotlinx.collections.immutable.persistentListOf
 import org.koin.core.context.GlobalContext
 import org.koin.dsl.module

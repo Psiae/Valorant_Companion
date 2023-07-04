@@ -52,7 +52,8 @@ private inline fun LiveInGameTopBarContainer(
     content: @Composable (Modifier) -> Unit
 ) = Box(modifier = modifier
     .fillMaxWidth()
-    .heightIn(min = 42.dp)) {
+    .heightIn(min = 42.dp)
+) {
     background(Modifier.matchParentSize())
     content(Modifier.padding(5.dp))
 }

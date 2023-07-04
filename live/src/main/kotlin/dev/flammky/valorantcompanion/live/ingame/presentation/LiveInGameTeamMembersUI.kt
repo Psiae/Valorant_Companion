@@ -3,6 +3,7 @@ package dev.flammky.valorantcompanion.live.ingame.presentation
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import dev.flammky.valorantcompanion.base.runRemember
@@ -11,7 +12,10 @@ import dev.flammky.valorantcompanion.base.runRemember
 fun LiveInGameTeamMembersUI(
     user: String,
     matchKey: Any,
-    ally: InGameTeam                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ?,
+    loading: Boolean,
+    allyProvided: Boolean,
+    enemyProvided: Boolean,
+    ally: InGameTeam?                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       ?,
     enemy: InGameTeam?
 ) {
     val targetAlly = remember {
@@ -39,19 +43,23 @@ fun LiveInGameTeamMembersUI(
         Box {
             LiveInGameTeamMembersColumn(
                 modifier = Modifier.runRemember(targetAlly.value) {
-                    zIndex(if (targetAlly.value) 1f else 0f)
+                    zIndex(if (targetAlly.value) 1f else 0f).alpha(if (targetAlly.value) 1f else 0f)
                 },
                 matchKey = matchKey,
                 user = user,
-                members = ally?.members ?: emptyList()
+                loading = loading,
+                membersProvided = allyProvided,
+                getMembers = { ally?.members ?: emptyList() }
             )
             LiveInGameTeamMembersColumn(
                 modifier = Modifier.runRemember(targetAlly.value) {
-                    zIndex(if (targetAlly.value) 0f else 1f)
+                    zIndex(if (targetAlly.value) 0f else 1f).alpha(if (targetAlly.value) 0f else 1f)
                 },
                 matchKey = matchKey,
                 user = user,
-                members = enemy?.members ?: emptyList(),
+                loading = loading,
+                membersProvided = enemyProvided,
+                getMembers = { enemy?.members ?: emptyList() }
             )
         }
     }

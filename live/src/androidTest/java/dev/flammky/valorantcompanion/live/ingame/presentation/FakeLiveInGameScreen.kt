@@ -12,8 +12,8 @@ import dev.flammky.valorantcompanion.base.di.koin.compose.KoinDependencyInjector
 import dev.flammky.valorantcompanion.base.theme.material3.DefaultMaterial3Theme
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
 import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
-import dev.flammky.valorantcompanion.pvp.player.debug.StubValorantMMRService
-import dev.flammky.valorantcompanion.pvp.player.debug.StubValorantNameService
+import dev.flammky.valorantcompanion.pvp.mmr.debug.StubValorantMMRService
+import dev.flammky.valorantcompanion.pvp.mmr.debug.StubValorantNameService
 import org.koin.core.context.GlobalContext
 import org.koin.dsl.module
 

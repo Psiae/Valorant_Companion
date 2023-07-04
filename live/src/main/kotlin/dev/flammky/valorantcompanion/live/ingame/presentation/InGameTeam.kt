@@ -5,13 +5,13 @@ import dev.flammky.valorantcompanion.pvp.TeamID
 import kotlinx.collections.immutable.persistentListOf
 
 data class InGameTeam(
-    val id: TeamID,
+    val id: TeamID?,
     val members: List<TeamMember>
 ): UNSET<InGameTeam> by Companion {
 
     companion object : UNSET<InGameTeam> {
         override val UNSET = InGameTeam(
-            TeamID.BLUE,
+            null,
             emptyList()
         )
     }

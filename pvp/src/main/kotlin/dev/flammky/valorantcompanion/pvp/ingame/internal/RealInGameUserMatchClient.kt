@@ -7,6 +7,7 @@ import dev.flammky.valorantcompanion.pvp.ex.UnexpectedResponseException
 import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
 import dev.flammky.valorantcompanion.pvp.ingame.*
+import dev.flammky.valorantcompanion.pvp.ingame.ex.InGameMatchNotFoundException
 import dev.flammky.valorantcompanion.pvp.match.ex.UnknownTeamIdException
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.*
@@ -24,8 +25,8 @@ internal class RealInGameUserMatchClient(
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
-    override fun fetchMatchInfoAsync(): Deferred<InGameFetchRequestResult<InGameMatchData>> {
-        val def = CompletableDeferred<InGameFetchRequestResult<InGameMatchData>>()
+    override fun fetchMatchInfoAsync(): Deferred<InGameFetchRequestResult<InGameMatchInfo>> {
+        val def = CompletableDeferred<InGameFetchRequestResult<InGameMatchInfo>>()
 
         val task = coroutineScope.launch(Dispatchers.IO) {
             def.complete(
@@ -53,7 +54,7 @@ internal class RealInGameUserMatchClient(
         if (disposeHttpClient) httpClient.dispose()
     }
 
-    private suspend fun fetchMatchInfo(): InGameFetchRequestResult<InGameMatchData> {
+    private suspend fun fetchMatchInfo(): InGameFetchRequestResult<InGameMatchInfo> {
         return InGameFetchRequestResult.buildCatching {
             val access_token = auth.get_authorization(puuid).getOrElse {
                 throw IllegalStateException("Unable to retrieve access token", it)
@@ -78,7 +79,23 @@ internal class RealInGameUserMatchClient(
             )
 
             when (response.statusCode) {
-                200 -> return@buildCatching success(parseInGameMatchDataFromResponse(response.body))
+                200 -> return@buildCatching success(
+                    parseInGameMatchDataFromResponse(response.body)
+                )
+                404 -> {
+                    val propName = "errorCode"
+                    val errorCode = response.body
+                        .expectJsonObject("InGameMatchInfo response")
+                        .expectJsonProperty(propName)
+                        .expectJsonPrimitive(propName)
+                        .expectNotJsonNull(propName)
+                        .content
+                        .also { expectNonBlankJsonString("errorCode", it) }
+                    if (errorCode == "RESOURCE_NOT_FOUND") return@buildCatching failure(
+                        InGameMatchNotFoundException(),
+                        19404
+                    )
+                }
             }
 
             unexpectedResponseError("Unable to GET InGame match info (${response.statusCode})")
@@ -87,10 +104,10 @@ internal class RealInGameUserMatchClient(
 
     private fun parseInGameMatchDataFromResponse(
         body: JsonElement
-    ): InGameMatchData {
+    ): InGameMatchInfo {
         val obj = body.expectJsonObject("GET InGameMatchData response")
 
-        return InGameMatchData(
+        return InGameMatchInfo(
             matchID = run {
                 val prop = "MatchID"
                 obj
@@ -191,6 +208,19 @@ internal class RealInGameUserMatchClient(
                     .also { expectJsonBoolean(prop, it) }
                     .toBooleanStrict()
             },
+            matchOver = run {
+                val prop = "State"
+                obj
+                    .expectJsonProperty(prop)
+                    .expectJsonPrimitive(prop)
+                    .expectNotJsonNull(prop)
+                    .content
+                    .also { expectNonBlankJsonString(prop, it) }
+                    .let { state ->
+                        state.equals("post_game", ignoreCase = true) ||
+                        state.equals("closed", ignoreCase = true)
+                    }
+            }
         )
     }
 
