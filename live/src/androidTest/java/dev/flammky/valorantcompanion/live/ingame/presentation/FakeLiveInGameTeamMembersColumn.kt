@@ -1,9 +1,11 @@
 package dev.flammky.valorantcompanion.live.ingame.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -12,6 +14,8 @@ import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.debug.DebugValorantAssetService
 import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
 import dev.flammky.valorantcompanion.base.di.koin.compose.KoinDependencyInjector
+import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
+import dev.flammky.valorantcompanion.base.theme.material3.backgroundColorAsState
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.mmr.SeasonalMMRData
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
@@ -27,29 +31,6 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentList
 import org.koin.core.context.GlobalContext
 import org.koin.dsl.module
-
-@Composable
-internal fun FakeLiveInGameTeamMembersColumn(
-    modifier: Modifier,
-    matchKey: Any,
-    user: String,
-    members: List<TeamMember>
-) = Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-    members.forEach { member ->
-        FakeLiveInGameTeamMemberCard(
-            modifier = Modifier.padding(horizontal = 5.dp),
-            state = rememberLiveInGameTeamMemberCardStatePresenter().present(
-                matchKey = matchKey,
-                user = user,
-                id = member.puuid,
-                playerAgentID = member.agentID,
-                playerCardID = member.playerCardID,
-                accountLevel = member.accountLevel,
-                incognito = member.incognito
-            )
-        )
-    }
-}
 
 @Composable
 @Preview
@@ -121,6 +102,7 @@ private fun FakeLiveInGameTeamMembersPreview() {
                                                 if (ascendantPresent) CompetitiveRank.ASCENDANT_3
                                                 else CompetitiveRank.DIAMOND_3
                                             SeasonalMMRData(
+                                                subject = subject,
                                                 season = resolveSeason,
                                                 competitiveTier = rankResolver.localizeTier(seasonalRank),
                                                 competitiveRank = seasonalRank,
@@ -134,6 +116,7 @@ private fun FakeLiveInGameTeamMembersPreview() {
                                                 if (ascendantPresent) CompetitiveRank.ASCENDANT_2
                                                 else CompetitiveRank.DIAMOND_3
                                             SeasonalMMRData(
+                                                subject = subject,
                                                 season = resolveSeason,
                                                 competitiveTier = rankResolver.localizeTier(seasonalRank),
                                                 competitiveRank = seasonalRank,
@@ -147,6 +130,7 @@ private fun FakeLiveInGameTeamMembersPreview() {
                                                 if (immortalPresent) CompetitiveRank.IMMORTAL_1
                                                 else CompetitiveRank.IMMORTAL_MERGED
                                             SeasonalMMRData(
+                                                subject = subject,
                                                 season = resolveSeason,
                                                 competitiveTier = rankResolver.localizeTier(seasonalRank),
                                                 competitiveRank = seasonalRank,
@@ -156,6 +140,7 @@ private fun FakeLiveInGameTeamMembersPreview() {
                                         "hive" -> {
                                             val seasonalRank = CompetitiveRank.DIAMOND_3
                                             SeasonalMMRData(
+                                                subject = subject,
                                                 season = resolveSeason,
                                                 competitiveTier = rankResolver.localizeTier(seasonalRank),
                                                 competitiveRank = seasonalRank,
@@ -163,12 +148,9 @@ private fun FakeLiveInGameTeamMembersPreview() {
                                             )
                                         }
                                         "lock" -> {
-                                            val immortalPresent = rankResolver
-                                                .isRankPresent(CompetitiveRank.IMMORTAL_2)
-                                            val seasonalRank =
-                                                if (immortalPresent) CompetitiveRank.IMMORTAL_2
-                                                else CompetitiveRank.IMMORTAL_MERGED
+                                            val seasonalRank = CompetitiveRank.RADIANT
                                             SeasonalMMRData(
+                                                subject = subject,
                                                 season = resolveSeason,
                                                 competitiveTier = rankResolver.localizeTier(seasonalRank),
                                                 competitiveRank = seasonalRank,
@@ -232,11 +214,13 @@ private fun FakeLiveInGameTeamMembersPreview() {
                     )
                 )
             }
-            FakeLiveInGameTeamMembersColumn(
-                modifier = Modifier.clickable { members.value = members.value.shuffled().toPersistentList() },
+            LiveInGameTeamMembersColumn(
+                modifier = Modifier.background(Material3Theme.backgroundColorAsState().value),
                 matchKey = remember { Any() },
                 user = remember { "dokka" },
-                members = members.value
+                loading = false,
+                membersProvided = true,
+                getMembers = { members.value }
             )
         }
     }

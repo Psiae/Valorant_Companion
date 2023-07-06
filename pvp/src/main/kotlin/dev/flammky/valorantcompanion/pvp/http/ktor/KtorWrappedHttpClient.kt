@@ -1,11 +1,10 @@
 package dev.flammky.valorantcompanion.pvp.http.ktor
 
+import android.os.SystemClock
 import android.util.Log
-import androidx.compose.animation.ContentTransform
 import dev.flammky.valorantcompanion.auth.BuildConfig
+import dev.flammky.valorantcompanion.pvp.http.*
 import dev.flammky.valorantcompanion.pvp.http.HttpClient
-import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
-import dev.flammky.valorantcompanion.pvp.http.JsonHttpResponse
 import io.ktor.client.call.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -15,20 +14,20 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.util.*
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.encodeToJsonElement
 import io.ktor.client.HttpClient as KtorHttpClient
 
 internal class KtorWrappedHttpClient(
     lifetime: Job? = null
 ) : HttpClient() {
 
-    private val self: KtorHttpClient = KtorHttpClient(OkHttp) {
+    private val self: KtorHttpClient = KtorHttpClient(PVPOkHttpEngineFactory) {
         install(ContentNegotiation) {
             json()
         }
@@ -60,22 +59,27 @@ internal class KtorWrappedHttpClient(
 
     // TODO: rethrow ktor module exceptions
     override suspend fun jsonRequest(request: JsonHttpRequest): JsonHttpResponse {
-        val ktorResponse = self.request(
-            HttpRequestBuilder()
-                .apply {
-                    method = HttpMethod.parse(request.method)
-                    url(request.url)
-                    headers {
-                        contentType(ContentType.Application.Json)
-                        accept(ContentType.Application.Json)
-                        request.headers.forEach { append(it.first, it.second) }
-                    }
-                    request.body?.let { setBody(it) }
-                }
-        )
+        val ktorResponse = self.prepareRequest {
+            method = HttpMethod.parse(request.method)
+            url(request.url)
+            headers {
+                contentType(ContentType.Application.Json)
+                accept(ContentType.Application.Json)
+                request.headers.forEach { append(it.first, it.second) }
+            }
+            request.body?.let { setBody(it) }
+        }.execute { response -> response.call.save().response }
         return JsonHttpResponse(
-            ktorResponse.status.value,
-            Json.decodeFromString(ktorResponse.bodyAsText())
+            headers = HttpResponseHeaders(
+                ktorResponse.headers.entries().associateByTo(
+                    persistentMapOf<String, List<String>>().builder(),
+                    keySelector = { entry -> entry.key  },
+                    valueTransform = { entry -> entry.value }
+                )
+            ),
+            statusCode = ktorResponse.status.value,
+            body = Json.decodeFromString(ktorResponse.bodyAsText()),
+            getResponseProperty = { name -> ktorResponse.call.attributes[AttributeKey(name)] }
         )
     }
 

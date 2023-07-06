@@ -21,6 +21,9 @@ internal fun FakeLiveInGameContent(
     LiveInGameTeamMembersUI(
         user = "dokka",
         matchKey = remember { Any() },
+        loading = false,
+        allyProvided = true,
+        enemyProvided = true,
         ally = remember {
             InGameTeam(
                 id = TeamID.BLUE,

@@ -10,5 +10,5 @@ data class SeasonalMMRData(
     val season: ValorantActiveSeason,
     val competitiveTier: Int,
     val competitiveRank: CompetitiveRank,
-    @IntRange(from = 0, to = 100) val rankRating: Int
+    @IntRange(from = 0) val rankRating: Int
 )

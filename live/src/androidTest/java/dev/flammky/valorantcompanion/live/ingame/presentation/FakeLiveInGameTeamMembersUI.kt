@@ -52,6 +52,9 @@ private fun FakeLiveInGameTeamMembersUIPreview() {
             LiveInGameTeamMembersUI(
                 user = "dokka",
                 matchKey = remember { Any() },
+                loading = true,
+                allyProvided = true,
+                enemyProvided = true,
                 ally = remember {
                     InGameTeam(
                         id = TeamID.BLUE,

@@ -181,8 +181,14 @@ class UserMatchInfoPresenter(
             if (currentUserInitiatedRefresh?.isActive == true) return
             if (currentAutoInitiatedRefresh?.isActive == true) currentAutoInitiatedRefresh?.cancel()
 
+            this.refreshErrorMessage = null
             mutateState("userRefresh") { state ->
-                state.copy(showLoading = true, showLoadingOnly = false)
+                state.copy(
+                    showLoading = true,
+                    showLoadingOnly = false,
+                    errorMessage = currentErrorMessage(),
+                    needManualRefresh = needManualRefresh()
+                )
             }
 
             currentUserInitiatedRefresh = coroutineScope.launch {
@@ -382,7 +388,6 @@ class UserMatchInfoPresenter(
                         stateGamePodID = data.gamePodId
                         gamePodsPings[data.gamePodId] ?: -1
                     },
-                    errorMessage = null,
                 )
             }
         }
@@ -412,7 +417,6 @@ class UserMatchInfoPresenter(
                         stateGamePodID = data.gamePodID
                         gamePodsPings[data.gamePodID] ?: -1
                     },
-                    errorMessage = null
                 )
             }
         }

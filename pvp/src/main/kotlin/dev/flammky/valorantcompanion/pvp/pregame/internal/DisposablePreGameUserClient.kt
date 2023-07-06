@@ -821,7 +821,7 @@ internal class DisposablePreGameUserClient(
                         expectNonBlankJsonString(propName, it)
                     }
                     .let { str ->
-                        ISO8601.fromStr(str)
+                        ISO8601.fromISOString(str)
                     }
             },
             mapId = run {

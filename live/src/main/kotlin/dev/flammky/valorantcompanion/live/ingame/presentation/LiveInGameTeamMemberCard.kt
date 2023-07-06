@@ -27,20 +27,20 @@ import dev.flammky.valorantcompanion.assets.LocalImage
 internal fun LiveInGameTeamMemberCard(
     modifier: Modifier,
     state: LiveInGameTeamMemberCardState
-) = FakeLiveInGameTeamMemberCardPlacement(
+) = LiveInGameTeamMemberCardPlacement(
     modifier = modifier,
     surface = {
         Box(it.fillMaxSize().background(Material3Theme.surfaceColorAsState().value))
     },
     agentPicture = {
-        FakeLiveinGameTeamMemberCardAgentPicture(
+        LiveinGameTeamMemberCardAgentPicture(
             modifier = it,
             key = state.agentIconKey,
             res = state.agentIcon
         )
     },
     title = {
-        FakeLiveInGameTeamMemberCardTitle(
+        LiveInGameTeamMemberCardTitle(
             modifier = it,
             username = state.username,
             tagline = state.tagline,
@@ -48,7 +48,7 @@ internal fun LiveInGameTeamMemberCard(
         )
     },
     subtitle = {
-        FakeLiveInGameTeamMemberCardSubtitle(
+        LiveInGameTeamMemberCardSubtitle(
             modifier = it,
             agentName = state.agentName,
             roleName = state.roleName,
@@ -57,7 +57,7 @@ internal fun LiveInGameTeamMemberCard(
         )
     },
     competitiveTierIcon = {
-        FakeLiveInGameTeamMemberCardCompetitiveTierIcon(
+        LiveInGameTeamMemberCardCompetitiveTierIcon(
             modifier = it,
             res = state.competitiveTierIcon,
             resKey = state.competitiveTierIconKey
@@ -66,7 +66,7 @@ internal fun LiveInGameTeamMemberCard(
 )
 
 @Composable
-private fun FakeLiveInGameTeamMemberCardPlacement(
+private fun LiveInGameTeamMemberCardPlacement(
     modifier: Modifier,
     surface: @Composable (Modifier) -> Unit,
     agentPicture: @Composable (Modifier) -> Unit,
@@ -98,7 +98,7 @@ private fun FakeLiveInGameTeamMemberCardPlacement(
 }
 
 @Composable
-private fun FakeLiveinGameTeamMemberCardAgentPicture(
+private fun LiveinGameTeamMemberCardAgentPicture(
     modifier: Modifier,
     key: Any,
     res: LocalImage<*>?
@@ -121,7 +121,7 @@ private fun FakeLiveinGameTeamMemberCardAgentPicture(
 }
 
 @Composable
-private fun FakeLiveInGameTeamMemberCardTitle(
+private fun LiveInGameTeamMemberCardTitle(
     modifier: Modifier,
     username: String?,
     tagline: String?,
@@ -175,7 +175,7 @@ private fun FakeLiveInGameTeamMemberCardTitle(
 }
 
 @Composable
-private fun FakeLiveInGameTeamMemberCardSubtitle(
+private fun LiveInGameTeamMemberCardSubtitle(
     modifier: Modifier,
     agentName: String?,
     roleName: String?,
@@ -220,7 +220,7 @@ private fun FakeLiveInGameTeamMemberCardSubtitle(
 }
 
 @Composable
-private fun FakeLiveInGameTeamMemberCardCompetitiveTierIcon(
+private fun LiveInGameTeamMemberCardCompetitiveTierIcon(
     modifier: Modifier,
     res: LocalImage<*>?,
     resKey: Any

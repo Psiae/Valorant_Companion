@@ -1,6 +1,8 @@
 package dev.flammky.valorantcompanion.live.ingame.presentation
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -58,7 +60,7 @@ private fun LiveInGameTeamMembersColumn(
     modifier: Modifier,
     members: List<LiveInGameTeamMemberCardState>
 ) = Column(
-    modifier = modifier,
+    modifier = modifier.verticalScroll(rememberScrollState()),
     verticalArrangement = remember { Arrangement.spacedBy(5.dp) },
     content = {
         members.forEach { member ->

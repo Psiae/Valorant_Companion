@@ -6,11 +6,14 @@ import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
 import dev.flammky.valorantcompanion.network.NetworkErrorCodes
 import dev.flammky.valorantcompanion.pvp.PVPAsyncRequestResult
 import dev.flammky.valorantcompanion.pvp.PVPClient
-import dev.flammky.valorantcompanion.pvp.asKtResult
+import dev.flammky.valorantcompanion.pvp.RateLimitInfo
+import dev.flammky.valorantcompanion.pvp.date.ISO8601
 import dev.flammky.valorantcompanion.pvp.error.PVPModuleErrorCodes
 import dev.flammky.valorantcompanion.pvp.ex.UnexpectedResponseException
+import dev.flammky.valorantcompanion.pvp.http.HTTP_REQUEST_RECEIVED_TIMESTAMP_SYSTEM_ELAPSED_CLOCK_MILLIS
 import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
+import dev.flammky.valorantcompanion.pvp.http.httpDateFormat
 import dev.flammky.valorantcompanion.pvp.match.ex.UnknownTeamIdException
 import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
@@ -18,7 +21,9 @@ import dev.flammky.valorantcompanion.pvp.tier.ValorantCompetitiveRankResolver
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 import java.io.IOException
+import java.time.format.DateTimeFormatter
 import kotlin.reflect.KClass
+import kotlin.time.Duration.Companion.seconds
 
 internal class RealValorantValorantMMRUserClient(
     val puuid: String,
@@ -32,14 +37,31 @@ internal class RealValorantValorantMMRUserClient(
     override fun fetchSeasonalMMRAsync(
         season: String,
         subject: String
-    ): Deferred<Result<SeasonalMMRData>> {
-        val def = CompletableDeferred<Result<SeasonalMMRData>>()
+    ): Deferred<PVPAsyncRequestResult<FetchSeasonalMMRResult>> {
+        val def = CompletableDeferred<PVPAsyncRequestResult<FetchSeasonalMMRResult>>()
 
         coroutineScope.launch(Dispatchers.IO) {
-            def.complete(fetchSeasonalMMRFromPublicEndpoint(subject).asKtResult())
+            def.complete(fetchSeasonalMMRFromPublicEndpoint(subject))
         }.apply {
-            invokeOnCompletion { ex -> if (ex is CancellationException) def.cancel() }
-            def.invokeOnCompletion { ex -> if (ex is CancellationException) cancel() }
+            invokeOnCompletion { ex -> if (ex is Throwable) def.completeExceptionally(ex) }
+            def.invokeOnCompletion { ex -> if (ex is Throwable) cancel(ex.message ?: "", ex) }
+        }
+
+        return def
+    }
+
+    override fun fetchSeasonalMMRAsync(
+        season: String,
+        subject: String,
+        activeMatch: String
+    ): Deferred<PVPAsyncRequestResult<FetchSeasonalMMRResult>> {
+        val def = CompletableDeferred<PVPAsyncRequestResult<FetchSeasonalMMRResult>>()
+
+        coroutineScope.launch(Dispatchers.IO) {
+            def.complete(fetchSeasonalMMRFromPublicEndpoint(subject, activeMatch))
+        }.apply {
+            invokeOnCompletion { ex -> if (ex is Throwable) def.completeExceptionally(ex) }
+            def.invokeOnCompletion { ex -> if (ex is Throwable) cancel(ex.message ?: "", ex) }
         }
 
         return def
@@ -47,7 +69,7 @@ internal class RealValorantValorantMMRUserClient(
 
     private suspend fun fetchSeasonalMMRFromPublicEndpoint(
         subject: String
-    ): PVPAsyncRequestResult<SeasonalMMRData> {
+    ): PVPAsyncRequestResult<FetchSeasonalMMRResult> {
         val handle = puuid
         return PVPAsyncRequestResult.buildCatching {
             val access_token = auth.get_authorization(handle).getOrElse { ex ->
@@ -106,7 +128,37 @@ internal class RealValorantValorantMMRUserClient(
                     )
                 }.onSuccess { data ->
                     return@buildCatching success(
-                        data
+                        FetchSeasonalMMRResult.success(data)
+                    )
+                }.onFailure { ex ->
+                    return@buildCatching failure(
+                        ex as Exception,
+                        PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE
+                    )
+                }
+                429 -> runCatching {
+                    RateLimitInfo(
+                        remoteServerStamp = run {
+                            response.headers["date"]?.let { data ->
+                                runCatching {
+                                    val date = httpDateFormat().parse(data)
+                                    ISO8601.fromEpochMilli(date.time)
+                                }.getOrNull()
+                            }
+                        },
+                        deviceClockStamp = run {
+                            response.getResponseProperty(
+                                HTTP_REQUEST_RECEIVED_TIMESTAMP_SYSTEM_ELAPSED_CLOCK_MILLIS
+                            ) as? Long
+                        },
+                        retryAfter = run {
+                            response.headers["retry-after"]
+                                ?.let { value -> value.toLongOrNull()?.seconds }
+                        }
+                    )
+                }.onSuccess { data ->
+                    return@buildCatching success(
+                        FetchSeasonalMMRResult.failure(data)
                     )
                 }.onFailure { ex ->
                     return@buildCatching failure(
@@ -118,6 +170,15 @@ internal class RealValorantValorantMMRUserClient(
 
             error("Unhandled HTTP response Code (${response.statusCode})")
         }
+    }
+
+    private suspend fun fetchSeasonalMMRFromPublicEndpoint(
+        subject: String,
+        activeMatch: String
+    ): PVPAsyncRequestResult<FetchSeasonalMMRResult> {
+        // TODO: check cache
+        // TODO: cache
+        return fetchSeasonalMMRFromPublicEndpoint(subject)
     }
 
     private fun parseCurrentSeasonMMRDataFromPublicMMREndpoint(
@@ -253,9 +314,9 @@ internal class RealValorantValorantMMRUserClient(
                             .also { tier -> expectJsonNumber(prop, tier) }
                             .toInt()
                             .also { tier ->
-                                if (tier !in 0..100) unexpectedJsonValueError(
+                                if (tier < 0) unexpectedJsonValueError(
                                     prop,
-                                    "RankedRating was not in range of 0..100 inclusive"
+                                    "RankedRating was less than 0"
                                 )
                             }
                     }

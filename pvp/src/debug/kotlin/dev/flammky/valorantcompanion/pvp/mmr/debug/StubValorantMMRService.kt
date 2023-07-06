@@ -1,6 +1,8 @@
 package dev.flammky.valorantcompanion.pvp.mmr.debug
 
+import dev.flammky.valorantcompanion.pvp.PVPAsyncRequestResult
 import dev.flammky.valorantcompanion.pvp.ex.SeasonalMMRDataNotFoundException
+import dev.flammky.valorantcompanion.pvp.mmr.FetchSeasonalMMRResult
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRUserClient
 import dev.flammky.valorantcompanion.pvp.mmr.SeasonalMMRData
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
@@ -28,14 +30,14 @@ class StubValorantMMRService(
         override fun fetchSeasonalMMRAsync(
             season: String,
             subject: String
-        ): Deferred<Result<SeasonalMMRData>> {
-            val def = CompletableDeferred<Result<SeasonalMMRData>>()
+        ): Deferred<PVPAsyncRequestResult<FetchSeasonalMMRResult>> {
+            val def = CompletableDeferred<PVPAsyncRequestResult<FetchSeasonalMMRResult>>()
 
             coroutineScope.launch(Dispatchers.IO) {
                 def.complete(
                     provider(season, subject)
-                        ?.let { Result.success(it) }
-                        ?: Result.failure(SeasonalMMRDataNotFoundException())
+                        ?.let { PVPAsyncRequestResult.success(FetchSeasonalMMRResult.success(it)) }
+                        ?: PVPAsyncRequestResult.failure(SeasonalMMRDataNotFoundException(), 19404)
                 )
             }.apply {
                 invokeOnCompletion { ex -> if (ex is CancellationException) def.cancel() }
@@ -44,6 +46,15 @@ class StubValorantMMRService(
 
             return def
         }
+
+        override fun fetchSeasonalMMRAsync(
+            season: String,
+            subject: String,
+            activeMatch: String
+        ): Deferred<PVPAsyncRequestResult<FetchSeasonalMMRResult>> = fetchSeasonalMMRAsync(
+            season,
+            subject
+        )
 
         override fun dispose() {
             coroutineScope.cancel()

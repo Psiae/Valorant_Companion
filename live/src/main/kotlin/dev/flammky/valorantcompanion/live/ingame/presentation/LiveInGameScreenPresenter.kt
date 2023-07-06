@@ -15,6 +15,7 @@ import dev.flammky.valorantcompanion.pvp.ingame.*
 import dev.flammky.valorantcompanion.pvp.ingame.ex.InGameMatchNotFoundException
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
 import dev.flammky.valorantcompanion.pvp.mode.ValorantGameType
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.*
 
 @Composable
@@ -37,10 +38,14 @@ internal class LiveInGameScreenPresenter(
         val activeAccountState = remember(this) {
             mutableStateOf<AuthenticatedAccount?>(null)
         }
+        val loaded = remember(this) {
+            mutableStateOf<Boolean>(false)
+        }
         DisposableEffect(
             this,
         ) {
             val listener = ActiveAccountListener { old, new ->
+                loaded.value = true
                 activeAccountState.value = new
             }
             authRepository.registerActiveAccountChangeListener(
@@ -50,7 +55,18 @@ internal class LiveInGameScreenPresenter(
                 authRepository.unRegisterActiveAccountListener(listener)
             }
         }
-        return present(user = activeAccountState.value?.model?.id ?: "")
+        if (!loaded.value) {
+            return LiveInGameScreenState.UNSET.copy(
+                noOp = true,
+                noOpMessage = "LOADING USER ..."
+            )
+        }
+        return activeAccountState.value
+            ?.let { account -> present(account.model.id) }
+            ?: LiveInGameScreenState.UNSET.copy(
+                noOp = true,
+                noOpMessage = "USER NOT LOGGED IN"
+            )
     }
 
 
@@ -58,9 +74,8 @@ internal class LiveInGameScreenPresenter(
     fun present(
         user: String
     ): LiveInGameScreenState {
-
-        if (user.isEmpty()) {
-            return LiveInGameScreenState.UNSET
+        check(user.isNotEmpty()) {
+            "Cannot Present an unset USER"
         }
 
         val producer = remember(user) {
@@ -95,9 +110,8 @@ internal class LiveInGameScreenPresenter(
         private var currentMatchPollTS = 0L
         private var currentMatchDataPollTS = 0L
 
-        private var inUserRefreshSession = false
         private var inInitialRefreshSession = false
-        private val inExplicitRefreshSession get() = inUserRefreshSession || inInitialRefreshSession
+        private val inExplicitRefreshSession get() = inInitialRefreshSession
         private var lastActiveMatchID: String? = null
 
         @SnapshotWrite
@@ -111,25 +125,15 @@ internal class LiveInGameScreenPresenter(
             if (producing) return
             producing = true
             inInitialRefreshSession = true
-            producer = coroutineScope.launch { produceState() }
+            producer = coroutineScope.launch {
+                onInitialProduce()
+                produceState()
+            }
         }
 
         private suspend fun produceState() {
-            if (inInitialRefreshSession) {
-                onInitialProduce()
-            } else if (inUserRefreshSession) {
-                onUserInitiatedProduce()
-            }
             while (true) {
-                val match = run onPollCurrentMatchForClient@ {
-                    mutateState("produceState_onPollCurrentMatchForClient") { state ->
-                        state.copy(
-                            explicitLoading = true,
-                            explicitLoadingMessage = "FINDING MATCH...",
-                        )
-                    }
-                    pollCurrentMatchForClient()
-                }
+                val match = pollCurrentMatchForClient()
                 onNewMatchFound(match)
             }
         }
@@ -148,8 +152,6 @@ internal class LiveInGameScreenPresenter(
                     gamePodPingMs = null,
                     ally = null,
                     enemy = null,
-                    errorMessage = null,
-                    errorRefresh = {}
                 )
             }
         }
@@ -168,15 +170,21 @@ internal class LiveInGameScreenPresenter(
                     gamePodPingMs = null,
                     ally = null,
                     enemy = null,
-                    errorMessage = null,
-                    errorRefresh = {}
                 )
             }
         }
 
         private suspend fun pollCurrentMatchForClient(): InGameUserMatchClient {
+            mutateState("pollCurrentMatchForClient") { state ->
+                state.copy(
+                    explicitLoading = true,
+                    explicitLoadingMessage = "FINDING MATCH ...",
+                )
+            }
             while (true) {
-                delay(500 - (SystemClock.elapsedRealtime() - currentMatchPollTS))
+                if (currentMatchPollTS != -1L) {
+                    delay(500 - (SystemClock.elapsedRealtime() - currentMatchPollTS))
+                }
                 currentMatchPollTS = SystemClock.elapsedRealtime()
                 val result = inGameClient.fetchUserCurrentMatchIDAsync().await()
                 onPollCurrentMatchForClientResult(result)?.let { client -> return client }
@@ -201,38 +209,45 @@ internal class LiveInGameScreenPresenter(
 
 
         private suspend fun onNewMatchFound(client: InGameUserMatchClient) {
-            mutateState("onMatchFound") { state ->
-                state.copy(
-                    inMatch = true,
-                    matchKey = client.matchID,
-                    pollingForMatch = false,
-                    userRefreshing = false,
-                    explicitLoadingMessage = run {
-                        if (inExplicitRefreshSession) "MATCH FOUND, LOADING DATA..."
-                        else state.explicitLoadingMessage
-                    }
-                )
-            }
-            pollMatchInfoUntilNotFound(client)
-        }
-
-        private suspend fun pollMatchInfoUntilNotFound(client: InGameUserMatchClient) {
+            var initialLoop = true
+            var mnf = false
+            var matchOver = false
+            var explicitLoading = true
             while (true) {
-                delay(1000 - (SystemClock.elapsedRealtime() - currentMatchDataPollTS))
+                mutateState("onNewMatchFound") { state ->
+                    state.copy(
+                        inMatch = true,
+                        matchKey = client.matchID,
+                        pollingForMatch = false,
+                        userRefreshing = false,
+                        explicitLoading = explicitLoading,
+                        explicitLoadingMessage = run {
+                            if (explicitLoading) {
+                                if (initialLoop) "MATCH FOUND, LOADING DATA ..."
+                                else "LOADING DATA ..."
+                            }
+                            else state.explicitLoadingMessage
+                        }
+                    )
+                }
+                if (currentMatchDataPollTS != -1L) {
+                    delay(1000 - (SystemClock.elapsedRealtime() - currentMatchDataPollTS))
+                }
                 currentMatchDataPollTS = SystemClock.elapsedRealtime()
                 val result = client.fetchMatchInfoAsync().await()
-                var mnf = false
-                var matchOver = false
                 result
                     .onSuccess { data ->
                         newMatchDataFromMatchPoll(data)
                         matchOver = data.matchOver
+                        explicitLoading = false
                     }
                     .onFailure { exception, errorCode ->
                         onFetchCurrentMatchDataFail(exception, errorCode)
                         mnf = exception is InGameMatchNotFoundException
+                        explicitLoading = true
                     }
                 if (mnf || matchOver) break
+                initialLoop = false
             }
         }
 
@@ -263,9 +278,20 @@ internal class LiveInGameScreenPresenter(
                 return
             }
             val cont = Job(lifetime)
-            this.pendingError = cont
             mutateState("fetchCurrentMatchFail_$errorCode") { state ->
                 state.copy(
+                    needUserRefresh = true,
+                    needUserRefreshMessage = "UNABLE TO RETRIEVE USER CURRENT MATCH INFO ($errorCode)",
+                    needUserRefreshRunnable = {
+                        mutateState("fetchCurrentMatchFail_needUserRefreshRunnable") { state ->
+                            state.copy(
+                                needUserRefresh = false,
+                                needUserRefreshMessage = null,
+                                needUserRefreshRunnable = {}
+                            )
+                        }
+                        cont.complete()
+                    },
                     inMatch = false,
                     matchKey = null,
                     pollingForMatch = false,
@@ -276,7 +302,6 @@ internal class LiveInGameScreenPresenter(
                     gamePodPingMs = null,
                     ally = null,
                     enemy = null,
-                    errorMessage = "unexpected error occurred ($errorCode)"
                 )
             }
             cont.join()
@@ -302,44 +327,19 @@ internal class LiveInGameScreenPresenter(
                     enemy = null
                 )
             } else {
+                val gameType = data.queueID
+                    ?.let { ValorantGameType.fromQueueID(it) }
+                    ?: ValorantGameType.fromProvisioningFlow(data.provisioningFlow)
                 val user = data.players.find { it.puuid == user }
-                val ally = InGameTeam(
-                    id = user?.teamID,
-                    members = data.players
-                        .filter { it.teamID == user?.teamID }
-                        .map {
-                            TeamMember(
-                                puuid = it.puuid,
-                                agentID = it.character_id,
-                                playerCardID = it.playerIdentity.playerCardId,
-                                accountLevel = it.playerIdentity.accountLevel,
-                                incognito = it.playerIdentity.incognito)
-                        }
-                )
-                val enemy = InGameTeam(
-                    id = data.players.find { it.teamID != user?.teamID }?.teamID,
-                    members = data.players
-                        .run {
-                            if (user != null) filter { it.teamID != user.teamID } else this
-                        }
-                        .map {
-                            TeamMember(
-                                puuid = it.puuid,
-                                agentID = it.character_id,
-                                playerCardID = it.playerIdentity.playerCardId,
-                                accountLevel = it.playerIdentity.accountLevel,
-                                incognito = it.playerIdentity.incognito)
-                        }
-                )
+                val ally = parseAllyMembers(gameType, data.players, user)
+                val enemy = parseEnemyMembers(gameType, data.players, user)
                 state.copy(
                     inMatch = true,
                     matchKey = data.matchID,
                     explicitLoading = false,
                     explicitLoadingMessage = null,
                     mapName = ValorantMapIdentity.ofID(data.mapID)?.display_name ?: "UNKNOWN_MAP_NAME",
-                    gameTypeName = data.queueID
-                        ?.let { ValorantGameType.fromQueueID(it) }?.displayName
-                        ?: ValorantGameType.fromProvisioningFlow(data.provisioningFlow)?.displayName,
+                    gameTypeName = gameType?.displayName,
                     gamePodName = toGamePodName(data.gamePodID),
                     gamePodPingMs = state.gamePodPingMs,
                     allyMembersProvided = ally.members.isNotEmpty(),
@@ -348,6 +348,50 @@ internal class LiveInGameScreenPresenter(
                     enemy = enemy
                 )
             }
+        }
+
+        private fun parseAllyMembers(
+            gameType: ValorantGameType?,
+            players: List<InGamePlayer>,
+            user: InGamePlayer? = players.find { it.puuid == this.user }
+        ): InGameTeam {
+            return InGameTeam(
+                id = user?.teamID,
+                members =  if (gameType is ValorantGameType.DEATHMATCH) {
+                    listOfNotNull(user)
+                } else {
+                    players.filter { it.teamID == user?.teamID }
+                }.mapTo(persistentListOf<TeamMember>().builder()) {
+                    TeamMember(
+                        puuid = it.puuid,
+                        agentID = it.character_id,
+                        playerCardID = it.playerIdentity.playerCardId,
+                        accountLevel = it.playerIdentity.accountLevel,
+                        incognito = it.playerIdentity.incognito)
+                }.build()
+            )
+        }
+
+        private fun parseEnemyMembers(
+            gameType: ValorantGameType?,
+            players: List<InGamePlayer>,
+            user: InGamePlayer? = players.find { it.puuid == this.user }
+        ): InGameTeam {
+            return InGameTeam(
+                id = user?.teamID,
+                members =  if (gameType is ValorantGameType.DEATHMATCH) {
+                    players.filter { it != user }
+                } else {
+                    players.filter { it.teamID != user?.teamID }
+                }.mapTo(persistentListOf<TeamMember>().builder()) {
+                    TeamMember(
+                        puuid = it.puuid,
+                        agentID = it.character_id,
+                        playerCardID = it.playerIdentity.playerCardId,
+                        accountLevel = it.playerIdentity.accountLevel,
+                        incognito = it.playerIdentity.incognito)
+                }.build()
+            )
         }
 
         private suspend fun onFetchCurrentMatchDataFail(
@@ -372,30 +416,38 @@ internal class LiveInGameScreenPresenter(
                         enemyMembersProvided = false,
                         ally = null,
                         enemy = null,
-                        errorMessage = null,
                     )
                 }
                 return
             }
+            val cont = Job(lifetime)
             mutateState("fetchCurrentMatchDataFail_$errorCode") { state ->
                 state.copy(
+                    needUserRefresh = true,
+                    needUserRefreshMessage = "UNABLE TO RETRIEVE USER CURRENT MATCH INFO ($errorCode)",
+                    needUserRefreshRunnable = {
+                        mutateState("fetchCurrentMatchDataFail_needUserRefreshRunnable") { state ->
+                            state.copy(
+                                needUserRefresh = false,
+                                needUserRefreshMessage = null,
+                                needUserRefreshRunnable = {}
+                            )
+                        }
+                        cont.complete()
+                    },
                     inMatch = false,
                     matchKey = null,
-                    explicitLoading = false,
-                    explicitLoadingMessage = null,
                     pollingForMatch = false,
                     userRefreshing = false,
                     mapName = null,
                     gameTypeName = null,
                     gamePodName = null,
                     gamePodPingMs = null,
-                    allyMembersProvided = false,
-                    enemyMembersProvided = false,
                     ally = null,
                     enemy = null,
-                    errorMessage = "unexpected error occurred ($errorCode)"
                 )
             }
+            cont.join()
         }
 
         override fun onAbandoned() {

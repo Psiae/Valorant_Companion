@@ -1,11 +1,13 @@
 package dev.flammky.valorantcompanion.live
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.NavigationBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.live.ingame.presentation.LiveInGame
 import dev.flammky.valorantcompanion.live.match.presentation.root.LiveMatchUI
 import dev.flammky.valorantcompanion.live.party.presentation.LivePartyUI
@@ -44,8 +46,12 @@ fun LiveMain() {
                     dismiss = { showPreGameScreen.value = false }
                 )
             } else if (showInGameScreen.value) {
+                // TODO: define LocalNavigationBarInsets
                 LiveInGame(
-                    modifier = Modifier.statusBarsPadding(),
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .padding(bottom = 80.dp),
                     dismiss = { showInGameScreen.value = false }
                 )
             }

@@ -10,8 +10,10 @@ import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.di.compose.inject
 import dev.flammky.valorantcompanion.base.inMainLooper
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
+import dev.flammky.valorantcompanion.pvp.getOrThrow
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRUserClient
+import dev.flammky.valorantcompanion.pvp.mmr.getOrElse
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
 import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
 import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
@@ -245,7 +247,14 @@ private class RealLiveInGameTeamMemberPresenter(
                 ensureActive()
                 val mmrResult = run {
                     val def = mmrClient.fetchSeasonalMMRAsync(ValorantSeasons.ACTIVE_STAGED.act.id, playerId)
-                    runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
+                    runCatching {
+                        val pvpResult = runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
+                        val mmrResult = pvpResult.getOrThrow()
+                        mmrResult.getOrElse { self ->
+                            // TODO: fallback gracefully
+                            error("")
+                        }
+                    }
                 }.getOrElse { ex ->
                     mutateState("newPlayerIdSideEffect_mmrResult_fail") { state ->
                         state.copy(

@@ -11,7 +11,7 @@ class ISO8601 private constructor(
 
     companion object {
         @kotlin.jvm.Throws(IllegalArgumentException::class)
-        fun fromStr(string: String): ISO8601 {
+        fun fromISOString(string: String): ISO8601 {
             val instant = Instant.parse(string)
             return ISO8601(instant)
         }

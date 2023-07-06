@@ -1,7 +1,6 @@
 package dev.flammky.valorantcompanion.pvp
 
 import dev.flammky.valorantcompanion.pvp.error.PVPModuleErrorCodes
-import dev.flammky.valorantcompanion.pvp.party.ex.PVPModuleException
 
 class PVPAsyncRequestResult <T> private constructor(
     private val data: T?,
@@ -10,7 +9,7 @@ class PVPAsyncRequestResult <T> private constructor(
 ) {
 
     val isSuccess: Boolean
-        get() = data != null
+        get() = ex == null
 
     fun getOrNull(): T? = data
 
@@ -32,6 +31,7 @@ class PVPAsyncRequestResult <T> private constructor(
         ): PVPAsyncRequestResult<T> {
             return PVPAsyncRequestResult.success(data)
         }
+
     }
 
     companion object {
@@ -62,6 +62,18 @@ class PVPAsyncRequestResult <T> private constructor(
         ): PVPAsyncRequestResult<T> {
             return runCatching { build(block) }
                 .getOrElse { ex -> failure(ex as Exception, PVPModuleErrorCodes.UNHANDLED_EXCEPTION) }
+        }
+
+        internal inline fun <T> fromKtResult(
+            ktResult: Result<T>,
+            errorCode: Int?
+        ): PVPAsyncRequestResult<T> {
+            return ktResult
+                .getOrElse { ex ->
+                    return failure(
+                        ex as Exception,
+                        errorCode ?: PVPModuleErrorCodes.UNHANDLED_EXCEPTION)
+                }.let { data -> success(data) }
         }
     }
 }

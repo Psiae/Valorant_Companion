@@ -4,6 +4,14 @@ import dev.flammky.valorantcompanion.base.UNSET
 
 data class LiveInGameScreenState(
     val user: String,
+    val noOp: Boolean,
+    // non-null if noOp is true, may be empty
+    val noOpMessage: String?,
+    val noOpError: Boolean,
+    val needUserRefresh: Boolean,
+    // non-null if needUserRefreshMessage is true, may be empty
+    val needUserRefreshMessage: String?,
+    val needUserRefreshRunnable: () -> Unit,
     val inMatch: Boolean?,
     val matchKey: Any?,
     val pollingForMatch: Boolean,
@@ -16,16 +24,22 @@ data class LiveInGameScreenState(
     val gamePodPingMs: Int?,
     val allyMembersProvided: Boolean,
     val enemyMembersProvided: Boolean,
+    // val allyKey: Any
     val ally: InGameTeam?,
+    // val enemyKey: Any
     val enemy: InGameTeam?,
-    val errorMessage: String?,
-    val errorRefresh: () -> Unit,
 ): UNSET<LiveInGameScreenState> by Companion {
 
     companion object : UNSET<LiveInGameScreenState> {
 
         override val UNSET = LiveInGameScreenState(
             user = "",
+            noOp = false,
+            noOpMessage = null,
+            noOpError = false,
+            needUserRefresh = false,
+            needUserRefreshMessage = null,
+            needUserRefreshRunnable = {},
             inMatch = false,
             matchKey = null,
             pollingForMatch = false,
@@ -40,8 +54,6 @@ data class LiveInGameScreenState(
             enemyMembersProvided = false,
             ally = null,
             enemy = null,
-            errorMessage = "",
-            errorRefresh = {}
         )
     }
 }
