@@ -87,56 +87,50 @@ private fun LiveInGameTopBarContent(
         if (LocalIsThemeDark.current) Color.White else Color.Black
 
     if (mapName != null) {
-        key(mapName) {
-            Text(
-                text = "Map - $mapName".uppercase(),
-                color = textColor,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+        Text(
+            text = "Map - $mapName".uppercase(),
+            color = textColor,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 
     if (gameModeName != null) {
-        key(gameModeName) {
-            Text(
-                text = gameModeName.uppercase(),
-                color = textColor,
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+        Text(
+            text = gameModeName.uppercase(),
+            color = textColor,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 
     if (gamePodName != null) {
         Spacer(modifier = Modifier.height(12.dp))
-        key(gamePodName, pingMs) {
-            Row {
+        Row {
+            Text(
+                modifier = Modifier.weight(1f, false),
+                text = gamePodName.ifBlank { "???" },
+                color = textColor,
+                style = MaterialTheme.typography.labelSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (pingMs != null) {
+                Spacer(modifier = Modifier.width(3.dp))
                 Text(
                     modifier = Modifier.weight(1f, false),
-                    text = gamePodName.ifBlank { "???" },
+                    text = "(${pingMs}ms)",
                     color = textColor,
                     style = MaterialTheme.typography.labelSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (pingMs != null) {
-                    Spacer(modifier = Modifier.width(3.dp))
-                    Text(
-                        modifier = Modifier.weight(1f, false),
-                        text = "(${pingMs}ms)",
-                        color = textColor,
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.width(1.dp))
-                    DrawLiveInGameTopBar4PingBar(modifier = Modifier
-                        .height(8.dp)
-                        .align(Alignment.CenterVertically), pingMs = pingMs)
-                }
+                Spacer(modifier = Modifier.width(1.dp))
+                DrawLiveInGameTopBar4PingBar(modifier = Modifier
+                    .height(8.dp)
+                    .align(Alignment.CenterVertically), pingMs = pingMs)
             }
         }
     }

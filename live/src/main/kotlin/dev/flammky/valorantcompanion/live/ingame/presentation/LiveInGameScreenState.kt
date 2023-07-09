@@ -2,6 +2,7 @@ package dev.flammky.valorantcompanion.live.ingame.presentation
 
 import dev.flammky.valorantcompanion.base.UNSET
 
+// data class for copy function convenience, use identity equality
 data class LiveInGameScreenState(
     val user: String,
     val noOp: Boolean,
@@ -11,7 +12,8 @@ data class LiveInGameScreenState(
     val needUserRefresh: Boolean,
     // non-null if needUserRefreshMessage is true, may be empty
     val needUserRefreshMessage: String?,
-    val needUserRefreshRunnable: () -> Unit,
+    // non-null if needUserRefreshMessage is true
+    val needUserRefreshRunnable: (() -> Unit)?,
     val inMatch: Boolean?,
     val matchKey: Any?,
     val pollingForMatch: Boolean,
@@ -30,6 +32,10 @@ data class LiveInGameScreenState(
     val enemy: InGameTeam?,
 ): UNSET<LiveInGameScreenState> by Companion {
 
+    override fun equals(other: Any?): Boolean = super.equals(other)
+
+    override fun hashCode(): Int = super.hashCode()
+
     companion object : UNSET<LiveInGameScreenState> {
 
         override val UNSET = LiveInGameScreenState(
@@ -39,7 +45,7 @@ data class LiveInGameScreenState(
             noOpError = false,
             needUserRefresh = false,
             needUserRefreshMessage = null,
-            needUserRefreshRunnable = {},
+            needUserRefreshRunnable = null,
             inMatch = false,
             matchKey = null,
             pollingForMatch = false,

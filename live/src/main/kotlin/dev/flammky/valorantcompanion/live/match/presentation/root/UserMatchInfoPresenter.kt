@@ -372,10 +372,10 @@ class UserMatchInfoPresenter(
                     inPreGame = true,
                     // we can assume that we are not in any ongoing match
                     inGame = false,
-                    mapId = data.mapId,
-                    mapName = ValorantMapIdentity.ofID(data.mapId)?.display_name
+                    mapId = data.mapID,
+                    mapName = ValorantMapIdentity.ofID(data.mapID)?.display_name
                         ?: "UNKNOWN_MAP_NAME",
-                    gameModeName = ValorantGameType.fromQueueID(data.queueId)?.displayName
+                    gameModeName = ValorantGameType.fromQueueID(data.queueID)?.displayName
                         ?: run {
                             if (data.provisioningFlow.lowercase() == "CustomGame".lowercase()) {
                                 "Custom Game"

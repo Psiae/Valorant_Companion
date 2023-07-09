@@ -2,7 +2,7 @@ package dev.flammky.valorantcompanion.pvp.pregame
 
 import dev.flammky.valorantcompanion.pvp.error.PVPModuleErrorCodes
 
-class PreGameAsyncRequestResult <T> private constructor(
+class PreGameFetchRequestResult <T> private constructor(
     private val data: T?,
     private val ex: Exception?,
     private val errorCode: Int?
@@ -22,20 +22,20 @@ class PreGameAsyncRequestResult <T> private constructor(
         fun failure(
             exception: Exception,
             errorCode: Int
-        ): PreGameAsyncRequestResult<T> {
-            return PreGameAsyncRequestResult.failure(exception, errorCode)
+        ): PreGameFetchRequestResult<T> {
+            return PreGameFetchRequestResult.failure(exception, errorCode)
         }
 
         fun success(
             data: T
-        ): PreGameAsyncRequestResult<T> {
-            return PreGameAsyncRequestResult.success(data)
+        ): PreGameFetchRequestResult<T> {
+            return PreGameFetchRequestResult.success(data)
         }
     }
 
     companion object {
 
-        internal fun <T> success(data: T) = PreGameAsyncRequestResult<T>(
+        internal fun <T> success(data: T) = PreGameFetchRequestResult<T>(
             data = data,
             ex = null,
             errorCode = null
@@ -44,46 +44,46 @@ class PreGameAsyncRequestResult <T> private constructor(
         internal fun <T> failure(
             ex: Exception,
             errorCode: Int
-        ) = PreGameAsyncRequestResult<T>(
+        ) = PreGameFetchRequestResult<T>(
             data = null,
             ex = ex,
             errorCode = errorCode
         )
 
         internal inline fun <T> build(
-            block: Builder<T>.() -> PreGameAsyncRequestResult<T>
-        ): PreGameAsyncRequestResult<T> {
+            block: Builder<T>.() -> PreGameFetchRequestResult<T>
+        ): PreGameFetchRequestResult<T> {
             return Builder<T>().block()
         }
 
         internal inline fun <T> buildCatching(
-            block: Builder<T>.() -> PreGameAsyncRequestResult<T>
-        ): PreGameAsyncRequestResult<T> {
+            block: Builder<T>.() -> PreGameFetchRequestResult<T>
+        ): PreGameFetchRequestResult<T> {
             return runCatching { build(block) }
                 .getOrElse { ex -> failure(ex as Exception, PVPModuleErrorCodes.UNHANDLED_EXCEPTION) }
         }
     }
 }
 
-inline fun <T> PreGameAsyncRequestResult<T>.onSuccess(
+inline fun <T> PreGameFetchRequestResult<T>.onSuccess(
     block: (data: T) -> Unit
-): PreGameAsyncRequestResult<T> {
+): PreGameFetchRequestResult<T> {
     if (isSuccess) {
         block(getOrNull()!!)
     }
     return this
 }
 
-inline fun <T> PreGameAsyncRequestResult<T>.onFailure(
+inline fun <T> PreGameFetchRequestResult<T>.onFailure(
     block: (exception: Exception, errorCode: Int) -> Unit
-): PreGameAsyncRequestResult<T> {
+): PreGameFetchRequestResult<T> {
     if (!isSuccess) {
         block(getExceptionOrNull()!!, getErrorCodeOrNull()!!)
     }
     return this
 }
 
-inline fun <T> PreGameAsyncRequestResult<T>.getOrElse(
+inline fun <T> PreGameFetchRequestResult<T>.getOrElse(
     block: (exception: Exception, errorCode: Int) -> T
 ): T {
     return if (!isSuccess) {
@@ -93,7 +93,7 @@ inline fun <T> PreGameAsyncRequestResult<T>.getOrElse(
     }
 }
 
-inline fun <T> PreGameAsyncRequestResult<T>.getOrThrow(): T {
+inline fun <T> PreGameFetchRequestResult<T>.getOrThrow(): T {
     return if (!isSuccess) {
         throw getExceptionOrNull()!!
     } else {

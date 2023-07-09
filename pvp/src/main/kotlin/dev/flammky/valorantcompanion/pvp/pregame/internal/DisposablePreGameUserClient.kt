@@ -62,6 +62,32 @@ internal class DisposablePreGameUserClient(
         return def
     }
 
+    override fun fetchCurrentPreGameMatchId(): Deferred<PreGameFetchRequestResult<String>> {
+        val def = CompletableDeferred<PreGameFetchRequestResult<String>>()
+
+        coroutineScope.launch(Dispatchers.IO) {
+            def.complete(
+                PreGameFetchRequestResult.buildCatching {
+                    success(fetchUserCurrentPreGameMatchID().getOrThrow())
+                }
+            )
+        }.apply {
+            invokeOnCompletion { ex ->
+                ex?.let { def.completeExceptionally(ex) }
+                check(def.isCompleted)
+            }
+            def.invokeOnCompletion { ex ->
+                ex?.let { cancel() }
+            }
+        }
+
+        return def
+    }
+
+    override fun createMatchClient(matchID: String): PreGameUserMatchClient {
+        return DisposablePreGameUserMatchClient(auth, geo, httpClient, puuid, matchID)
+    }
+
     override fun hasPreGameMatchDataAsync(): Deferred<Result<Boolean>> {
         val def = CompletableDeferred<Result<Boolean>>()
 
@@ -116,8 +142,8 @@ internal class DisposablePreGameUserClient(
 
     override fun fetchPlayerMMRData(
         subjectPUUID: String
-    ): Deferred<PreGameAsyncRequestResult<PreGamePlayerMMRData>> {
-        val def = CompletableDeferred<PreGameAsyncRequestResult<PreGamePlayerMMRData>>()
+    ): Deferred<PreGameFetchRequestResult<PreGamePlayerMMRData>> {
+        val def = CompletableDeferred<PreGameFetchRequestResult<PreGamePlayerMMRData>>()
 
         val job = coroutineScope.launch(Dispatchers.IO) {
             def.complete(
@@ -139,8 +165,8 @@ internal class DisposablePreGameUserClient(
         return def
     }
 
-    override fun fetchUnlockedAgentsAsync(): Deferred<PreGameAsyncRequestResult<List<ValorantAgentIdentity>>> {
-        val def = CompletableDeferred<PreGameAsyncRequestResult<List<ValorantAgentIdentity>>>()
+    override fun fetchUnlockedAgentsAsync(): Deferred<PreGameFetchRequestResult<List<ValorantAgentIdentity>>> {
+        val def = CompletableDeferred<PreGameFetchRequestResult<List<ValorantAgentIdentity>>>()
 
         val task = coroutineScope.launch(Dispatchers.IO) {
             def.complete(
@@ -169,8 +195,8 @@ internal class DisposablePreGameUserClient(
     override fun lockAgent(
         matchID: String,
         agentID: String
-    ): Deferred<PreGameAsyncRequestResult<PreGameMatchData>> {
-        val def = CompletableDeferred<PreGameAsyncRequestResult<PreGameMatchData>>()
+    ): Deferred<PreGameFetchRequestResult<PreGameMatchData>> {
+        val def = CompletableDeferred<PreGameFetchRequestResult<PreGameMatchData>>()
 
         val task = coroutineScope.launch(Dispatchers.IO) {
             def.complete(
@@ -196,8 +222,8 @@ internal class DisposablePreGameUserClient(
     override fun selectAgent(
         matchID: String,
         agentID: String
-    ): Deferred<PreGameAsyncRequestResult<PreGameMatchData>> {
-        val def = CompletableDeferred<PreGameAsyncRequestResult<PreGameMatchData>>()
+    ): Deferred<PreGameFetchRequestResult<PreGameMatchData>> {
+        val def = CompletableDeferred<PreGameFetchRequestResult<PreGameMatchData>>()
 
         val task = coroutineScope.launch(Dispatchers.IO) {
             def.complete(
@@ -220,8 +246,8 @@ internal class DisposablePreGameUserClient(
         return def
     }
 
-    private suspend fun fetchUserUnlockedAgents(): PreGameAsyncRequestResult<List<ValorantAgentIdentity>> {
-        return PreGameAsyncRequestResult.buildCatching {
+    private suspend fun fetchUserUnlockedAgents(): PreGameFetchRequestResult<List<ValorantAgentIdentity>> {
+        return PreGameFetchRequestResult.buildCatching {
 
             val access_token = auth.get_authorization(puuid).getOrElse {
                 throw IllegalStateException("Unable to retrieve access token", it)
@@ -267,8 +293,8 @@ internal class DisposablePreGameUserClient(
     private suspend fun postUserSelectAgent(
         matchID: String,
         agentID: String
-    ): PreGameAsyncRequestResult<PreGameMatchData> {
-        return PreGameAsyncRequestResult.buildCatching {
+    ): PreGameFetchRequestResult<PreGameMatchData> {
+        return PreGameFetchRequestResult.buildCatching {
             val access_token = auth.get_authorization(puuid).getOrElse {
                 throw IllegalStateException("Unable to retrieve access token", it)
             }.access_token
@@ -321,8 +347,8 @@ internal class DisposablePreGameUserClient(
     private suspend fun postUserLockAgent(
         matchID: String,
         agentID: String
-    ): PreGameAsyncRequestResult<PreGameMatchData> {
-        return PreGameAsyncRequestResult.buildCatching {
+    ): PreGameFetchRequestResult<PreGameMatchData> {
+        return PreGameFetchRequestResult.buildCatching {
             val access_token = auth.get_authorization(puuid).getOrElse {
                 throw IllegalStateException("Unable to retrieve access token", it)
             }.access_token
@@ -631,9 +657,9 @@ internal class DisposablePreGameUserClient(
 
     private suspend fun fetchPlayerMMRDataFromPublicMMREndpoint(
         subject: String
-    ): PreGameAsyncRequestResult<PreGamePlayerMMRData> {
+    ): PreGameFetchRequestResult<PreGamePlayerMMRData> {
         val handle = this.puuid
-        return PreGameAsyncRequestResult.buildCatching {
+        return PreGameFetchRequestResult.buildCatching {
             val access_token = auth.get_authorization(handle).getOrElse { ex ->
                 return failure(
                     IllegalStateException("Unable to retrieve access token", ex),
@@ -824,7 +850,7 @@ internal class DisposablePreGameUserClient(
                         ISO8601.fromISOString(str)
                     }
             },
-            mapId = run {
+            mapID = run {
                 val propName = "MapID"
                 element
                     .expectJsonProperty(propName)
@@ -868,7 +894,7 @@ internal class DisposablePreGameUserClient(
                         expectNonBlankJsonString(propName, it)
                     }
             },
-            queueId = run {
+            queueID = run {
                 val propName = "QueueID"
                 element
                     .expectJsonProperty(propName)

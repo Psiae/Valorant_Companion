@@ -38,15 +38,16 @@ fun LiveMain() {
             )
         },
         matchDetail = {
+            // TODO: define LocalNavigationBarInsets
             if (showPreGameScreen.value) {
                 LivePreGame(
-                    modifier = Modifier,
-                    isVisible = showPreGameScreen.value,
-                    state = rememberLivePreGamePresenter().present(),
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
+                        .padding(bottom = 80.dp),
                     dismiss = { showPreGameScreen.value = false }
                 )
             } else if (showInGameScreen.value) {
-                // TODO: define LocalNavigationBarInsets
                 LiveInGame(
                     modifier = Modifier
                         .statusBarsPadding()

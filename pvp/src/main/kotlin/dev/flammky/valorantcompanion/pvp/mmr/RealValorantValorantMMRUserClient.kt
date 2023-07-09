@@ -50,21 +50,8 @@ internal class RealValorantValorantMMRUserClient(
         return def
     }
 
-    override fun fetchSeasonalMMRAsync(
-        season: String,
-        subject: String,
-        activeMatch: String
-    ): Deferred<PVPAsyncRequestResult<FetchSeasonalMMRResult>> {
-        val def = CompletableDeferred<PVPAsyncRequestResult<FetchSeasonalMMRResult>>()
-
-        coroutineScope.launch(Dispatchers.IO) {
-            def.complete(fetchSeasonalMMRFromPublicEndpoint(subject, activeMatch))
-        }.apply {
-            invokeOnCompletion { ex -> if (ex is Throwable) def.completeExceptionally(ex) }
-            def.invokeOnCompletion { ex -> if (ex is Throwable) cancel(ex.message ?: "", ex) }
-        }
-
-        return def
+    override fun createMatchClient(matchID: String): ValorantMMRUserMatchClient {
+        TODO("Not yet implemented")
     }
 
     private suspend fun fetchSeasonalMMRFromPublicEndpoint(

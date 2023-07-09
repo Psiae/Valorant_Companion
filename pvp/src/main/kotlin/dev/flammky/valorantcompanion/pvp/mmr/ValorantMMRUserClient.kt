@@ -11,13 +11,7 @@ interface ValorantMMRUserClient {
         subject: String
     ): Deferred<PVPAsyncRequestResult<FetchSeasonalMMRResult>>
 
-    // cached version, should only be called when subject is a part of an active match,
-    // this way we can avoid rate-limit more efficiently
-    fun fetchSeasonalMMRAsync(
-        season: String,
-        subject: String,
-        activeMatch: String
-    ): Deferred<PVPAsyncRequestResult<FetchSeasonalMMRResult>>
+    fun createMatchClient(matchID: String): ValorantMMRUserMatchClient
 
     fun dispose()
 }

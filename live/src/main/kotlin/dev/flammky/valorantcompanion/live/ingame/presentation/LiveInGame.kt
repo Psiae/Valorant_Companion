@@ -30,8 +30,8 @@ private fun LiveInGamePlacement(
     background: @Composable (Modifier) -> Unit,
     content: @Composable (Modifier) -> Unit
 ) {
-    Box(modifier) {
-        background(Modifier.fillMaxSize().pointerInput(Unit) {})
-        content(Modifier.fillMaxSize())
+    Box(modifier.fillMaxSize().pointerInput(Unit) {}) {
+        background(Modifier)
+        content(Modifier)
     }
 }

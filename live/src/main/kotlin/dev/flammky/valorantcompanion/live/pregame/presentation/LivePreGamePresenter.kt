@@ -15,7 +15,6 @@ import dev.flammky.valorantcompanion.pvp.pregame.*
 import dev.flammky.valorantcompanion.pvp.pregame.ex.PreGameMatchNotFoundException
 import dev.flammky.valorantcompanion.pvp.pregame.PreGamePlayerState as DomainPreGamePlayerState
 import kotlinx.collections.immutable.persistentListOf
-import dev.flammky.valorantcompanion.pvp.TeamID as DomainTeamID
 import dev.flammky.valorantcompanion.pvp.pregame.PreGameTeam as DomainPreGameTeam
 import kotlinx.coroutines.*
 import kotlin.time.Duration
@@ -196,9 +195,9 @@ class LivePreGamePresenter(
             state.copy(
                 inPreGame = true,
                 matchID = data.match_id,
-                mapName = ValorantMapIdentity.ofID(data.mapId)?.display_name ?: "UNKNOWN_MAP_NAME",
-                mapId = data.mapId,
-                gameModeName = ValorantGameType.fromQueueID(data.queueId)?.displayName
+                mapName = ValorantMapIdentity.ofID(data.mapID)?.display_name ?: "UNKNOWN_MAP_NAME",
+                mapId = data.mapID,
+                gameModeName = ValorantGameType.fromQueueID(data.queueID)?.displayName
                     ?: run {
                         if (data.provisioningFlow.lowercase() == "CustomGame".lowercase()) {
                             "Custom Game"
@@ -237,10 +236,7 @@ class LivePreGamePresenter(
             domain: DomainPreGameTeam
         ): PreGameTeam {
             return PreGameTeam(
-                teamID = when (domain.teamID) {
-                    DomainTeamID.RED -> TeamID.RED
-                    DomainTeamID.BLUE -> TeamID.BLUE
-                },
+                teamID = domain.teamID,
                 players = domain.players.mapTo(
                     destination = persistentListOf<PreGamePlayer>().builder(),
                     transform = { player ->

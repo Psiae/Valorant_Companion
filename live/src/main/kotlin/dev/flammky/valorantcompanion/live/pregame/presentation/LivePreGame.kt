@@ -1,6 +1,5 @@
 package dev.flammky.valorantcompanion.live.pregame.presentation
 
-import android.app.AlarmManager
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -128,6 +127,37 @@ fun LivePreGame(
             )
         }
     )
+}
+
+@Composable
+fun LivePreGame(
+    modifier: Modifier,
+    dismiss: () -> Unit
+) {
+    BackHandler(onBack = dismiss)
+    val state = rememberLivePreGameScreenPresenter().present()
+    LivePreGamePlacement(
+        modifier,
+        background = { backgroundModifier ->
+            LivePreGameBackground(modifier = backgroundModifier)
+        },
+        content = { contentModifier ->
+            LivePreGameContent(modifier = contentModifier, state = state)
+        }
+    )
+}
+
+@Composable
+fun LivePreGamePlacement(
+    modifier: Modifier,
+    background: @Composable (Modifier) -> Unit,
+    content: @Composable (Modifier) -> Unit
+) = Box(
+    modifier
+        .fillMaxSize()
+        .pointerInput(Unit) {}) {
+    background(Modifier)
+    content(Modifier)
 }
 
 @Composable

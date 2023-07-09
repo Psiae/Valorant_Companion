@@ -1,51 +1,56 @@
 package dev.flammky.valorantcompanion.base
 
-inline fun loop(
-    block: LoopBuilder.() -> Unit
-) {
-    (LoopBuilder() as RealLoopBuilder).invoke(block)
+// TODO: should we constraint that the [block] must return [Nothing] ?
+@Suppress("FunctionName")
+inline fun Loop(
+    block: LoopScope.() -> Unit
+): Unit = (LoopScope() as RealLoop).loop(block)
+
+// block must return nothing, that includes call to `breakLoop` or `continueLoop`
+@Suppress("FunctionName")
+inline fun StrictLoop(
+    block: LoopScope.() -> Nothing
+): Unit = Loop(block)
+
+fun LoopScope(): LoopScope = RealLoop()
+
+interface LoopScope {
+
+    fun LOOP_BREAK(): Nothing
+
+    fun LOOP_CONTINUE(): Nothing
 }
 
-fun LoopBuilder(): LoopBuilder = RealLoopBuilder()
+// public so we can inline the block
+class RealLoop internal constructor(): LoopScope {
 
-interface LoopBuilder {
-
-    fun breakLoop(): Nothing
-
-    fun continueLoop(): Nothing
-}
-
-class RealLoopBuilder internal constructor(): LoopBuilder {
-
-    var breakInvoked = false
-        private set
-
-    var continueInvoked = false
-        private set
-
-    inline fun invoke(block: LoopBuilder.() -> Unit) {
+    inline fun loop(block: LoopScope.() -> Unit): Unit {
         while (true) {
             try {
                 block()
             } catch (ex: Exception) {
-                if (ex !is BreakLoopException && ex !is ContinueLoopException) throw ex
+                if (shouldBreak(ex)) break
+                if (shouldContinue(ex)) continue
+                throw ex
             }
-            if (breakInvoked) break
-            if (continueInvoked) continue
         }
     }
 
-    override fun breakLoop(): Nothing {
-        breakInvoked = true
+    override fun LOOP_BREAK(): Nothing {
         throw BreakLoopException()
     }
 
-    override fun continueLoop(): Nothing {
-        continueInvoked = true
+    override fun LOOP_CONTINUE(): Nothing {
         throw ContinueLoopException()
     }
 
-}
-class BreakLoopException() : Exception()
+    fun shouldBreak(exception: Exception) = exception is BreakLoopException
 
-class ContinueLoopException() : Exception()
+    fun shouldContinue(exception: Exception) = exception is ContinueLoopException
+}
+
+// private ?
+
+internal class BreakLoopException : Exception()
+
+internal class ContinueLoopException : Exception()

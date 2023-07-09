@@ -9,25 +9,29 @@ interface PreGameUserClient {
 
     fun hasPreGameMatchDataAsync(): Deferred<Result<Boolean>>
 
+    fun fetchCurrentPreGameMatchId(): Deferred<PreGameFetchRequestResult<String>>
+
+    fun createMatchClient(matchID: String): PreGameUserMatchClient
+
     fun fetchPingMillis(): Deferred<Result<Map<String, Int>>>
 
     fun fetchPlayerMMRData(
         subjectPUUID: String
-    ): Deferred<PreGameAsyncRequestResult<PreGamePlayerMMRData>>
+    ): Deferred<PreGameFetchRequestResult<PreGamePlayerMMRData>>
 
     fun fetchUnlockedAgentsAsync(
 
-    ): Deferred<PreGameAsyncRequestResult<List<ValorantAgentIdentity>>>
+    ): Deferred<PreGameFetchRequestResult<List<ValorantAgentIdentity>>>
 
     fun dispose()
 
     fun lockAgent(
         matchID: String,
         agentID: String
-    ): Deferred<PreGameAsyncRequestResult<PreGameMatchData>>
+    ): Deferred<PreGameFetchRequestResult<PreGameMatchData>>
 
     fun selectAgent(
         matchID: String,
         agentID: String
-    ): Deferred<PreGameAsyncRequestResult<PreGameMatchData>>
+    ): Deferred<PreGameFetchRequestResult<PreGameMatchData>>
 }

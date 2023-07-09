@@ -1,28 +1,73 @@
 package dev.flammky.valorantcompanion.live.pregame.presentation
 
+import android.os.SystemClock
 import androidx.compose.runtime.*
-import dev.flammky.valorantcompanion.assets.ValorantAssetsService
-import dev.flammky.valorantcompanion.base.di.koin.getFromKoin
 import dev.flammky.valorantcompanion.assets.LocalImage
+import dev.flammky.valorantcompanion.assets.ValorantAssetsService
+import dev.flammky.valorantcompanion.base.di.compose.inject
+import dev.flammky.valorantcompanion.base.resultingLoop
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentRole
+import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
+import dev.flammky.valorantcompanion.pvp.mmr.onSuccess
+import dev.flammky.valorantcompanion.pvp.onSuccess
+import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
 import dev.flammky.valorantcompanion.pvp.player.PlayerPVPName
+import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
+import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
+import kotlinx.coroutines.*
 import dev.flammky.valorantcompanion.assets.R as ASSET_R
 
 @Composable
 fun rememberAgentSelectionPlayerCardPresenter(
-    assetLoaderService: ValorantAssetsService = getFromKoin()
+    assetLoaderService: ValorantAssetsService = inject(),
+    nameService: ValorantNameService = inject(),
+    mmrService: ValorantMMRService = inject()
 ): AgentSelectionPlayerCardPresenter {
-    return remember() {
-        AgentSelectionPlayerCardPresenter(assetLoaderService)
+    return remember(assetLoaderService, nameService) {
+        AgentSelectionPlayerCardPresenter(assetLoaderService, nameService, mmrService)
     }
 }
 
 class AgentSelectionPlayerCardPresenter(
-    val assetLoaderService: ValorantAssetsService
+    private val assetLoaderService: ValorantAssetsService,
+    private val nameService: ValorantNameService,
+    private val mmrService: ValorantMMRService
 ) {
 
+    // TODO: error broadcaster, this way we can request refresh from the user
+    @Composable
+    fun present(
+        user: String,
+        player: PreGamePlayer,
+        matchID: String,
+    ): AgentSelectionPlayerCardState {
+        val name = lookupName(user, player.puuid)
+        val rank = lookupRank(user, player.puuid, matchID)
+        val agentIdentity = remember(player.characterID) { ValorantAgentIdentity.ofID(player.characterID) }
+        val keyToAgentIcon = agentIconWithKey(agentID = player.characterID)
+        val keyToRoleIcon = roleIconWithKey(roleID = agentIdentity?.role?.uuid ?: "")
+        val keyToTierIcon = rankIconWithKey(rank = rank?.getOrNull())
+        return AgentSelectionPlayerCardState(
+            playerGameName = name?.getOrNull()?.gameName ?: "",
+            playerGameNameTag = name?.getOrNull()?.tagLine ?: "",
+            hasSelectedAgent = player.characterSelectionState.isSelectedOrLocked,
+            selectedAgentName = agentIdentity?.displayName ?: "",
+            selectedAgentIcon = keyToAgentIcon.second,
+            selectedAgentIconKey = keyToAgentIcon.first,
+            selectedAgentRoleName = agentIdentity?.role?.displayName ?: "",
+            selectedAgentRoleIcon = keyToRoleIcon.second,
+            selectedAgentRoleIconKey = keyToRoleIcon.first,
+            isLockedIn = player.characterSelectionState.isLocked,
+            tierName = rank?.getOrNull()?.displayname ?: "",
+            tierIcon = keyToTierIcon.second,
+            tierIconKey = keyToTierIcon.first,
+            isUser = user.isNotBlank() && user == player.puuid
+        )
+    }
+
+    // TODO: rewrite
     @Composable
     fun present(
         isUser: Boolean,
@@ -128,6 +173,158 @@ class AgentSelectionPlayerCardPresenter(
             isUser = isUser,
             errorMessage = null
         )
+    }
+
+    @Composable
+    private fun lookupName(
+        user: String,
+        subject: String
+    ): Result<PlayerPVPName>? {
+        val returns = remember(user, subject) {
+            mutableStateOf<Result<PlayerPVPName>?>(null)
+        }
+
+        DisposableEffect(
+            user, subject, returns,
+            effect = {
+                val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+                scope.launch {
+                    var stamp = -1L
+                    returns.value = resultingLoop {
+                        if (stamp != -1L) {
+                            delay(1000 - (stamp - SystemClock.elapsedRealtime()))
+                        }
+                        stamp = SystemClock.elapsedRealtime()
+                        val def = nameService
+                            .getPlayerNameAsync(
+                                GetPlayerNameRequest(
+                                    shard = null,
+                                    signedInUserPUUID = user,
+                                    lookupPUUIDs = listOf(subject)
+                                )
+                            )
+                        runCatching { def.await() }
+                            .onFailure { _ ->
+                                def.cancel()
+                            }
+                            .onSuccess { requestResults ->
+                                LOOP_BREAK(requestResults[subject]
+                                    ?: error("NameService didn't return requested subject"))
+                            }
+                    }
+                }
+
+                onDispose { scope.cancel() }
+            }
+        )
+
+        return returns.value
+    }
+
+    @Composable
+    private fun lookupRank(
+        user: String,
+        subject: String,
+        matchID: String
+    ): Result<CompetitiveRank>? {
+        val returns = remember(user, subject, matchID) {
+            mutableStateOf<Result<CompetitiveRank>?>(null)
+        }
+        DisposableEffect(
+            user, subject, matchID,
+            effect = {
+                val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+                val client = mmrService
+                    .createUserClient(user)
+                coroutineScope.launch {
+                    var stamp = -1L
+                    returns.value = resultingLoop {
+                        if (stamp != -1L) {
+                            delay(1000 - (stamp - SystemClock.elapsedRealtime()))
+                        }
+                        stamp = SystemClock.elapsedRealtime()
+                        val def = client.fetchSeasonalMMRAsync(ValorantSeasons.ACTIVE_STAGED.act.id, subject)
+                        runCatching { def.await() }
+                            .onFailure { def.cancel() }
+                            .onSuccess { pvpResult ->
+                                pvpResult.onSuccess { mmrResult ->
+                                    mmrResult.onSuccess { mmrData ->
+                                        LOOP_BREAK(Result.success(mmrData.competitiveRank))
+                                    }
+                                }
+                            }
+                    }
+                }
+
+                onDispose { coroutineScope.cancel() ; client.dispose() }
+            }
+        )
+
+        return returns.value
+    }
+
+    @Composable
+    private fun agentIconWithKey(
+        agentID: String
+    ): Pair<Any, LocalImage<*>> {
+        val key = remember(agentID) { mutableStateOf(Any()) }
+        val image = remember(agentID) { mutableStateOf<LocalImage<*>>(LocalImage.Resource(0)) }
+        DisposableEffect(
+            key1 = agentID,
+            effect = {
+                if (agentID.isBlank()) return@DisposableEffect onDispose {  }
+                val client = assetLoaderService.createLoaderClient()
+                client.loadMemoryCachedAgentIcon(agentID)?.let {
+                    key.value = it
+                    image.value = it
+                }
+                onDispose { client.dispose() }
+            }
+        )
+        return remember(key.value) { key.value to image.value }
+    }
+
+    @Composable
+    private fun roleIconWithKey(
+        roleID: String
+    ): Pair<Any, LocalImage<*>> {
+        val key = remember(roleID) { mutableStateOf(Any()) }
+        val image = remember(roleID) { mutableStateOf<LocalImage<*>>(LocalImage.Resource(0)) }
+        DisposableEffect(
+            key1 = roleID,
+            effect = {
+                if (roleID.isBlank()) return@DisposableEffect onDispose {  }
+                val client = assetLoaderService.createLoaderClient()
+                client.loadMemoryCachedRoleIcon(roleID)?.let {
+                    key.value = it
+                    image.value = it
+                }
+                onDispose { client.dispose() }
+            }
+        )
+        return remember(key.value) { key.value to image.value }
+    }
+
+    @Composable
+    private fun rankIconWithKey(
+        rank: CompetitiveRank?
+    ): Pair<Any, LocalImage<*>> {
+        val key = remember(rank) { mutableStateOf(Any()) }
+        val image = remember(rank) { mutableStateOf<LocalImage<*>>(LocalImage.Resource(0)) }
+        DisposableEffect(
+            key1 = rank,
+            effect = {
+                if (rank == null) return@DisposableEffect onDispose {  }
+                val client = assetLoaderService.createLoaderClient()
+                client.loadMemoryCachedCompetitiveRankIcon(rank)?.let {
+                    key.value = it
+                    image.value = it
+                }
+                onDispose { client.dispose() }
+            }
+        )
+        return remember(key.value) { key.value to image.value }
     }
 }
 

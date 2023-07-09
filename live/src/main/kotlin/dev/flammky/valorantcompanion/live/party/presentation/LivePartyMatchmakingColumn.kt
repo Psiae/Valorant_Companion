@@ -20,6 +20,7 @@ import dev.flammky.valorantcompanion.base.theme.material3.LocalIsThemeDark
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundContentColorAsState
 import dev.flammky.valorantcompanion.base.R
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlin.time.Duration
 
@@ -267,7 +268,7 @@ fun EnterMatchmakingButton(
     enterMatchmaking: () -> Unit
 ) {
     val allPartyMembersReady =
-        if (members is AbstractList<*>) {
+        if (members is ImmutableList<*>) {
             remember(members) {
                 members.isNotEmpty() && members.all { it.isReady }
             }

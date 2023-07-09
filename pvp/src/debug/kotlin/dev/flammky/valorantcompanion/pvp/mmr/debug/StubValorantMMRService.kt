@@ -2,10 +2,7 @@ package dev.flammky.valorantcompanion.pvp.mmr.debug
 
 import dev.flammky.valorantcompanion.pvp.PVPAsyncRequestResult
 import dev.flammky.valorantcompanion.pvp.ex.SeasonalMMRDataNotFoundException
-import dev.flammky.valorantcompanion.pvp.mmr.FetchSeasonalMMRResult
-import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRUserClient
-import dev.flammky.valorantcompanion.pvp.mmr.SeasonalMMRData
-import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
+import dev.flammky.valorantcompanion.pvp.mmr.*
 import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import dev.flammky.valorantcompanion.pvp.tier.ValorantCompetitiveRankResolver
@@ -47,14 +44,9 @@ class StubValorantMMRService(
             return def
         }
 
-        override fun fetchSeasonalMMRAsync(
-            season: String,
-            subject: String,
-            activeMatch: String
-        ): Deferred<PVPAsyncRequestResult<FetchSeasonalMMRResult>> = fetchSeasonalMMRAsync(
-            season,
-            subject
-        )
+        override fun createMatchClient(matchID: String): ValorantMMRUserMatchClient {
+            TODO("Not yet implemented")
+        }
 
         override fun dispose() {
             coroutineScope.cancel()

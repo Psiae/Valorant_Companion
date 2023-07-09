@@ -39,3 +39,7 @@ enum class CharacterSelectionState {
     SELECTED,
     LOCKED
 }
+
+val CharacterSelectionState.isLocked get() = this == CharacterSelectionState.LOCKED
+val CharacterSelectionState.isSelected get() = this == CharacterSelectionState.SELECTED
+val CharacterSelectionState.isSelectedOrLocked get() = isSelected || isLocked

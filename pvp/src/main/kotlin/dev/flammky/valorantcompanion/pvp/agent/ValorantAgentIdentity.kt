@@ -1,8 +1,6 @@
 package dev.flammky.valorantcompanion.pvp.agent
 
 import dev.flammky.valorantcompanion.pvp.util.mapSealedObjectInstancesToPersistentList
-import kotlinx.collections.immutable.persistentListOf
-import kotlin.reflect.KClass
 
 sealed class ValorantAgentIdentity(
     val uuid: String,
@@ -299,8 +297,19 @@ sealed class ValorantAgentIdentity(
             ValorantAgent.YORU -> YORU
         }
 
+        // there's a chance that letters is all uppercase
         fun ofID(id: String): ValorantAgentIdentity? {
-            return SubclassesInstance.find { it.uuid == id }
+            if (id.isBlank()) return null
+            var containsChar = false
+            var allLetterUppercase = true
+            id.forEach { char ->
+                if (char.isLetter()) {
+                    containsChar = true
+                    if (char.isLowerCase()) allLetterUppercase = false
+                }
+            }
+            val comparable = if (containsChar && allLetterUppercase) id.lowercase() else id
+            return SubclassesInstance.find { it.uuid == comparable }
         }
 
         fun iter(): Iterator<ValorantAgentIdentity> = SubclassesInstance.iterator()

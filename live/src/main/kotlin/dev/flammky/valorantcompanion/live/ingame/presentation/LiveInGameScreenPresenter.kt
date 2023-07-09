@@ -6,11 +6,11 @@ import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
+import dev.flammky.valorantcompanion.base.*
 import dev.flammky.valorantcompanion.base.compose.BaseRememberObserver
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotWrite
 import dev.flammky.valorantcompanion.base.di.compose.inject
-import dev.flammky.valorantcompanion.base.inMainLooper
 import dev.flammky.valorantcompanion.pvp.ingame.*
 import dev.flammky.valorantcompanion.pvp.ingame.ex.InGameMatchNotFoundException
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
@@ -117,24 +117,37 @@ internal class LiveInGameScreenPresenter(
         @SnapshotWrite
         @MainThread
         fun produce() {
-            check(inMainLooper())
+            check(inMainLooper()) {
+                "produce must be called on the MainThread, " +
+                        "make sure this function is called within a side-effect block"
+            }
             check(remembered) {
                 "StateProducer must be remembered before calling produce, " +
                         "expected for compose runtime to invoke remember observer before side-effects"
             }
+            check(!forgotten) {
+                "StateProducer must not be forgotten before calling produce" +
+                        "expected for compose runtime to not invoke side-effects when forgotten"
+            }
             if (producing) return
             producing = true
             inInitialRefreshSession = true
-            producer = coroutineScope.launch {
-                onInitialProduce()
-                produceState()
-            }
+            producer = coroutineScope.launch { produceState() }
         }
 
         private suspend fun produceState() {
-            while (true) {
+            onInitialProduce()
+            StrictLoop {
                 val match = pollCurrentMatchForClient()
-                onNewMatchFound(match)
+                runCatching { onNewMatchFound(match) }
+                    .onFailure { ex ->
+                        match.dispose()
+                        throw ex
+                    }
+                    .onSuccess {
+                        match.dispose()
+                    }
+                LOOP_CONTINUE()
             }
         }
 
@@ -181,14 +194,17 @@ internal class LiveInGameScreenPresenter(
                     explicitLoadingMessage = "FINDING MATCH ...",
                 )
             }
-            while (true) {
+            val client = strictResultingLoop {
                 if (currentMatchPollTS != -1L) {
                     delay(500 - (SystemClock.elapsedRealtime() - currentMatchPollTS))
                 }
                 currentMatchPollTS = SystemClock.elapsedRealtime()
                 val result = inGameClient.fetchUserCurrentMatchIDAsync().await()
-                onPollCurrentMatchForClientResult(result)?.let { client -> return client }
+                onPollCurrentMatchForClientResult(result)
+                    ?.let { client -> LOOP_BREAK(client) }
+                    ?: LOOP_CONTINUE()
             }
+            return client
         }
 
         private suspend fun onPollCurrentMatchForClientResult(
@@ -213,7 +229,7 @@ internal class LiveInGameScreenPresenter(
             var mnf = false
             var matchOver = false
             var explicitLoading = true
-            while (true) {
+            StrictLoop {
                 mutateState("onNewMatchFound") { state ->
                     state.copy(
                         inMatch = true,
@@ -223,13 +239,14 @@ internal class LiveInGameScreenPresenter(
                         explicitLoading = explicitLoading,
                         explicitLoadingMessage = run {
                             if (explicitLoading) {
-                                if (initialLoop) "MATCH FOUND, LOADING DATA ..."
+                                if (initialLoop) "MATCH FOUND, CHECKING DATA ..."
                                 else "LOADING DATA ..."
                             }
                             else state.explicitLoadingMessage
                         }
                     )
                 }
+                initialLoop = false
                 if (currentMatchDataPollTS != -1L) {
                     delay(1000 - (SystemClock.elapsedRealtime() - currentMatchDataPollTS))
                 }
@@ -246,8 +263,7 @@ internal class LiveInGameScreenPresenter(
                         mnf = exception is InGameMatchNotFoundException
                         explicitLoading = true
                     }
-                if (mnf || matchOver) break
-                initialLoop = false
+                if (mnf || matchOver) LOOP_BREAK() else LOOP_CONTINUE()
             }
         }
 
@@ -398,9 +414,6 @@ internal class LiveInGameScreenPresenter(
             exception: Exception,
             errorCode: Int,
         ) {
-            check(this.pendingError?.isActive != true) {
-                "duplicate pendingError"
-            }
             if (exception is InGameMatchNotFoundException) {
                 mutateState("fetchCurrentMatchFail_matchNotFound") { state ->
                     state.copy(
