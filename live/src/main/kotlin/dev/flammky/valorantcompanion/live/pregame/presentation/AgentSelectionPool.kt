@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import dev.flammky.valorantcompanion.assets.R
-import dev.flammky.valorantcompanion.base.runRemember
+import dev.flammky.valorantcompanion.base.rememberThis
 import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgent
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
@@ -81,7 +81,7 @@ private fun SelectableAgentIcon(
 ) {
     val hash = remember {
         mutableStateOf(0)
-    }.runRemember(dataKey) {
+    }.rememberThis(dataKey) {
         value++
     }
     val ctx = LocalContext.current
@@ -94,7 +94,7 @@ private fun SelectableAgentIcon(
     ) {
         Box(
             modifier = modifier
-                .runRemember(enabled) {
+                .rememberThis(enabled) {
                     if (enabled) {
                         clickable(
                             enabled = true,

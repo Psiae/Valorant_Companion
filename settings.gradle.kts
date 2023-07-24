@@ -47,6 +47,16 @@ dependencyResolutionManagement {
                 "ui"
             ).version(compose_ui_version)
             library(
+                "androidx.compose.ui.ui-tooling-preview",
+                "androidx.compose.ui",
+                "ui-tooling-preview"
+            ).version(compose_ui_version)
+            library(
+                "androidx.compose.ui.ui-util",
+                "androidx.compose.ui",
+                "ui-util"
+            ).version(compose_ui_version)
+            library(
                 "androidx.compose.foundation-foundation",
                 "androidx.compose.foundation",
                 "foundation"
@@ -55,11 +65,6 @@ dependencyResolutionManagement {
                 "androidx.compose.foundation-foundation-layout",
                 "androidx.compose.foundation",
                 "foundation-layout"
-            ).version(compose_ui_version)
-            library(
-                "androidx.compose.ui.ui-tooling-preview",
-                "androidx.compose.ui",
-                "ui-tooling-preview"
             ).version(compose_ui_version)
             library(
                 "androidx.compose.material.material",
@@ -124,6 +129,11 @@ dependencyResolutionManagement {
                 "io.coil-kt",
                 "coil-compose"
             ).version("2.3.0")
+            library(
+                "io.coil.kt.coil-svg",
+                "io.coil-kt",
+                "coil-svg"
+            ).version("2.3.0")
 
             library(
                 "org.jetbrains.kotlinx.kotlinx-collections-immutable",
@@ -159,3 +169,4 @@ include(":career")
 include(":live")
 include(":assets")
 include(":pvp")
+include(":store")

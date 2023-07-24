@@ -17,6 +17,7 @@
             <option value="$PROJECT_DIR$/career" />
             <option value="$PROJECT_DIR$/live" />
             <option value="$PROJECT_DIR$/pvp" />
+            <option value="$PROJECT_DIR$/store" />
           </set>
         </option>
       </GradleProjectSettings>

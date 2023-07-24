@@ -76,8 +76,11 @@ internal class DisposablePlayerLoadoutClientImpl(
         }.getOrElse {
             return Result.failure(it)
         }
-        val obj = response.body.jsonObjectOrNull
-            ?: return Result.failure(expectedJsonObject(response.body))
+        val obj = response.body.getOrElse {
+            return Result.failure(UnexpectedResponseException("Body is not a JSON"))
+        }.let { body ->
+            body.jsonObjectOrNull ?: return Result.failure(expectedJsonObject(body))
+        }
 
         val response_puuid = obj["Subject"]
             ?.let { element ->

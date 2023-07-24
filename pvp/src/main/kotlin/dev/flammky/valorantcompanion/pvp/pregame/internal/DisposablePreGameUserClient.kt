@@ -117,7 +117,7 @@ internal class DisposablePreGameUserClient(
         return def
     }
 
-    override fun fetchPingMillis(): Deferred<Result<Map<String, Int>>> {
+    override fun fetchPingMillisAsync(): Deferred<Result<Map<String, Int>>> {
         val def = CompletableDeferred<Result<Map<String, Int>>>()
 
         val job = coroutineScope.launch(Dispatchers.IO) {
@@ -281,9 +281,13 @@ internal class DisposablePreGameUserClient(
 
             // TODO: other status code
             when(response.statusCode) {
-                200 -> return@buildCatching success(
-                    userUnlockedAgents(parseStoreOwnedAgentsResponse(response.body))
-                )
+                200 -> runCatching {
+                    success(userUnlockedAgents(parseStoreOwnedAgentsResponse(response.body.getOrThrow())))
+                }.onSuccess { result ->
+                    return@buildCatching result
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
+                }
             }
 
             unexpectedResponseError("unable to GET user unlocked agents (${response.statusCode})")
@@ -325,18 +329,30 @@ internal class DisposablePreGameUserClient(
             }
 
             when (response.statusCode) {
-                200 -> return@buildCatching success(
-                    mapPreGameMatchDataResponseToModel(matchID, response.body)
-                )
-                404 -> {
-                    val errorCode = response.body
+                200 -> runCatching {
+                    success(mapPreGameMatchDataResponseToModel(matchID, response.body.getOrThrow()))
+                }.onSuccess { result ->
+                    return@buildCatching result
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
+                }
+                404 -> runCatching {
+                    val errorCode = response.body.getOrThrow()
                         .expectJsonObject("PlayerPreGameData response")
                         .expectJsonProperty("errorCode")
                         .expectJsonPrimitive("errorCode")
                         .expectNotJsonNull("errorCode")
                         .content
                         .also { expectNonBlankJsonString("errorCode", it) }
-                    if (errorCode == "PREGAME_MNF") throw PreGameMatchNotFoundException()
+                    if (errorCode == "PREGAME_MNF") return@runCatching failure(
+                        PreGameMatchNotFoundException(),
+                        PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE
+                    )
+                    error("UNHANDLED ERROR CODE")
+                }.onSuccess { result ->
+                    return@buildCatching result
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
                 }
             }
 
@@ -379,18 +395,32 @@ internal class DisposablePreGameUserClient(
             }
 
             when (response.statusCode) {
-                200 -> return@buildCatching success(
-                    mapPreGameMatchDataResponseToModel(matchID, response.body)
-                )
-                404 -> {
-                    val errorCode = response.body
+                200 -> runCatching {
+                    success(mapPreGameMatchDataResponseToModel(matchID, response.body.getOrThrow()))
+                }.onSuccess { result ->
+                    return@buildCatching result
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
+                }
+                404 -> runCatching {
+                    val errorCode = response.body.getOrThrow()
                         .expectJsonObject("PlayerPreGameData response")
                         .expectJsonProperty("errorCode")
                         .expectJsonPrimitive("errorCode")
                         .expectNotJsonNull("errorCode")
                         .content
                         .also { expectNonBlankJsonString("errorCode", it) }
-                    if (errorCode == "PREGAME_MNF") throw PreGameMatchNotFoundException()
+                    if (errorCode == "PREGAME_MNF") {
+                        return@runCatching failure(
+                            PreGameMatchNotFoundException(),
+                            PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE
+                        )
+                    }
+                    error("UNHANDLED ERROR CODE ($errorCode)")
+                }.onSuccess { result ->
+                    return@buildCatching result
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
                 }
             }
 
@@ -425,26 +455,30 @@ internal class DisposablePreGameUserClient(
             )
 
             when (response.statusCode) {
-                200 -> return@runCatching mapPreGameMatchDataResponseToModel(
-                    expectedMatchID = currentPreGameID,
-                    body = response.body
-                )
+                200 -> runCatching {
+                    mapPreGameMatchDataResponseToModel(
+                        expectedMatchID = currentPreGameID,
+                        body = response.body.getOrThrow()
+                    )
+                }.onSuccess { result ->
+                    return@runCatching result
+                }.onFailure { ex ->
+                    throw ex
+                }
                 400 -> /* TODO: retry */ Unit
-                404 -> {
-                    if (
-                        response.body
-                            .expectJsonObject("PlayerPreGameData response")
-                            .expectJsonProperty("errorCode")
-                            .expectJsonPrimitive("errorCode")
-                            .expectNotJsonNull("errorCode")
-                            .content
-                            .also { expectNonBlankJsonString("errorCode", it) }
-                            .let { code ->
-                                code == "PREGAME_MNF" || code == "RESOURCE_NOT_FOUND"
-                            }
-                    ) {
-                        throw PreGameMatchNotFoundException()
-                    }
+                404 -> if (
+                    response.body.getOrThrow()
+                        .expectJsonObject("PlayerPreGameData response")
+                        .expectJsonProperty("errorCode")
+                        .expectJsonPrimitive("errorCode")
+                        .expectNotJsonNull("errorCode")
+                        .content
+                        .also { expectNonBlankJsonString("errorCode", it) }
+                        .let { code ->
+                            code == "PREGAME_MNF" || code == "RESOURCE_NOT_FOUND"
+                        }
+                ) {
+                    throw PreGameMatchNotFoundException()
                 }
             }
 
@@ -476,11 +510,11 @@ internal class DisposablePreGameUserClient(
            )
 
            when (response.statusCode) {
-               200 -> return@runCatching retrieveMatchIDFromPreGamePlayerInfo(response.body)
+               200 -> return@runCatching retrieveMatchIDFromPreGamePlayerInfo(response.body.getOrThrow())
                400 -> /* TODO: retry */ Unit
                404 -> {
                    if (
-                       response.body
+                       response.body.getOrThrow()
                            .expectJsonObject("PlayerPreGameMatchInfo response")
                            .expectJsonProperty("errorCode")
                            .expectJsonPrimitive("errorCode")
@@ -544,7 +578,7 @@ internal class DisposablePreGameUserClient(
             )
             when(response.statusCode) {
                 200 -> {
-                    val body = response.body.expectJsonObject("UserPartyData response body")
+                    val body = response.body.getOrThrow().expectJsonObject("UserPartyData response body")
                     body
                         .expectJsonProperty("ID")
                         .expectJsonPrimitive("ID")
@@ -626,6 +660,7 @@ internal class DisposablePreGameUserClient(
             when (response.statusCode) {
                 200 -> {
                     return@runCatching response.body
+                        .getOrThrow()
                         .expectJsonObject("PlayerPartyInfo response")
                         .expectJsonProperty("CurrentPartyID")
                         .expectJsonPrimitive("CurrentPartyID")
@@ -638,6 +673,7 @@ internal class DisposablePreGameUserClient(
                 }
                 404 -> {
                     response.body
+                        .getOrThrow()
                         .expectJsonObject("PlayerPartyInfo response")
                         .expectJsonProperty("errorCode")
                         .expectJsonPrimitive("errorCode")
@@ -712,7 +748,7 @@ internal class DisposablePreGameUserClient(
                 200 -> runCatching {
                     parseCurrentSeasonMMRDataFromPublicMMREndpoint(
                         subject,
-                        response.body
+                        response.body.getOrThrow()
                     )
                 }.onSuccess { data ->
                     return@buildCatching success(

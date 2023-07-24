@@ -5,7 +5,7 @@ import kotlin.time.Duration
 
 data class RateLimitInfo(
     val remoteServerStamp: ISO8601?,
-    val deviceClockStamp: Long?,
+    val deviceClockUptimeMillis: Long?,
     val retryAfter: Duration?
 ) {
 }

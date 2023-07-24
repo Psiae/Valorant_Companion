@@ -1,23 +1,23 @@
 package dev.flammky.valorantcompanion.live.ingame.presentation
 
+import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.MainThread
 import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
+import dev.flammky.valorantcompanion.base.*
 import dev.flammky.valorantcompanion.base.compose.BaseRememberObserver
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.di.compose.inject
-import dev.flammky.valorantcompanion.base.inMainLooper
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.getOrThrow
-import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
-import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRUserClient
-import dev.flammky.valorantcompanion.pvp.mmr.getOrElse
+import dev.flammky.valorantcompanion.pvp.mmr.*
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
 import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
 import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
 import kotlinx.coroutines.*
+import kotlin.time.Duration.Companion.minutes
 
 @Composable
 internal fun rememberLiveInGameTeamMemberCardPresenter(
@@ -111,7 +111,7 @@ private class RealLiveInGameTeamMemberPresenter(
             accountLevel: Int,
             incognito: Boolean
         ) {
-            check(inMainLooper())
+            checkInMainLooper()
             check(remembered)
             if (id != this.playerId) {
                 newPlayerID(id)
@@ -219,51 +219,179 @@ private class RealLiveInGameTeamMemberPresenter(
             actionName: String,
             mutate: (state: LiveInGameTeamMemberCardState) -> LiveInGameTeamMemberCardState
         ) {
-            Log.d("LiveInGameTeamMemberCardStatePresenter", "mutateState($actionName)")
             check(inMainLooper())
-            _state.value = mutate(stateValueOrUnset())
+            val current = stateValueOrUnset()
+            val new = mutate(current)
+            _state.value = new
+            Log.d("LiveInGameTeamMemberCardStatePresenter", "mutateState($actionName), current=$current ; new=$new")
         }
 
         private fun newPlayerIdSideEffect() {
             val playerId = this.playerId!!
 
+            val nameResultError = mutableStateOf<LiveInGameTeamMemberCardErrorMessage?>(null)
+            val mmrResultError = mutableStateOf<LiveInGameTeamMemberCardErrorMessage?>(null)
+            val errors = derivedStateOf { listOfNotNull(nameResultError.value, mmrResultError.value) }
+
+            fun errorCount() = errors.value.size
+
+            mutateState("newPlayerIdSideEffect") { state ->
+                state.copy(
+                    errorCount = 0,
+                    getErrors = errors::value
+                )
+            }
+
             coroutineScope.launch(playerIdSupervisor!!) {
-                ensureActive()
-                val nameResult = run {
-                    val def = nameService.getPlayerNameAsync(
-                        GetPlayerNameRequest(shard = null, signedInUserPUUID = user, listOf(playerId))
-                    )
-                    runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
-                }
-                mutateState("newPlayerIdSideEffect_nameResult") { state ->
-                    val identity = nameResult[playerId]?.getOrNull()
-                    state.copy(
-                        username = identity?.gameName,
-                        tagline = identity?.tagLine
-                    )
+                var taskContinuation: CompletableJob? = null
+                loop {
+                    ensureActive()
+                    val currentLoopTaskContinuation = taskContinuation
+                    val fetch = run {
+                        val def = nameService.getPlayerNameAsync(
+                            GetPlayerNameRequest(shard = null, signedInUserPUUID = user, listOf(playerId))
+                        )
+                        runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
+                    }
+                    val nameResult = fetch[playerId]
+                    if (
+                        fetch.ex != null ||
+                        nameResult?.isSuccess != true
+                    ) {
+                        val cont = Job()
+                        var slot = true
+                        nameResultError.value = LiveInGameTeamMemberCardErrorMessage(
+                            component = "GAME NAME",
+                            message = when {
+                                fetch.ex != null -> {
+                                    // TODO: exhaust error type
+                                    "UNEXPECTED ERROR OCCURRED WHEN REQUESTING DATA"
+                                }
+                                nameResult?.isSuccess != true -> {
+                                    // TODO: exhaust error type
+                                    "UNEXPECTED ERROR OCCURRED WHEN PROCESSING RESPONSE FROM ENDPOINT "
+                                }
+                                else -> exhaustiveWhenExpressionError()
+                            },
+                            refresh = refresh@ {
+                                checkInMainLooper()
+                                if (!slot) return@refresh null
+                                slot = false
+                                cont.complete()
+                                taskContinuation = Job()
+                                taskContinuation
+                            }
+                        )
+                        mutateState("newPlayerIdSideEffect_nameResult_fail") { state ->
+                            state.copy(errorCount = errorCount())
+                        }
+                        currentLoopTaskContinuation?.complete()
+                        cont.join()
+                        LOOP_CONTINUE()
+                    }
+                    nameResultError.value = null
+                    mutateState("newPlayerIdSideEffect_nameResult_success") { state ->
+                        val identity = fetch[playerId]!!.getOrThrow()
+                        state.copy(
+                            username = identity.gameName,
+                            tagline = identity.tagLine,
+                            errorCount = errorCount()
+                        )
+                    }
+                    currentLoopTaskContinuation?.complete()
+                    LOOP_BREAK()
                 }
             }
             coroutineScope.launch(playerIdSupervisor!!) {
-                ensureActive()
-                val mmrResult = run {
-                    val def = mmrClient.fetchSeasonalMMRAsync(ValorantSeasons.ACTIVE_STAGED.act.id, playerId)
-                    runCatching {
-                        val pvpResult = runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
-                        val mmrResult = pvpResult.getOrThrow()
-                        mmrResult.getOrElse { self ->
-                            // TODO: fallback gracefully
-                            error("")
+                var mmrTaskContinuation: CompletableJob? = null
+                val mmrResult = strictResultingLoop<SeasonalMMRData>() {
+                    ensureActive()
+                    val clMmrTaskContinuation = mmrTaskContinuation
+                    val fetch = run {
+                        val def = mmrClient.fetchSeasonalMMRAsync(ValorantSeasons.ACTIVE_STAGED.act.id, playerId)
+                        runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
+                    }
+                    val fetchSuccess = fetch.isSuccess
+                    val mmrFetchSuccess = if (fetchSuccess) fetch.getOrThrow().isSuccess else false
+                    if (!fetchSuccess || !mmrFetchSuccess) {
+                        val cont = Job(coroutineContext.job)
+                        var slot = true
+                        val refresh = refresh@ {
+                            checkInMainLooper()
+                            if (!slot) return@refresh null
+                            slot = false
+                            cont.complete()
+                            mmrTaskContinuation = Job()
+                            mmrTaskContinuation
                         }
+                        when {
+                            !fetchSuccess ->  {
+                                mmrResultError.value = LiveInGameTeamMemberCardErrorMessage(
+                                    component = "RANK ICON",
+                                    message = "UNEXPECTED ERROR OCCURRED WHEN REQUESTING DATA (${fetch.getErrorCodeOrNull()})",
+                                    refresh = refresh
+                                )
+                                mutateState("newPlayerIdSideEffect_mmrResult_fail") { state ->
+                                    state.copy(errorCount = errorCount())
+                                }
+                            }
+                            !mmrFetchSuccess -> run mmrFetchFail@ {
+                                fetch
+                                    .getOrThrow()
+                                    .onRateLimited { info ->
+                                        // TODO: check for server TS then compare with NTP
+                                        val initialStamp = info.deviceClockUptimeMillis ?: SystemClock.elapsedRealtime()
+                                        var stamp = SystemClock.elapsedRealtime()
+                                        val retryAfterMs = (info.retryAfter ?: 1.minutes).inWholeMilliseconds
+                                        var initialLoop = true
+                                        runCatching {
+                                            withContext(cont) {
+                                                loop {
+                                                    ensureActive()
+                                                    val retryIn = ((retryAfterMs - (stamp - initialStamp)) / 1000)
+                                                        .coerceAtLeast(0)
+                                                    mmrResultError.value = LiveInGameTeamMemberCardErrorMessage(
+                                                        component = "RANK ICON",
+                                                        message = "RATE LIMITED, TRY AGAIN IN $retryIn SECOND.",
+                                                        refresh = refresh.takeIf { retryIn <= 0 }
+                                                    )
+                                                    if (initialLoop) {
+                                                        mutateState("newPlayerIdSideEffect_mmrResult_fail") { state ->
+                                                            state.copy(errorCount = errorCount())
+                                                        }
+                                                        initialLoop = false
+                                                    }
+                                                    if (retryIn == 0L) {
+                                                        LOOP_BREAK()
+                                                    }
+                                                    delay(1000 - (retryIn % 1000))
+                                                    stamp = SystemClock.elapsedRealtime()
+                                                }
+                                            }
+                                            return@mmrFetchFail
+                                        }.onFailure { ex ->
+                                            if (!cont.isCompleted || cont.isCancelled) throw ex
+                                        }
+                                    }
+                                mmrResultError.value = LiveInGameTeamMemberCardErrorMessage(
+                                    component = "RANK ICON",
+                                    message = "UNEXPECTED ERROR OCCURRED WHEN PROCESSING RESPONSE FROM ENDPOINT",
+                                    refresh = refresh
+                                )
+                            }
+                            else -> exhaustiveWhenExpressionError()
+                        }
+                        clMmrTaskContinuation?.complete()
+                        cont.join()
+                        LOOP_CONTINUE()
                     }
-                }.getOrElse { ex ->
-                    mutateState("newPlayerIdSideEffect_mmrResult_fail") { state ->
-                        state.copy(
-                            competitiveTierIcon = state.UNSET.competitiveTierIcon,
-                            competitiveTierIconKey = state.UNSET.competitiveTierIconKey
-                        )
+                    mmrResultError.value = null
+                    mutateState("newPlayerIdSideEffect_mmrResult_success") { state ->
+                        state.copy(errorCount = errorCount())
                     }
-                    return@launch
+                    LOOP_BREAK(fetch.getOrThrow().getOrElse { error("") })
                 }
+                // packaged into APK, even if it fails we just let it crash
                 val iconResult = run {
                     assetLoader.loadMemoryCachedCompetitiveRankIcon(mmrResult.competitiveRank)
                         ?.let { return@run Result.success(it) }

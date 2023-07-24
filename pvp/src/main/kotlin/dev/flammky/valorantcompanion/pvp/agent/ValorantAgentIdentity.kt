@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.pvp.agent
 
+import android.util.Log
 import dev.flammky.valorantcompanion.pvp.util.mapSealedObjectInstancesToPersistentList
 
 sealed class ValorantAgentIdentity(
@@ -269,7 +270,7 @@ sealed class ValorantAgentIdentity(
 
     companion object {
 
-        private val SubclassesInstance by lazy {
+        private val SUBCLASSES by lazy {
             ValorantAgentIdentity::class.mapSealedObjectInstancesToPersistentList()
         }
 
@@ -299,20 +300,12 @@ sealed class ValorantAgentIdentity(
 
         // there's a chance that letters is all uppercase
         fun ofID(id: String): ValorantAgentIdentity? {
+            Log.d("ValorantAgentIdentityKt", "ofId($id)")
             if (id.isBlank()) return null
-            var containsChar = false
-            var allLetterUppercase = true
-            id.forEach { char ->
-                if (char.isLetter()) {
-                    containsChar = true
-                    if (char.isLowerCase()) allLetterUppercase = false
-                }
-            }
-            val comparable = if (containsChar && allLetterUppercase) id.lowercase() else id
-            return SubclassesInstance.find { it.uuid == comparable }
+            return SUBCLASSES.find { identity -> identity.uuid.equals(id, true) }
         }
 
-        fun iter(): Iterator<ValorantAgentIdentity> = SubclassesInstance.iterator()
-        fun asList(): List<ValorantAgentIdentity> = SubclassesInstance
+        fun iter(): Iterator<ValorantAgentIdentity> = SUBCLASSES.iterator()
+        fun asList(): List<ValorantAgentIdentity> = SUBCLASSES
     }
 }

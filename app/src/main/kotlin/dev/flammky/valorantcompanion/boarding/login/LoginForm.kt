@@ -31,7 +31,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.R
-import dev.flammky.valorantcompanion.base.runRemember
+import dev.flammky.valorantcompanion.base.rememberThis
 import dev.flammky.valorantcompanion.base.theme.material3.*
 
 @Composable
@@ -167,10 +167,10 @@ private fun UsernameTextField(
                 .onFocusChanged { state ->
                     hasFocusState.value = state.isFocused
                 }
-        }.runRemember(hasFocusState.value, outlineColor) {
+        }.rememberThis(hasFocusState.value, outlineColor) {
             if (hasFocusState.value) border(width = 2.dp, color = outlineColor, shape = RoundedCornerShape(10)) else this
         },
-        textStyle = MaterialTheme.typography.labelLarge.runRemember {
+        textStyle = MaterialTheme.typography.labelLarge.rememberThis {
             copy(color = textColor, fontWeight = FontWeight.SemiBold)
         },
         value = value,
@@ -226,10 +226,10 @@ private fun PasswordTextField(
                 .onFocusChanged { state ->
                     hasFocusState.value = state.isFocused
                 }
-        }.runRemember(hasFocusState.value, outlineColor) {
+        }.rememberThis(hasFocusState.value, outlineColor) {
             if (hasFocusState.value) border(width = 2.dp, color = outlineColor, shape = RoundedCornerShape(10)) else this
         },
-        textStyle = MaterialTheme.typography.labelLarge.runRemember {
+        textStyle = MaterialTheme.typography.labelLarge.rememberThis {
             copy(color = textColor, fontWeight = FontWeight.SemiBold)
         },
         value = value,
@@ -251,7 +251,7 @@ private fun PasswordTextField(
                 modifier = remember {
                     Modifier
                         .size(24.dp)
-                }.runRemember(toggleMask) {
+                }.rememberThis(toggleMask) {
                     clickable(
                         interactionSource = maskInteractionSource,
                         indication = null,
@@ -325,11 +325,11 @@ private fun LoginFormButton(
             modifier
                 .size(65.dp)
                 .clip(shape = RoundedCornerShape(25))
-        }.runRemember(backgroundColor) {
+        }.rememberThis(backgroundColor) {
             background(color = backgroundColor)
-        }.runRemember(borderColor) {
+        }.rememberThis(borderColor) {
             border(width = 2.dp, color = borderColor, shape = RoundedCornerShape(25))
-        }.runRemember(enabled, onClick) {
+        }.rememberThis(enabled, onClick) {
             clickable(
                 enabled = enabled,
                 onClick = onClick,

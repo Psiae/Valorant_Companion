@@ -26,6 +26,6 @@ interface LazyTimeKeeper {
 
     data class UpSyncData(
         val time: Duration,
-        internal val internalData: Any
+        internal val data: Any
     )
 }

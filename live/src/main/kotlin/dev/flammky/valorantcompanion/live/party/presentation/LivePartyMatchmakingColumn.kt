@@ -51,7 +51,7 @@ fun LivePartyMatchmakingColumn(
                     present(
                         isUserOwner = isUserOwner,
                         timeStamp = state.timeStamp ?: Duration.ZERO,
-                        cancelMatchmakingKey = remember(partyID) { Any() },
+                        cancelMatchmakingKey = remember(state, partyID) { Any() },
                         cancelMatchmaking = run {
                             if (partyID == null) return@run {}
                             { state.quitMatchmakingQueue(partyID)}

@@ -307,10 +307,12 @@ private fun mockPlayerCardState(
     selectedAgentRoleIcon = LocalImage.Resource(agentRoleIconForName(selectedAgentRoleName)),
     selectedAgentRoleIconKey = Unit,
     isLockedIn = lockedIn,
-    tierName = "",
-    tierIcon = LocalImage.Resource(latestPatchTierIcon(tier)),
-    tierIconKey = Unit,
-    isUser = isUser
+    competitiveTierName = "",
+    competitiveTierIcon = LocalImage.Resource(latestPatchTierIcon(tier)),
+    competitiveTierIconKey = Unit,
+    isUser = isUser,
+    errorCount = 0,
+    getErrors = { error("") }
 )
 
 private fun playerNameFromMockedPUUID(

@@ -78,7 +78,7 @@ internal class KtorWrappedHttpClient(
                 )
             ),
             statusCode = ktorResponse.status.value,
-            body = Json.decodeFromString(ktorResponse.bodyAsText()),
+            body = runCatching { Json.decodeFromString(ktorResponse.bodyAsText()) },
             getResponseProperty = { name -> ktorResponse.call.attributes[AttributeKey(name)] }
         )
     }

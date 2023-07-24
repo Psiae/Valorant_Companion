@@ -16,6 +16,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import dev.flammky.valorantcompanion.base.compose.composeWithKey
 import dev.flammky.valorantcompanion.base.theme.material3.LocalIsThemeDark
 
 @Composable
@@ -35,16 +36,18 @@ internal fun LiveInGameTeamMembersColumn(
     if (membersProvided) {
         LiveInGameTeamMembersColumn(
             modifier = childModifier ,
-            members = getMembers().map { member ->
-                rememberLiveInGameTeamMemberCardPresenter().present(
-                    matchKey = matchKey,
-                    user = user,
-                    id = member.puuid,
-                    playerAgentID = member.agentID,
-                    playerCardID = member.playerCardID,
-                    accountLevel = member.accountLevel,
-                    incognito = member.incognito
-                )
+            members = composeWithKey(getMembers) { get ->
+                get().map { member ->
+                    rememberLiveInGameTeamMemberCardPresenter().present(
+                        matchKey = matchKey,
+                        user = user,
+                        id = member.puuid,
+                        playerAgentID = member.agentID,
+                        playerCardID = member.playerCardID,
+                        accountLevel = member.accountLevel,
+                        incognito = member.incognito
+                    )
+                }
             }
         )
     } else {

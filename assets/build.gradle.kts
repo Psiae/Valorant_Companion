@@ -24,6 +24,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":base"))
     implementation(project(":pvp"))
     implementation(libs.koin.android)
     implementation(libs.io.ktor.ktor.client.android)

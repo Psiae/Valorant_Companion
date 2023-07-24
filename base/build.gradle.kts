@@ -43,6 +43,7 @@ dependencies {
     api(libs.androidx.compose.foundation.foundation.layout)
     api(libs.androidx.compose.material.material)
     api(libs.androidx.compose.material3.material3)
+    api(libs.androidx.compose.ui.ui.util)
     api("io.insert-koin:koin-android:3.3.3")
     api("io.insert-koin:koin-androidx-compose:3.4.2")
     api("com.google.accompanist:accompanist-systemuicontroller:0.30.1")

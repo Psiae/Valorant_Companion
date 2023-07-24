@@ -2,15 +2,15 @@ package dev.flammky.valorantcompanion.base
 
 // TODO: should we constraint that the [block] must return [Nothing] ?
 @Suppress("FunctionName")
-inline fun Loop(
+inline fun loop(
     block: LoopScope.() -> Unit
 ): Unit = (LoopScope() as RealLoop).loop(block)
 
 // block must return nothing, that includes call to `breakLoop` or `continueLoop`
 @Suppress("FunctionName")
-inline fun StrictLoop(
+inline fun strictLoop(
     block: LoopScope.() -> Nothing
-): Unit = Loop(block)
+): Unit = loop(block)
 
 fun LoopScope(): LoopScope = RealLoop()
 
@@ -20,6 +20,8 @@ interface LoopScope {
 
     fun LOOP_CONTINUE(): Nothing
 }
+
+// TODO: LoopBuilder
 
 // public so we can inline the block
 class RealLoop internal constructor(): LoopScope {

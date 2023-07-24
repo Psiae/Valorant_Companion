@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import dev.flammky.valorantcompanion.live.pregame.presentation.*
+import dev.flammky.valorantcompanion.pvp.TeamID
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import kotlinx.collections.immutable.persistentListOf
 

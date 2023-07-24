@@ -21,9 +21,10 @@ import dev.flammky.valorantcompanion.pvp.tier.ValorantCompetitiveRankResolver
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 import java.io.IOException
-import java.time.format.DateTimeFormatter
+import java.util.Calendar
 import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.DurationUnit
 
 internal class RealValorantValorantMMRUserClient(
     val puuid: String,
@@ -111,7 +112,7 @@ internal class RealValorantValorantMMRUserClient(
                 200 -> runCatching {
                     parseCurrentSeasonMMRDataFromPublicMMREndpoint(
                         subject,
-                        response.body
+                        response.body.getOrThrow()
                     )
                 }.onSuccess { data ->
                     return@buildCatching success(
@@ -129,11 +130,22 @@ internal class RealValorantValorantMMRUserClient(
                             response.headers["date"]?.let { data ->
                                 runCatching {
                                     val date = httpDateFormat().parse(data)
-                                    ISO8601.fromEpochMilli(date.time)
+                                    ISO8601.fromEpochMilli(
+                                        date.time,
+                                        run {
+                                            val sec = Calendar.getInstance().run {
+                                                time = date
+                                                get(Calendar.SECOND)
+                                            }
+                                            // zero can mean either the resolution is not in second
+                                            // or is actually at zero
+                                            if (sec > 0) DurationUnit.SECONDS else null
+                                        }
+                                    )
                                 }.getOrNull()
                             }
                         },
-                        deviceClockStamp = run {
+                        deviceClockUptimeMillis = run {
                             response.getResponseProperty(
                                 HTTP_REQUEST_RECEIVED_TIMESTAMP_SYSTEM_ELAPSED_CLOCK_MILLIS
                             ) as? Long

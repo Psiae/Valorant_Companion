@@ -8,3 +8,11 @@ fun inMainLooper(): Boolean {
             looper == Looper.getMainLooper()
         } == true
 }
+
+fun checkInMainLooper() = check(
+    value = inMainLooper(),
+    lazyMessage = {
+        "Invalid Thread Access, expected Main, " +
+                "current=${Thread.currentThread().name};looper=${Looper.myLooper()}"
+    }
+)

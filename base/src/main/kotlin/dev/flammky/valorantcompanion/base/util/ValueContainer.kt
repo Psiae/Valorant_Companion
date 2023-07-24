@@ -13,4 +13,4 @@ open class MutableValueContainer <T> internal constructor(initialValue: T): Valu
 }
 
 public fun <T> immutableValueContainerOf(value: T): ImmutableValueContainer<T> = ImmutableValueContainer(value)
-public fun <T> mutableValeContainerOf(value: T): MutableValueContainer<T> = MutableValueContainer(value)
+public fun <T> mutableValueContainerOf(value: T): MutableValueContainer<T> = MutableValueContainer(value)

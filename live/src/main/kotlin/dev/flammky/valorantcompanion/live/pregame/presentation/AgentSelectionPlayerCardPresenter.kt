@@ -1,39 +1,39 @@
 package dev.flammky.valorantcompanion.live.pregame.presentation
 
 import android.os.SystemClock
+import android.util.Log
+import androidx.annotation.MainThread
 import androidx.compose.runtime.*
-import dev.flammky.valorantcompanion.assets.LocalImage
+import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
+import dev.flammky.valorantcompanion.base.*
+import dev.flammky.valorantcompanion.base.compose.BaseRememberObserver
+import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.di.compose.inject
-import dev.flammky.valorantcompanion.base.resultingLoop
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
-import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentRole
-import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService
-import dev.flammky.valorantcompanion.pvp.mmr.onSuccess
-import dev.flammky.valorantcompanion.pvp.onSuccess
+import dev.flammky.valorantcompanion.pvp.getOrThrow
+import dev.flammky.valorantcompanion.pvp.mmr.*
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
-import dev.flammky.valorantcompanion.pvp.player.PlayerPVPName
 import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
 import dev.flammky.valorantcompanion.pvp.season.ValorantSeasons
-import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import kotlinx.coroutines.*
-import dev.flammky.valorantcompanion.assets.R as ASSET_R
+import kotlin.time.Duration.Companion.minutes
 
 @Composable
 fun rememberAgentSelectionPlayerCardPresenter(
-    assetLoaderService: ValorantAssetsService = inject(),
+    assetsService: ValorantAssetsService = inject(),
     nameService: ValorantNameService = inject(),
-    mmrService: ValorantMMRService = inject()
+    mmrService: ValorantMMRService = inject(),
 ): AgentSelectionPlayerCardPresenter {
-    return remember(assetLoaderService, nameService) {
-        AgentSelectionPlayerCardPresenter(assetLoaderService, nameService, mmrService)
+    return remember(assetsService, nameService) {
+        AgentSelectionPlayerCardPresenter(assetsService, nameService, mmrService)
     }
 }
 
 class AgentSelectionPlayerCardPresenter(
-    private val assetLoaderService: ValorantAssetsService,
+    private val assetsService: ValorantAssetsService,
     private val nameService: ValorantNameService,
-    private val mmrService: ValorantMMRService
+    private val mmrService: ValorantMMRService,
 ) {
 
     // TODO: error broadcaster, this way we can request refresh from the user
@@ -43,359 +43,359 @@ class AgentSelectionPlayerCardPresenter(
         player: PreGamePlayer,
         matchID: String,
     ): AgentSelectionPlayerCardState {
-        val name = lookupName(user, player.puuid)
-        val rank = lookupRank(user, player.puuid, matchID)
-        val agentIdentity = remember(player.characterID) { ValorantAgentIdentity.ofID(player.characterID) }
-        val keyToAgentIcon = agentIconWithKey(agentID = player.characterID)
-        val keyToRoleIcon = roleIconWithKey(roleID = agentIdentity?.role?.uuid ?: "")
-        val keyToTierIcon = rankIconWithKey(rank = rank?.getOrNull())
-        return AgentSelectionPlayerCardState(
-            playerGameName = name?.getOrNull()?.gameName ?: "",
-            playerGameNameTag = name?.getOrNull()?.tagLine ?: "",
-            hasSelectedAgent = player.characterSelectionState.isSelectedOrLocked,
-            selectedAgentName = agentIdentity?.displayName ?: "",
-            selectedAgentIcon = keyToAgentIcon.second,
-            selectedAgentIconKey = keyToAgentIcon.first,
-            selectedAgentRoleName = agentIdentity?.role?.displayName ?: "",
-            selectedAgentRoleIcon = keyToRoleIcon.second,
-            selectedAgentRoleIconKey = keyToRoleIcon.first,
-            isLockedIn = player.characterSelectionState.isLocked,
-            tierName = rank?.getOrNull()?.displayname ?: "",
-            tierIcon = keyToTierIcon.second,
-            tierIconKey = keyToTierIcon.first,
-            isUser = user.isNotBlank() && user == player.puuid
-        )
+        return remember(user) { StateProducer(user) }.apply {
+            SideEffect {
+                produceParams(
+                    player.puuid,
+                    player.characterID,
+                    player.identity.cardID,
+                    player.identity.accountLevel,
+                    player.identity.incognito
+                )
+            }
+        }.readSnapshot()
     }
 
-    // TODO: rewrite
-    @Composable
-    fun present(
-        isUser: Boolean,
-        player: PreGamePlayer,
-        inUserParty: Boolean,
-        nameData: Result<PlayerPVPName>?,
-        rankData: Result<CompetitiveRank>?,
-        index: Int,
-    ): AgentSelectionPlayerCardState {
-        val nameKey = remember(
-            this,
-            isUser,
-            player.puuid,
-            player.identity.incognito,
-            nameData,
-            inUserParty,
-            index
+    private inner class StateProducer(
+        private val user: String
+    ) : BaseRememberObserver {
+
+        private val _state = mutableStateOf<AgentSelectionPlayerCardState?>(null, neverEqualPolicy())
+
+        private var remembered = false
+        private var forgotten = false
+        private var abandoned = false
+
+        private var _coroutineScope: CoroutineScope? = null
+        private val coroutineScope get() = _coroutineScope!!
+
+        private var _assetLoader: ValorantAssetsLoaderClient? = null
+        private val assetLoader get() = _assetLoader!!
+
+        private var _mmrClient: ValorantMMRUserClient? = null
+        private val mmrClient get() = _mmrClient!!
+
+        private var playerIdSupervisor: Job? = null
+
+        private var playerId: String? = null
+        private var playerAgentID: String? = null
+        private var playerCardID: String? = null
+        private var accountLevel: Int? = null
+        private var incognito: Boolean? = null
+
+        @SnapshotRead
+        fun readSnapshot(): AgentSelectionPlayerCardState = stateValueOrUnset()
+
+        @MainThread
+        fun produceParams(
+            id: String,
+            playerAgentID: String,
+            playerCardID: String,
+            accountLevel: Int,
+            incognito: Boolean
         ) {
-            Any()
+            checkInMainLooper()
+            check(remembered)
+            if (id != this.playerId) {
+                newPlayerID(id)
+            }
+            playerDataParam(playerAgentID, playerCardID, accountLevel, incognito)
         }
-        val gameName = remember() {
-            mutableStateOf("")
-        }.apply {
-            value = remember(nameKey) {
-                nameData?.getOrNull()?.gameName ?: ""
+
+        private fun newPlayerID(
+            id: String,
+        ) {
+            playerIdSupervisor?.cancel()
+
+            this.playerId = id
+
+            mutateState("newPlayerID") { state ->
+                state.copy(
+                    isUser = user == id,
+                    playerGameName = state.UNSET.playerGameName,
+                    playerGameNameTag = state.UNSET.playerGameNameTag,
+                    competitiveTierIcon = state.UNSET.competitiveTierIcon,
+                    competitiveTierIconKey = state.UNSET.competitiveTierIconKey
+                )
+            }
+
+            playerIdSupervisor = SupervisorJob()
+            newPlayerIdSideEffect()
+        }
+
+        private fun playerDataParam(
+            playerAgentID: String,
+            playerCardID: String,
+            accountLevel: Int,
+            incognito: Boolean
+        ) {
+            if (this.playerAgentID != playerAgentID) {
+                newPlayerAgent(playerAgentID)
+            }
+            if (this.playerCardID != playerCardID) {
+                // TODO
+            }
+            if (this.accountLevel != accountLevel) {
+                // TODO
+            }
+            if (this.incognito != incognito) {
+                // TODO
             }
         }
-        val tagLine = remember {
-            mutableStateOf("")
-        }.apply {
-            value = remember(nameKey) {
-                nameData?.getOrNull()?.tagLine ?: ""
-            }
-        }
 
-        val selectedAgentIdentity = remember(player.characterID) {
-            ValorantAgentIdentity.ofID(player.characterID)
-        }
-
-        val agentIcon = remember(selectedAgentIdentity) {
-            mutableStateOf<LocalImage<*>?>(
-                LocalImage
-                    .Resource(
-                        agentDisplayIconByName(selectedAgentIdentity?.displayName ?: "")))
-        }
-
-        val agentIconRetryKey = remember(selectedAgentIdentity) {
-            mutableStateOf(Any())
-        }
-
-        val agentRole = selectedAgentIdentity?.role
-
-        val agentRoleIcon = remember() {
-            mutableStateOf<LocalImage<*>?>(null)
-        }.apply {
-            value = remember(agentRole) {
-                if (agentRole == null) return@remember null
-                LocalImage.Resource(
-                    when(agentRole) {
-                        ValorantAgentRole.Controller -> ASSET_R.raw.role_controller_displayicon
-                        ValorantAgentRole.Duelist -> ASSET_R.raw.role_duelist_displayicon
-                        ValorantAgentRole.Initiator -> ASSET_R.raw.role_initiator_displayicon
-                        ValorantAgentRole.Sentinel -> ASSET_R.raw.role_sentinel_displayicon
-                    }
+        private fun newPlayerAgent(
+            id: String
+        ) {
+            this.playerAgentID = id
+            val identity = ValorantAgentIdentity.ofID(id)
+            val icon = assetLoader.loadMemoryCachedAgentIcon(id)
+            val selectedAgentRoleIcon = identity?.role?.let { it -> assetLoader.loadMemoryCachedRoleIcon(it.uuid) }
+            mutateState("newPlayerAgent") { state ->
+                state.copy(
+                    selectedAgentName = identity?.displayName ?: state.UNSET.selectedAgentName,
+                    selectedAgentIcon = icon ?: state.UNSET.selectedAgentIcon,
+                    selectedAgentIconKey = icon?.let { Any() } ?: state.UNSET.selectedAgentIconKey,
+                    selectedAgentRoleName = identity?.role?.displayName ?: state.UNSET.selectedAgentRoleName,
+                    selectedAgentRoleIcon = selectedAgentRoleIcon ?: state.UNSET.selectedAgentRoleIcon,
+                    selectedAgentRoleIconKey = selectedAgentRoleIcon?.let { Any() } ?: state.UNSET.selectedAgentRoleIconKey
                 )
             }
         }
 
-        val agentRoleIconRetryKey = remember {
-            mutableStateOf(Any())
-        }.apply {
-            value = remember(agentRoleIcon.value) {
-                Any()
+        override fun onAbandoned() {
+            super.onAbandoned()
+            check(!remembered)
+            check(!abandoned)
+            check(!forgotten)
+            abandoned = true
+        }
+
+        override fun onForgotten() {
+            super.onForgotten()
+            check(remembered)
+            check(!abandoned)
+            check(!forgotten)
+            forgotten = true
+            coroutineScope.cancel()
+            _assetLoader?.dispose()
+            _mmrClient?.dispose()
+        }
+
+        override fun onRemembered() {
+            super.onRemembered()
+            check(!remembered)
+            check(!forgotten)
+            check(!abandoned)
+            remembered = true
+            _coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+            _assetLoader = assetsService.createLoaderClient()
+            _mmrClient = mmrService.createUserClient(user)
+        }
+
+        @SnapshotRead
+        private fun stateValueOrUnset(): AgentSelectionPlayerCardState {
+            return _state.value ?: AgentSelectionPlayerCardState.UNSET
+        }
+
+        @MainThread
+        private fun mutateState(
+            actionName: String,
+            mutate: (state: AgentSelectionPlayerCardState) -> AgentSelectionPlayerCardState
+        ) {
+            check(inMainLooper())
+            val current = stateValueOrUnset()
+            val new = mutate(current)
+            _state.value = new
+            Log.d("AgentSelectionPlayerCardPresenterKt", "mutateState($actionName), current=$current ; new=$new")
+        }
+
+        private fun newPlayerIdSideEffect() {
+            val playerId = this.playerId!!
+
+            val nameResultError = mutableStateOf<AgentSelectionPlayerCardErrorMessage?>(null)
+            val mmrResultError = mutableStateOf<AgentSelectionPlayerCardErrorMessage?>(null)
+            val errors = derivedStateOf { listOfNotNull(nameResultError.value, mmrResultError.value) }
+
+            fun errorCount() = errors.value.size
+
+            mutateState("newPlayerIdSideEffect") { state ->
+                state.copy(
+                    errorCount = 0,
+                    getErrors = errors::value
+                )
             }
-        }
 
-        val rank = rankData?.getOrNull()
-
-        val tierIcon = remember(rankData) {
-            LocalImage.Resource(rankData?.getOrNull()?.let { competitiveRankIcon(it) } ?: 0)
-        }
-
-        val tierIconRetryKey = remember(tierIcon) {
-            mutableStateOf(Any())
-        }
-
-        return AgentSelectionPlayerCardState(
-            playerGameName = gameName.value,
-            playerGameNameTag = tagLine.value,
-            hasSelectedAgent = player.characterSelectionState == CharacterSelectionState.SELECTED ||
-                    player.characterSelectionState == CharacterSelectionState.LOCKED,
-            selectedAgentName = selectedAgentIdentity?.displayName ?: "",
-            selectedAgentIcon = agentIcon.value,
-            selectedAgentIconKey = agentIconRetryKey,
-            selectedAgentRoleName = selectedAgentIdentity?.role?.displayName ?: "",
-            selectedAgentRoleIcon = agentRoleIcon.value,
-            selectedAgentRoleIconKey = agentRoleIconRetryKey.value,
-            isLockedIn = player.characterSelectionState == CharacterSelectionState.LOCKED,
-            tierName = rank?.displayname ?: "",
-            // TODO: loader
-            tierIcon = tierIcon,
-            tierIconKey = tierIconRetryKey,
-            isUser = isUser,
-            errorMessage = null
-        )
-    }
-
-    @Composable
-    private fun lookupName(
-        user: String,
-        subject: String
-    ): Result<PlayerPVPName>? {
-        val returns = remember(user, subject) {
-            mutableStateOf<Result<PlayerPVPName>?>(null)
-        }
-
-        DisposableEffect(
-            user, subject, returns,
-            effect = {
-                val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-
-                scope.launch {
-                    var stamp = -1L
-                    returns.value = resultingLoop {
-                        if (stamp != -1L) {
-                            delay(1000 - (stamp - SystemClock.elapsedRealtime()))
-                        }
-                        stamp = SystemClock.elapsedRealtime()
-                        val def = nameService
-                            .getPlayerNameAsync(
-                                GetPlayerNameRequest(
-                                    shard = null,
-                                    signedInUserPUUID = user,
-                                    lookupPUUIDs = listOf(subject)
-                                )
-                            )
-                        runCatching { def.await() }
-                            .onFailure { _ ->
-                                def.cancel()
-                            }
-                            .onSuccess { requestResults ->
-                                LOOP_BREAK(requestResults[subject]
-                                    ?: error("NameService didn't return requested subject"))
-                            }
+            coroutineScope.launch(playerIdSupervisor!!) {
+                var taskContinuation: CompletableJob? = null
+                loop {
+                    ensureActive()
+                    val currentLoopTaskContinuation = taskContinuation
+                    val fetch = run {
+                        val def = nameService.getPlayerNameAsync(
+                            GetPlayerNameRequest(shard = null, signedInUserPUUID = user, listOf(playerId))
+                        )
+                        runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
                     }
-                }
-
-                onDispose { scope.cancel() }
-            }
-        )
-
-        return returns.value
-    }
-
-    @Composable
-    private fun lookupRank(
-        user: String,
-        subject: String,
-        matchID: String
-    ): Result<CompetitiveRank>? {
-        val returns = remember(user, subject, matchID) {
-            mutableStateOf<Result<CompetitiveRank>?>(null)
-        }
-        DisposableEffect(
-            user, subject, matchID,
-            effect = {
-                val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-                val client = mmrService
-                    .createUserClient(user)
-                coroutineScope.launch {
-                    var stamp = -1L
-                    returns.value = resultingLoop {
-                        if (stamp != -1L) {
-                            delay(1000 - (stamp - SystemClock.elapsedRealtime()))
+                    val nameResult = fetch[playerId]
+                    if (
+                        fetch.ex != null ||
+                        nameResult?.isSuccess != true
+                    ) {
+                        val cont = Job()
+                        var slot = true
+                        nameResultError.value = AgentSelectionPlayerCardErrorMessage(
+                            component = "GAME NAME",
+                            message = when {
+                                fetch.ex != null -> {
+                                    // TODO: exhaust error type
+                                    "UNEXPECTED ERROR OCCURRED WHEN REQUESTING DATA"
+                                }
+                                nameResult?.isSuccess != true -> {
+                                    // TODO: exhaust error type
+                                    "UNEXPECTED ERROR OCCURRED WHEN PROCESSING RESPONSE FROM ENDPOINT "
+                                }
+                                else -> exhaustiveWhenExpressionError()
+                            },
+                            refresh = refresh@ {
+                                checkInMainLooper()
+                                if (!slot) return@refresh null
+                                slot = false
+                                cont.complete()
+                                taskContinuation = Job()
+                                taskContinuation
+                            }
+                        )
+                        mutateState("newPlayerIdSideEffect_nameResult_fail") { state ->
+                            state.copy(errorCount = errorCount())
                         }
-                        stamp = SystemClock.elapsedRealtime()
-                        val def = client.fetchSeasonalMMRAsync(ValorantSeasons.ACTIVE_STAGED.act.id, subject)
-                        runCatching { def.await() }
-                            .onFailure { def.cancel() }
-                            .onSuccess { pvpResult ->
-                                pvpResult.onSuccess { mmrResult ->
-                                    mmrResult.onSuccess { mmrData ->
-                                        LOOP_BREAK(Result.success(mmrData.competitiveRank))
-                                    }
+                        currentLoopTaskContinuation?.complete()
+                        cont.join()
+                        LOOP_CONTINUE()
+                    }
+                    nameResultError.value = null
+                    mutateState("newPlayerIdSideEffect_nameResult_success") { state ->
+                        val identity = fetch[playerId]!!.getOrThrow()
+                        state.copy(
+                            playerGameName = identity.gameName,
+                            playerGameNameTag = identity.tagLine,
+                            errorCount = errorCount()
+                        )
+                    }
+                    currentLoopTaskContinuation?.complete()
+                    LOOP_BREAK()
+                }
+            }
+            coroutineScope.launch(playerIdSupervisor!!) {
+                var mmrTaskContinuation: CompletableJob? = null
+                val mmrResult = strictResultingLoop<SeasonalMMRData>() {
+                    ensureActive()
+                    val clMmrTaskContinuation = mmrTaskContinuation
+                    val fetch = run {
+                        val def = mmrClient.fetchSeasonalMMRAsync(ValorantSeasons.ACTIVE_STAGED.act.id, playerId)
+                        runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
+                    }
+                    val fetchSuccess = fetch.isSuccess
+                    val mmrFetchSuccess = if (fetchSuccess) fetch.getOrThrow().isSuccess else false
+                    if (!fetchSuccess || !mmrFetchSuccess) {
+                        val cont = Job(coroutineContext.job)
+                        var slot = true
+                        val refresh = refresh@ {
+                            checkInMainLooper()
+                            if (!slot) return@refresh null
+                            slot = false
+                            cont.complete()
+                            mmrTaskContinuation = Job()
+                            mmrTaskContinuation
+                        }
+                        when {
+                            !fetchSuccess ->  {
+                                mmrResultError.value = AgentSelectionPlayerCardErrorMessage(
+                                    component = "RANK ICON",
+                                    message = "UNEXPECTED ERROR OCCURRED WHEN REQUESTING DATA (${fetch.getErrorCodeOrNull()})",
+                                    refresh = refresh
+                                )
+                                mutateState("newPlayerIdSideEffect_mmrResult_fail") { state ->
+                                    state.copy(errorCount = errorCount())
                                 }
                             }
+                            !mmrFetchSuccess -> run mmrFetchFail@ {
+                                fetch
+                                    .getOrThrow()
+                                    .onRateLimited { info ->
+                                        // TODO: check for server TS then compare with NTP
+                                        val initialStamp = info.deviceClockUptimeMillis ?: SystemClock.elapsedRealtime()
+                                        var stamp = SystemClock.elapsedRealtime()
+                                        val retryAfterMs = (info.retryAfter ?: 1.minutes).inWholeMilliseconds
+                                        var initialLoop = true
+                                        runCatching {
+                                            withContext(cont) {
+                                                loop {
+                                                    ensureActive()
+                                                    val retryIn = ((retryAfterMs - (stamp - initialStamp)) / 1000)
+                                                        .coerceAtLeast(0)
+                                                    mmrResultError.value = AgentSelectionPlayerCardErrorMessage(
+                                                        component = "RANK ICON",
+                                                        message = "RATE LIMITED, TRY AGAIN IN $retryIn SECOND.",
+                                                        refresh = refresh.takeIf { retryIn <= 0 }
+                                                    )
+                                                    if (initialLoop) {
+                                                        mutateState("newPlayerIdSideEffect_mmrResult_fail") { state ->
+                                                            state.copy(errorCount = errorCount())
+                                                        }
+                                                        initialLoop = false
+                                                    }
+                                                    if (retryIn == 0L) {
+                                                        LOOP_BREAK()
+                                                    }
+                                                    delay(1000 - (retryIn % 1000))
+                                                    stamp = SystemClock.elapsedRealtime()
+                                                }
+                                            }
+                                            return@mmrFetchFail
+                                        }.onFailure { ex ->
+                                            if (!cont.isCompleted || cont.isCancelled) throw ex
+                                        }
+                                    }
+                                mmrResultError.value = AgentSelectionPlayerCardErrorMessage(
+                                    component = "RANK ICON",
+                                    message = "UNEXPECTED ERROR OCCURRED WHEN PROCESSING RESPONSE FROM ENDPOINT",
+                                    refresh = refresh
+                                )
+                            }
+                            else -> exhaustiveWhenExpressionError()
+                        }
+                        clMmrTaskContinuation?.complete()
+                        cont.join()
+                        LOOP_CONTINUE()
                     }
+                    mmrResultError.value = null
+                    mutateState("newPlayerIdSideEffect_mmrResult_success") { state ->
+                        state.copy(errorCount = errorCount())
+                    }
+                    LOOP_BREAK(fetch.getOrThrow().getOrElse { error("") })
                 }
-
-                onDispose { coroutineScope.cancel() ; client.dispose() }
-            }
-        )
-
-        return returns.value
-    }
-
-    @Composable
-    private fun agentIconWithKey(
-        agentID: String
-    ): Pair<Any, LocalImage<*>> {
-        val key = remember(agentID) { mutableStateOf(Any()) }
-        val image = remember(agentID) { mutableStateOf<LocalImage<*>>(LocalImage.Resource(0)) }
-        DisposableEffect(
-            key1 = agentID,
-            effect = {
-                if (agentID.isBlank()) return@DisposableEffect onDispose {  }
-                val client = assetLoaderService.createLoaderClient()
-                client.loadMemoryCachedAgentIcon(agentID)?.let {
-                    key.value = it
-                    image.value = it
+                // packaged into APK, even if it fails we just let it crash
+                val iconResult = run {
+                    assetLoader.loadMemoryCachedCompetitiveRankIcon(mmrResult.competitiveRank)
+                        ?.let { return@run Result.success(it) }
+                    val def = assetLoader.loadCompetitiveRankIconAsync(mmrResult.competitiveRank)
+                    runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
+                }.getOrElse {
+                    mutateState("newPlayerIdSideEffect_iconResult_fail") { state ->
+                        state.copy(
+                            competitiveTierIcon = state.UNSET.competitiveTierIcon,
+                            competitiveTierIconKey = state.UNSET.competitiveTierIconKey
+                        )
+                    }
+                    return@launch
                 }
-                onDispose { client.dispose() }
-            }
-        )
-        return remember(key.value) { key.value to image.value }
-    }
-
-    @Composable
-    private fun roleIconWithKey(
-        roleID: String
-    ): Pair<Any, LocalImage<*>> {
-        val key = remember(roleID) { mutableStateOf(Any()) }
-        val image = remember(roleID) { mutableStateOf<LocalImage<*>>(LocalImage.Resource(0)) }
-        DisposableEffect(
-            key1 = roleID,
-            effect = {
-                if (roleID.isBlank()) return@DisposableEffect onDispose {  }
-                val client = assetLoaderService.createLoaderClient()
-                client.loadMemoryCachedRoleIcon(roleID)?.let {
-                    key.value = it
-                    image.value = it
+                mutateState("newPlayerIdSideEffect_iconResult") { state ->
+                    state.copy(
+                        competitiveTierIcon = iconResult,
+                        competitiveTierIconKey = Any()
+                    )
                 }
-                onDispose { client.dispose() }
             }
-        )
-        return remember(key.value) { key.value to image.value }
-    }
-
-    @Composable
-    private fun rankIconWithKey(
-        rank: CompetitiveRank?
-    ): Pair<Any, LocalImage<*>> {
-        val key = remember(rank) { mutableStateOf(Any()) }
-        val image = remember(rank) { mutableStateOf<LocalImage<*>>(LocalImage.Resource(0)) }
-        DisposableEffect(
-            key1 = rank,
-            effect = {
-                if (rank == null) return@DisposableEffect onDispose {  }
-                val client = assetLoaderService.createLoaderClient()
-                client.loadMemoryCachedCompetitiveRankIcon(rank)?.let {
-                    key.value = it
-                    image.value = it
-                }
-                onDispose { client.dispose() }
-            }
-        )
-        return remember(key.value) { key.value to image.value }
-    }
-}
-
-@Deprecated("")
-private fun agentDisplayIconFromID(
-    id: String
-) = agentDisplayIconByName(
-    ValorantAgentIdentity.ofID(id)?.displayName ?: ""
-)
-
-@Deprecated("")
-private fun agentDisplayIconByName(agentName: String): Int {
-    // TODO: codename as well
-    return when(agentName.lowercase()) {
-        "astra" -> ASSET_R.raw.agent_astra_displayicon
-        "breach" -> ASSET_R.raw.agent_breach_displayicon
-        "brimstone" -> ASSET_R.raw.agent_brimstone_displayicon
-        "chamber" -> ASSET_R.raw.agent_chamber_displayicon
-        "cypher" -> ASSET_R.raw.agent_cypher_displayicon
-        "fade" -> ASSET_R.raw.agent_fade_displayicon
-        "gekko" -> ASSET_R.raw.agent_gekko_displayicon
-        "harbor" -> ASSET_R.raw.agent_harbor_displayicon
-        "jett" -> ASSET_R.raw.agent_jett_displayicon
-        "kayo", "kay/o", "grenadier" -> ASSET_R.raw.agent_grenadier_displayicon
-        "killjoy" -> ASSET_R.raw.agent_killjoy_displayicon
-        "neon" -> ASSET_R.raw.agent_neon_displayicon
-        "omen" -> ASSET_R.raw.agent_omen_displayicon
-        "phoenix" -> ASSET_R.raw.agent_phoenix_displayicon
-        "raze" -> ASSET_R.raw.agent_raze_displayicon
-        "reyna" -> ASSET_R.raw.agent_reyna_displayicon
-        "sage" -> ASSET_R.raw.agent_sage_displayicon
-        "skye" -> ASSET_R.raw.agent_skye_displayicon
-        "sova" -> ASSET_R.raw.agent_sova_displayicon
-        "viper" -> ASSET_R.raw.agent_viper_displayicon
-        "yoru" -> ASSET_R.raw.agent_yoru_displayicon
-        else -> 0
-    }
-}
-
-private fun competitiveRankIcon(
-    rank: CompetitiveRank
-): Int {
-    return when(rank) {
-        CompetitiveRank.ASCENDANT_1 -> ASSET_R.raw.rank_ascendant1_smallicon
-        CompetitiveRank.ASCENDANT_2 -> ASSET_R.raw.rank_ascendant2_smallicon
-        CompetitiveRank.ASCENDANT_3 -> ASSET_R.raw.rank_ascendant3_smallicon
-        CompetitiveRank.BRONZE_1 -> ASSET_R.raw.rank_bronze1_smallicon
-        CompetitiveRank.BRONZE_2 -> ASSET_R.raw.rank_bronze2_smallicon
-        CompetitiveRank.BRONZE_3 -> ASSET_R.raw.rank_bronze3_smallicon
-        CompetitiveRank.DIAMOND_1 -> ASSET_R.raw.rank_diamond1_smallicon
-        CompetitiveRank.DIAMOND_2 -> ASSET_R.raw.rank_diamond2_smallicon
-        CompetitiveRank.DIAMOND_3 -> ASSET_R.raw.rank_diamond3_smallicon
-        CompetitiveRank.GOLD_1 -> ASSET_R.raw.rank_gold1_smallicon
-        CompetitiveRank.GOLD_2 -> ASSET_R.raw.rank_gold2_smallicon
-        CompetitiveRank.GOLD_3 -> ASSET_R.raw.rank_gold3_smallicon
-        CompetitiveRank.IMMORTAL_1 -> ASSET_R.raw.rank_immortal1_smallicon
-        CompetitiveRank.IMMORTAL_2 -> ASSET_R.raw.rank_immortal2_smallicon
-        CompetitiveRank.IMMORTAL_3 -> ASSET_R.raw.rank_immortal3_smallicon
-        CompetitiveRank.IMMORTAL_MERGED -> ASSET_R.raw.rank_immortal3_smallicon
-        CompetitiveRank.IRON_1 -> ASSET_R.raw.rank_iron1_smallicon
-        CompetitiveRank.IRON_2 -> ASSET_R.raw.rank_iron2_smallicon
-        CompetitiveRank.IRON_3 -> ASSET_R.raw.rank_iron3_smallicon
-        CompetitiveRank.PLATINUM_1 -> ASSET_R.raw.rank_platinum1_smallicon
-        CompetitiveRank.PLATINUM_2 -> ASSET_R.raw.rank_platinum2_smallicon
-        CompetitiveRank.PLATINUM_3 -> ASSET_R.raw.rank_platinum3_smallicon
-        CompetitiveRank.RADIANT -> ASSET_R.raw.rank_radiant_smallicon
-        CompetitiveRank.SILVER_1 -> ASSET_R.raw.rank_silver1_smallicon
-        CompetitiveRank.SILVER_2 -> ASSET_R.raw.rank_silver2_smallicon
-        CompetitiveRank.SILVER_3 -> ASSET_R.raw.rank_silver3_smallicon
-        CompetitiveRank.UNRANKED -> ASSET_R.raw.rank_unranked_smallicon
-        CompetitiveRank.UNUSED_1 -> ASSET_R.raw.rank_unranked_smallicon
-        CompetitiveRank.UNUSED_2 -> ASSET_R.raw.rank_unranked_smallicon
+        }
     }
 }

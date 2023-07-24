@@ -5,25 +5,20 @@ import android.util.Log
 import androidx.annotation.AnyThread
 import androidx.annotation.MainThread
 import androidx.compose.runtime.*
-import androidx.compose.ui.layout.SubcomposeLayout
-import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
 import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
+import dev.flammky.valorantcompanion.base.*
 import dev.flammky.valorantcompanion.base.compose.BaseRememberObserver
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
-import dev.flammky.valorantcompanion.base.compose.state.SnapshotWrite
 import dev.flammky.valorantcompanion.base.di.compose.inject
-import dev.flammky.valorantcompanion.base.inMainLooper
-import dev.flammky.valorantcompanion.base.StrictLoop
-import dev.flammky.valorantcompanion.base.strictResultingLoop
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
 import dev.flammky.valorantcompanion.pvp.mode.ValorantGameType
 import dev.flammky.valorantcompanion.pvp.pregame.*
 import dev.flammky.valorantcompanion.pvp.pregame.ex.PreGameMatchNotFoundException
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.*
+import kotlin.coroutines.coroutineContext
 import kotlin.time.Duration.Companion.nanoseconds
 
 @Composable
@@ -78,19 +73,24 @@ class LivePreGameScreenPresenter(
             )
     }
 
+    // we can use `key` instead
     @Composable
     fun present(user: String): LivePreGameScreenState {
-        check(user.isNotBlank()) {
-            "Cannot Present without User"
+        return rememberStateProducer(user = user).apply {
+            SideEffect { produce() }
+        }.readSnapshot()
+    }
+
+    @Composable
+    private fun rememberStateProducer(
+        user: String
+    ): UIStateProducer {
+        return remember(user) {
+            check(user.isNotBlank()) {
+                "Cannot Present without User"
+            }
+            UIStateProducer(user)
         }
-
-        val producer = remember(user) { UIStateProducer(user) }
-
-        SideEffect {
-            producer.produce()
-        }
-
-        return producer.readSnapshot()
     }
 
 
@@ -111,13 +111,19 @@ class LivePreGameScreenPresenter(
         private val coroutineScope get() = _coroutineScope!!
         private val preGameClient get() = _preGameClient!!
 
-        private var currentMatchPollTS = 0L
-        private var currentMatchDataPollTS = 0L
+        private var currentMatchPollTS = -1L
+        private var currentMatchDataPollTS = -1L
 
         private var lastActiveMatchID: String? = null
 
+        private var pingStateProducer: Job? = null
+        private var pingStateProducerCont: CompletableJob? = null
+        private var pingPollTS = -1L
+        private var pingResult: Map<String, Int> = emptyMap()
+
+        private var stateGamePodID = ""
+
         @MainThread
-        @SnapshotWrite
         fun produce() {
             check(inMainLooper()) {
                 "produce must be called on the MainThread, " +
@@ -140,7 +146,7 @@ class LivePreGameScreenPresenter(
             mutateState("produceState") { _ ->
                 LivePreGameScreenState.UNSET.copy(user = user)
             }
-            StrictLoop {
+            loop {
                 val client = pollPlayerCurrentMatchIdForClient()
                 runCatching { newMatch(client) }
                     .onFailure { ex ->
@@ -150,7 +156,6 @@ class LivePreGameScreenPresenter(
                     .onSuccess {
                         client.dispose()
                     }
-                LOOP_CONTINUE()
             }
         }
 
@@ -241,38 +246,45 @@ class LivePreGameScreenPresenter(
             var initialLoop = true
             var mnf = false
             var explicitLoading = true
-            StrictLoop {
-                mutateState("onNewMatchFound") { state ->
-                    state.copy(
-                        explicitLoading = explicitLoading,
-                        explicitLoadingMessage = run {
-                            if (explicitLoading) {
-                                if (initialLoop) "MATCH FOUND, CHECKING DATA ..."
-                                else "LOADING DATA ..."
-                            }
-                            else state.explicitLoadingMessage
-                        },
-                        inMatch = true,
-                        matchId = client.matchId,
-                    )
-                }
-                initialLoop = false
-                if (currentMatchDataPollTS != -1L) {
-                    delay(1000 - (SystemClock.elapsedRealtime() - currentMatchDataPollTS))
-                }
-                currentMatchDataPollTS = SystemClock.elapsedRealtime()
-                val result = client.fetchMatchInfoAsync().await()
-                result
-                    .onSuccess { data ->
-                        newMatchDataFromMatchPoll(client, data)
-                        explicitLoading = false
+            runCatching {
+                strictLoop {
+                    mutateState("onNewMatchFound") { state ->
+                        state.copy(
+                            explicitLoading = explicitLoading,
+                            explicitLoadingMessage = run {
+                                if (explicitLoading) {
+                                    if (initialLoop) "MATCH FOUND, CHECKING DATA ..."
+                                    else "LOADING DATA ..."
+                                }
+                                else state.explicitLoadingMessage
+                            },
+                            inMatch = true,
+                            matchId = client.matchId,
+                        )
                     }
-                    .onFailure { exception, errorCode ->
-                        onFetchCurrentMatchDataFail(exception, errorCode.toString())
-                        mnf = exception is PreGameMatchNotFoundException
-                        explicitLoading = true
+                    initialLoop = false
+                    if (currentMatchDataPollTS != -1L) {
+                        delay(1000 - (SystemClock.elapsedRealtime() - currentMatchDataPollTS))
                     }
-                if (mnf) LOOP_BREAK() else LOOP_CONTINUE()
+                    currentMatchDataPollTS = SystemClock.elapsedRealtime()
+                    val result = client.fetchMatchInfoAsync().await()
+                    result
+                        .onSuccess { data ->
+                            newMatchDataFromMatchPoll(client, data)
+                            dispatchPollMatchPing()
+                            explicitLoading = false
+                        }
+                        .onFailure { exception, errorCode ->
+                            onFetchCurrentMatchDataFail(exception, errorCode.toString())
+                            cancelPollMatchPing()
+                            mnf = exception is PreGameMatchNotFoundException
+                            explicitLoading = true
+                        }
+                    if (mnf) LOOP_BREAK() else LOOP_CONTINUE()
+                }
+            }.onFailure { ex ->
+                cancelPollMatchPing()
+                throw ex
             }
         }
 
@@ -280,6 +292,9 @@ class LivePreGameScreenPresenter(
             client: PreGameUserMatchClient,
             data: PreGameMatchData
         ) = mutateState("fetchCurrentMatchDataSuccess") { state ->
+            run sideEffect@ {
+                stateGamePodID = data.gamePodId
+            }
             val gameType = data.queueID
                 ?.let { ValorantGameType.fromQueueID(it) }
                 ?: ValorantGameType.fromProvisioningFlow(data.provisioningFlow)
@@ -298,7 +313,7 @@ class LivePreGameScreenPresenter(
                         seg <= segTake
                     }
                 },
-                gamePodPingMs = state.gamePodPingMs,
+                gamePodPingMs = pingResult[data.gamePodId],
                 countdown = data.phaseTimeRemainingNS.nanoseconds,
                 allyKey = Any(),
                 ally = run {
@@ -402,6 +417,72 @@ class LivePreGameScreenPresenter(
             cont.join()
         }
 
+        @MainThread
+        private fun dispatchPollMatchPing() {
+            checkInMainLooper()
+            if (pingStateProducer?.isActive == true) {
+                pingStateProducerCont!!.complete()
+                return
+            }
+            pingStateProducerCont = Job(lifetime)
+            pingStateProducer = coroutineScope.launch { producePingState() }
+        }
+
+        @MainThread
+        private fun cancelPollMatchPing() {
+            checkInMainLooper()
+            pingStateProducer?.cancel()
+        }
+
+        private suspend fun producePingState() {
+            runCatching {
+                loop {
+                    if (pingPollTS != -1L) {
+                        delay(500 - (SystemClock.elapsedRealtime() - pingPollTS))
+                    }
+                    pingPollTS = SystemClock.elapsedRealtime()
+                    coroutineContext.ensureActive()
+                    val def = preGameClient.fetchPingMillisAsync()
+                    runCatching { def.await() }
+                        .onFailure {
+                            def.cancel()
+                        }
+                        .onSuccess { result ->
+                            result.onSuccess(::onFetchPingSuccess).onFailure { ex ->
+                                onFetchPingFailure(ex as Exception)
+                            }
+                        }
+                    pingStateProducerCont!!.join()
+                }
+            }.onFailure { ex ->
+                onFetchPingFailure(ex as Exception)
+                throw ex
+            }
+        }
+
+        private fun onFetchPingFailure(
+            ex: Exception,
+            /* errorCode: Int,*/
+        ) {
+            pingResult = emptyMap()
+            mutateState("onFetchPingFailure") { state ->
+                state.copy(
+                    gamePodPingMs = null
+                )
+            }
+        }
+
+        private fun onFetchPingSuccess(
+            data: Map<String, Int>
+        ) {
+            pingResult = data
+            mutateState("onFetchPingSuccess") { state ->
+                state.copy(
+                    gamePodPingMs = pingResult[stateGamePodID],
+                )
+            }
+        }
+
         @Composable
         @AnyThread
         @SnapshotRead
@@ -430,6 +511,7 @@ class LivePreGameScreenPresenter(
             forgotten = true
             _coroutineScope?.cancel()
             _preGameClient?.dispose()
+            lifetime.cancel()
         }
 
         override fun onRemembered() {

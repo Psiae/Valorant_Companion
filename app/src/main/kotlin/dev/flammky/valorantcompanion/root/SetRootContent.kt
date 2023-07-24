@@ -5,7 +5,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.ElevatedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -19,7 +18,6 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import dev.flammky.valorantcompanion.MainActivity
 import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
 import dev.flammky.valorantcompanion.base.di.koin.compose.KoinDependencyInjector
-import dev.flammky.valorantcompanion.base.runRemember
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundColorAsState
 import dev.flammky.valorantcompanion.base.theme.material3.primaryColorAsState

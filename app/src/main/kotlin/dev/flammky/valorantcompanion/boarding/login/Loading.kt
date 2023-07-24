@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import dev.flammky.valorantcompanion.base.runRemember
+import dev.flammky.valorantcompanion.base.rememberThis
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundColorAsState
 
@@ -28,7 +28,7 @@ fun LoginLoadingScreen(
                 modifier
                     .fillMaxSize()
                     .pointerInput(Unit) {}
-            }.runRemember(backgroundColor) {
+            }.rememberThis(backgroundColor) {
                 background(backgroundColor)
             }
         ) {

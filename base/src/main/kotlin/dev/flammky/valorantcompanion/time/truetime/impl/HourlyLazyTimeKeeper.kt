@@ -7,7 +7,7 @@ import com.instacart.truetime.sntp.SntpImpl
 import com.instacart.truetime.time.TrueTimeImpl
 import com.instacart.truetime.time.TrueTimeParameters
 import dev.flammky.valorantcompanion.time.truetime.LazyTimeKeeper
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.*
 import java.util.*
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -19,6 +19,9 @@ internal class HourlyLazyTimeKeeper : LazyTimeKeeper {
     private val lifeSupports = mutableListOf<Job>()
     private var isAlive = false
     private val tru = TrueTimeOp()
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var job: Job? = null
+    private var stamp = -1L
 
     override fun addLifetime(job: Job) {
         synchronized(lifeSupports) {
@@ -58,7 +61,13 @@ internal class HourlyLazyTimeKeeper : LazyTimeKeeper {
         synchronized(stateLock) {
             if (isAlive) return
             isAlive = true
-            tru.strictSync()
+            job = coroutineScope.launch {
+                if (stamp != -1L) {
+                    delay(1.hours.inWholeMilliseconds - (SystemClock.elapsedRealtime() - stamp))
+                    stamp = SystemClock.elapsedRealtime()
+                }
+                tru.strictSync()
+            }
         }
     }
 
@@ -67,6 +76,7 @@ internal class HourlyLazyTimeKeeper : LazyTimeKeeper {
         synchronized(stateLock) {
             if (!isAlive) return
             isAlive = false
+            job?.cancel()
             tru.strictCancel()
         }
     }
@@ -142,7 +152,7 @@ internal class HourlyLazyTimeKeeper : LazyTimeKeeper {
             return keepNtpResult?.let { currentWithSystemClockOffset(it) }
         }
         fun currentWithSystemClockOffset(data: LazyTimeKeeper.UpSyncData): Duration? {
-            return (data.internalData as? NtpResult)?.let { currentWithSystemClockOffset(it) }
+            return (data.data as? NtpResult)?.let { currentWithSystemClockOffset(it) }
         }
         fun currentWithSystemClockOffset(ntpResult: NtpResult): Duration {
             val offset = SystemClock.elapsedRealtime() - ntpResult.elapsed()

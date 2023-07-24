@@ -21,33 +21,25 @@ class InGameFetchRequestResult <T> private constructor(
         fun failure(
             exception: Exception,
             errorCode: Int
-        ): InGameFetchRequestResult<T> {
-            return InGameFetchRequestResult.failure(exception, errorCode)
-        }
+        ): InGameFetchRequestResult<T> = InGameFetchRequestResult<T>(
+            data = null,
+            ex = exception,
+            errorCode = errorCode
+        )
 
         fun success(
             data: T
-        ): InGameFetchRequestResult<T> {
-            return InGameFetchRequestResult.success(data)
-        }
-    }
-
-    companion object {
-
-        internal fun <T> success(data: T) = InGameFetchRequestResult<T>(
+        ): InGameFetchRequestResult<T> = InGameFetchRequestResult<T>(
             data = data,
             ex = null,
             errorCode = null
         )
+    }
 
-        internal fun <T> failure(
-            ex: Exception,
-            errorCode: Int
-        ) = InGameFetchRequestResult<T>(
-            data = null,
-            ex = ex,
-            errorCode = errorCode
-        )
+    companion object {
+
+        internal fun <T> success(data: T) = Builder<T>().success(data)
+        internal fun <T> failure(ex: Exception, errorCode: Int) = Builder<T>().failure(ex, errorCode)
 
         internal inline fun <T> build(
             block: Builder<T>.() -> InGameFetchRequestResult<T>
@@ -60,10 +52,6 @@ class InGameFetchRequestResult <T> private constructor(
         ): InGameFetchRequestResult<T> {
             return runCatching { build(block) }
                 .getOrElse { ex -> failure(ex as Exception, PVPModuleErrorCodes.UNHANDLED_EXCEPTION) }
-        }
-
-        fun <T> InGameFetchRequestResult<T>.asKtResult(): Result<T> {
-            return if (isSuccess) Result.success(data!!) else Result.failure(ex!!)
         }
     }
 }
@@ -102,5 +90,9 @@ inline fun <T> InGameFetchRequestResult<T>.getOrThrow(): T {
     } else {
         getOrNull()!!
     }
+}
+
+fun <T> InGameFetchRequestResult<T>.asKtResult(): Result<T> {
+    return if (isSuccess) Result.success(getOrNull()!!) else Result.failure(getExceptionOrNull()!!)
 }
 

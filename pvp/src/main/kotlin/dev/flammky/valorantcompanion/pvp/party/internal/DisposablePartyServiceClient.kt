@@ -93,24 +93,42 @@ internal class DisposablePartyServiceClient(
                 )
             )
 
-            if (response.statusCode == 404) {
-                response.body.jsonObjectOrNull?.get("errorCode")
-                    ?.jsonPrimitiveOrNull
-                    ?.toString()
-                    ?.removeSurrounding("\"")
-                    ?.let { code ->
-                        if (code == "RESOURCE_NOT_FOUND") throw PlayerPartyNotFoundException()
-                        if (code == "PLAYER_DOES_NOT_EXIST") throw PlayerNotFoundException()
+            when(response.statusCode) {
+                200 -> runCatching {
+                    val obj = response.body.getOrThrow().jsonObject
+                    val str = obj["CurrentPartyID"]?.jsonPrimitive?.toString()
+                    if (str.isNullOrBlank()) {
+                        unexpectedResponse("CurrentPartyID not found")
                     }
-                unexpectedResponse("Unable to fetch Player Party Info (404)")
+                    str.removeSurrounding("\"")
+                }.onSuccess { data ->
+                    return Result.success(data)
+                }.onFailure { ex ->
+                    return Result.failure(ex)
+                }
+                404 -> runCatching<Result<String>> {
+                    response.body.getOrThrow().jsonObject
+                        .get("errorCode")
+                        ?.jsonPrimitiveOrNull
+                        ?.toString()
+                        ?.removeSurrounding("\"")
+                        ?.let { code ->
+                            if (code == "RESOURCE_NOT_FOUND") {
+                                return@runCatching Result.failure(PlayerPartyNotFoundException())
+                            }
+                            if (code == "PLAYER_DOES_NOT_EXIST") {
+                                return@runCatching Result.failure(PlayerNotFoundException())
+                            }
+                        }
+                    unexpectedResponse("UNEXPECTED PARTY INFO RESPONSE (404)")
+                }.onSuccess { result ->
+                    return result
+                }.onFailure { ex ->
+                    return Result.failure(ex)
+                }
             }
 
-            val obj = response.body.jsonObject
-            val str = obj["CurrentPartyID"]?.jsonPrimitive?.toString()
-            if (str.isNullOrBlank()) {
-                unexpectedResponse("CurrentPartyID not found")
-            }
-            str.removeSurrounding("\"")
+            error("Unhandled HTTP response Code (${response.statusCode})")
         }
     }
 
@@ -150,13 +168,13 @@ internal class DisposablePartyServiceClient(
         return runCatching {
             PlayerPartyData(
                 party_id = run {
-                    response.body.jsonObject["ID"]?.jsonPrimitive
+                    response.body.getOrThrow().jsonObject["ID"]?.jsonPrimitive
                         ?.toString()
                         ?.removeSurrounding("\"")
                         ?: unexpectedResponse("ID not found")
                 },
                 version = run {
-                    val str = response.body.jsonObject["Version"]?.jsonPrimitive
+                    val str = response.body.getOrThrow().jsonObject["Version"]?.jsonPrimitive
                         ?.toString()
                         ?.removeSurrounding("\"")
                         ?: unexpectedResponse("Version not found")
@@ -166,13 +184,13 @@ internal class DisposablePartyServiceClient(
                     str.toLong()
                 },
                 client_version = run {
-                    response.body.jsonObject["ClientVersion"]?.jsonPrimitive
+                    response.body.getOrThrow().jsonObject["ClientVersion"]?.jsonPrimitive
                         ?.toString()
                         ?.removeSurrounding("\"")
                         ?: unexpectedResponse("ClientVersion not found")
                 },
                 members = run {
-                    val arr = response.body.jsonObject["Members"]?.jsonArray
+                    val arr = response.body.getOrThrow().jsonObject["Members"]?.jsonArray
                         ?: unexpectedResponse("Members not found")
                     arr.map { element ->
                         val member = element.jsonObject
@@ -315,25 +333,25 @@ internal class DisposablePartyServiceClient(
                     }
                 },
                 state = run {
-                    response.body.jsonObject["State"]?.jsonPrimitive
+                    response.body.getOrThrow().jsonObject["State"]?.jsonPrimitive
                         ?.toString()
                         ?.removeSurrounding("\"")
                         ?: unexpectedResponse("State not found")
                 },
                 previousState = run {
-                    response.body.jsonObject["PreviousState"]?.jsonPrimitive
+                    response.body.getOrThrow().jsonObject["PreviousState"]?.jsonPrimitive
                         ?.toString()
                         ?.removeSurrounding("\"")
                         ?: unexpectedResponse("PreviousState not found")
                 },
                 stateTransitionReason = run {
-                    response.body.jsonObject["StateTransitionReason"]?.jsonPrimitive
+                    response.body.getOrThrow().jsonObject["StateTransitionReason"]?.jsonPrimitive
                         ?.toString()
                         ?.removeSurrounding("\"")
                         ?: unexpectedResponse("StateTransitionReason not found")
                 },
                 accessibility = run {
-                    val str = response.body.jsonObject["Accessibility"]?.jsonPrimitive
+                    val str = response.body.getOrThrow().jsonObject["Accessibility"]?.jsonPrimitive
                         ?.toString()
                         ?.removeSurrounding("\"")
                         ?: unexpectedResponse("Accessibility not found")
@@ -341,7 +359,7 @@ internal class DisposablePartyServiceClient(
                         ?: unexpectedResponse("Accessibility is not defined locally")
                 },
                 customGameData = run {
-                    val data = response.body.jsonObject["CustomGameData"]?.jsonObject
+                    val data = response.body.getOrThrow().jsonObject["CustomGameData"]?.jsonObject
                         ?: unexpectedResponse("CustomGameData not found")
                     CustomGameData(
                         settings = run {
@@ -476,7 +494,7 @@ internal class DisposablePartyServiceClient(
                     )
                 },
                 matchmakingData = run {
-                    val data = response.body.jsonObject["MatchmakingData"]
+                    val data = response.body.getOrThrow().jsonObject["MatchmakingData"]
                         ?.jsonObject
                         ?: unexpectedResponse("MatchmakingData not found")
                     MatchmakingData(
@@ -504,22 +522,22 @@ internal class DisposablePartyServiceClient(
                     )
                 },
                 invites = run {
-                    val j = response.body.jsonObject["Invites"]
+                    val j = response.body.getOrThrow().jsonObject["Invites"]
                         ?: unexpectedResponse("Invites not found")
                     j as? JsonNull
                 },
                 requests = run {
-                    response.body.jsonObject["Requests"]?.jsonArray
+                    response.body.getOrThrow().jsonObject["Requests"]?.jsonArray
                         ?: unexpectedResponse("Requests not found")
                 },
                 queueEntryTime = run {
-                    response.body.jsonObject["QueueEntryTime"]?.jsonPrimitive
+                    response.body.getOrThrow().jsonObject["QueueEntryTime"]?.jsonPrimitive
                         ?.toString()
                         ?.removeSurrounding("\"")
                         ?: unexpectedResponse("QueueEntryTime not found")
                 },
                 errorNotification = run {
-                    val data = response.body.jsonObject["ErrorNotification"]?.jsonObject
+                    val data = response.body.getOrThrow().jsonObject["ErrorNotification"]?.jsonObject
                         ?: unexpectedResponse("ErrorNotification not found")
                     ErrorNotification(
                         errorType = run {
@@ -537,7 +555,7 @@ internal class DisposablePartyServiceClient(
                     )
                 },
                 restrictedSeconds = run {
-                    val str = response.body.jsonObject["RestrictedSeconds"]?.jsonPrimitive
+                    val str = response.body.getOrThrow().jsonObject["RestrictedSeconds"]?.jsonPrimitive
                         ?.toString()
                         ?: unexpectedResponse("RestrictedSeconds not found")
                     if (str.isBlank()) {
@@ -549,17 +567,17 @@ internal class DisposablePartyServiceClient(
                     str.toInt()
                 },
                 eligibleQueues = run {
-                    val arr = response.body.jsonObject["EligibleQueues"]?.jsonArray
+                    val arr = response.body.getOrThrow().jsonObject["EligibleQueues"]?.jsonArray
                         ?: unexpectedResponse("EligibleQueues not found")
                     arr.map { it.jsonPrimitive.toString().removeSurrounding("\"") }
                 },
                 queueIneligibilities = run {
-                    val arr = response.body.jsonObject["QueueIneligibilities"]?.jsonArray
+                    val arr = response.body.getOrThrow().jsonObject["QueueIneligibilities"]?.jsonArray
                         ?: unexpectedResponse("QueueIneligibilities not found")
                     arr.map { it.jsonPrimitive.toString().removeSurrounding("\"") }
                 },
                 cheatData = run {
-                    val data = response.body.jsonObject["CheatData"]?.jsonObject
+                    val data = response.body.getOrThrow().jsonObject["CheatData"]?.jsonObject
                         ?: unexpectedResponse("CheatData not found")
                     CheatData(
                         gamePodOverride = run {
@@ -578,7 +596,7 @@ internal class DisposablePartyServiceClient(
                     )
                 },
                 xpBonuses = run {
-                    val arr = response.body.jsonObject["XPBonuses"]?.jsonArray
+                    val arr = response.body.getOrThrow().jsonObject["XPBonuses"]?.jsonArray
                         ?: unexpectedResponse("XPBonuses not found")
                     arr
                 },

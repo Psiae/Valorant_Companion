@@ -42,7 +42,9 @@ internal fun FakeLiveInGameTeamMemberCardPreview() = DefaultMaterial3Theme(dark 
             roleIcon = LocalImage.Resource(R_ASSET.raw.role_duelist_displayicon),
             roleIconKey = Any(),
             competitiveTierIcon = LocalImage.Resource(R_ASSET.raw.rank_immortal3_smallicon),
-            competitiveTierIconKey = Any()
+            competitiveTierIconKey = Any(),
+            errorCount = 0,
+            getErrors = { error("") }
         )
     )
 }

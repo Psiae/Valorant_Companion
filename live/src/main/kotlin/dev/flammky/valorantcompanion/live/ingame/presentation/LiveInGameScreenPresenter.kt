@@ -17,6 +17,7 @@ import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
 import dev.flammky.valorantcompanion.pvp.mode.ValorantGameType
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.*
+import kotlin.coroutines.coroutineContext
 
 @Composable
 internal fun rememberLiveInGameScreenPresenter(
@@ -74,19 +75,19 @@ internal class LiveInGameScreenPresenter(
     fun present(
         user: String
     ): LiveInGameScreenState {
-        check(user.isNotEmpty()) {
-            "Cannot Present an unset USER"
-        }
+        return rememberStateProducer(user = user).apply { SideEffect { produce() } }.readSnapshot()
+    }
 
-        val producer = remember(user) {
+    @Composable
+    private fun rememberStateProducer(
+        user: String
+    ): StateProducer {
+        return remember(user) {
+            check(user.isNotBlank()) {
+                "Cannot Present without User"
+            }
             StateProducer(user)
         }
-
-        SideEffect {
-            producer.produce()
-        }
-
-        return producer.readSnapshot()
     }
 
 
@@ -110,9 +111,12 @@ internal class LiveInGameScreenPresenter(
         private var currentMatchPollTS = 0L
         private var currentMatchDataPollTS = 0L
 
-        private var inInitialRefreshSession = false
-        private val inExplicitRefreshSession get() = inInitialRefreshSession
-        private var lastActiveMatchID: String? = null
+        private var pingStateProducer: Job? = null
+        private var pingStateProducerCont: CompletableJob? = null
+        private var pingPollTS = -1L
+        private var pingResult: Map<String, Int> = emptyMap()
+
+        private var stateGamePodID = ""
 
         @SnapshotWrite
         @MainThread
@@ -131,13 +135,12 @@ internal class LiveInGameScreenPresenter(
             }
             if (producing) return
             producing = true
-            inInitialRefreshSession = true
             producer = coroutineScope.launch { produceState() }
         }
 
         private suspend fun produceState() {
             onInitialProduce()
-            StrictLoop {
+            strictLoop {
                 val match = pollCurrentMatchForClient()
                 runCatching { onNewMatchFound(match) }
                     .onFailure { ex ->
@@ -212,10 +215,18 @@ internal class LiveInGameScreenPresenter(
         ): InGameUserMatchClient? {
             result
                 .onSuccess { id ->
-                    if (id != lastActiveMatchID) {
-                        lastActiveMatchID = id
-                        return inGameClient.createMatchClient(id)
-                    }
+                    val client = inGameClient.createMatchClient(id)
+                    val def = client.fetchMatchInfoAsync()
+                    runCatching {
+                        def.await()
+                            .onSuccess { info ->
+                                return client.takeIf { !info.matchOver }
+                            }
+                            .onFailure { ex, er ->
+                                onFetchCurrentMatchFail(ex, er)
+                            }
+                    }.onFailure { ex -> def.cancel() ; throw ex }
+                    client.dispose()
                 }
                 .onFailure { exception, errorCode ->
                     onFetchCurrentMatchFail(exception, errorCode)
@@ -229,7 +240,7 @@ internal class LiveInGameScreenPresenter(
             var mnf = false
             var matchOver = false
             var explicitLoading = true
-            StrictLoop {
+            strictLoop {
                 mutateState("onNewMatchFound") { state ->
                     state.copy(
                         inMatch = true,
@@ -255,11 +266,13 @@ internal class LiveInGameScreenPresenter(
                 result
                     .onSuccess { data ->
                         newMatchDataFromMatchPoll(data)
+                        dispatchPollMatchPing()
                         matchOver = data.matchOver
                         explicitLoading = false
                     }
                     .onFailure { exception, errorCode ->
                         onFetchCurrentMatchDataFail(exception, errorCode)
+                        cancelPollMatchPing()
                         mnf = exception is InGameMatchNotFoundException
                         explicitLoading = true
                     }
@@ -328,6 +341,9 @@ internal class LiveInGameScreenPresenter(
         ) = mutateState("fetchCurrentMatchDataSuccess") { state ->
             // TODO: fallback
             if (data.matchOver) {
+                run sideEffect@ {
+                    stateGamePodID = ""
+                }
                 state.copy(
                     inMatch = true,
                     matchKey = data.matchID,
@@ -343,6 +359,9 @@ internal class LiveInGameScreenPresenter(
                     enemy = null
                 )
             } else {
+                run sideEffect@ {
+                    stateGamePodID = data.gamePodID
+                }
                 val gameType = data.queueID
                     ?.let { ValorantGameType.fromQueueID(it) }
                     ?: ValorantGameType.fromProvisioningFlow(data.provisioningFlow)
@@ -357,7 +376,7 @@ internal class LiveInGameScreenPresenter(
                     mapName = ValorantMapIdentity.ofID(data.mapID)?.display_name ?: "UNKNOWN_MAP_NAME",
                     gameTypeName = gameType?.displayName,
                     gamePodName = toGamePodName(data.gamePodID),
-                    gamePodPingMs = state.gamePodPingMs,
+                    gamePodPingMs = pingResult[data.gamePodID],
                     allyMembersProvided = ally.members.isNotEmpty(),
                     ally = ally,
                     enemyMembersProvided = enemy.members.isNotEmpty(),
@@ -463,6 +482,72 @@ internal class LiveInGameScreenPresenter(
             cont.join()
         }
 
+        @MainThread
+        private fun dispatchPollMatchPing() {
+            checkInMainLooper()
+            if (pingStateProducer?.isActive == true) {
+                pingStateProducerCont!!.complete()
+                return
+            }
+            pingStateProducerCont = Job(lifetime)
+            pingStateProducer = coroutineScope.launch { producePingState() }
+        }
+
+        @MainThread
+        private fun cancelPollMatchPing() {
+            checkInMainLooper()
+            pingStateProducer?.cancel()
+        }
+
+        private suspend fun producePingState() {
+            runCatching {
+                loop {
+                    if (pingPollTS != -1L) {
+                        delay(500 - (SystemClock.elapsedRealtime() - pingPollTS))
+                    }
+                    pingPollTS = SystemClock.elapsedRealtime()
+                    coroutineContext.ensureActive()
+                    val def = inGameClient.fetchPingMillisAsync()
+                    runCatching { def.await() }
+                        .onFailure {
+                            def.cancel()
+                        }
+                        .onSuccess { result ->
+                            result.onSuccess(::onFetchPingSuccess).onFailure { ex, er ->
+                                onFetchPingFailure(ex)
+                            }
+                        }
+                    pingStateProducerCont!!.join()
+                }
+            }.onFailure { ex ->
+                onFetchPingFailure(ex as Exception)
+                throw ex
+            }
+        }
+
+        private fun onFetchPingFailure(
+            ex: Exception,
+            /* errorCode: Int,*/
+        ) {
+            pingResult = emptyMap()
+            mutateState("onFetchPingFailure") { state ->
+                state.copy(
+                    gamePodPingMs = -1
+                )
+            }
+        }
+
+        private fun onFetchPingSuccess(
+            data: Map<String, Int>
+        ) {
+            pingResult = data
+            mutateState("onFetchPingSuccess") { state ->
+                state.copy(
+                    gamePodPingMs = pingResult[stateGamePodID],
+                )
+            }
+        }
+
         override fun onAbandoned() {
             super.onAbandoned()
             check(!remembered)
@@ -479,6 +564,7 @@ internal class LiveInGameScreenPresenter(
             forgotten = true
             _coroutineScope?.cancel()
             _inGameClient?.dispose()
+            lifetime.cancel()
         }
 
         override fun onRemembered() {

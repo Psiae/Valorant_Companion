@@ -1,6 +1,7 @@
 package dev.flammky.valorantcompanion.pvp.player
 
 import dev.flammky.valorantcompanion.auth.riot.region.RiotShard
+import kotlinx.collections.immutable.ImmutableMap
 
 class GetPlayerNameRequest(
     // the shard of this request, if null then use the signed in user
@@ -11,6 +12,6 @@ class GetPlayerNameRequest(
 }
 
 class GetPlayerNameRequestResult(
-    private val map: Map<String, Result<PlayerPVPName>>,
+    private val map: ImmutableMap<String, Result<PlayerPVPName>>,
     val ex: Exception?
-): Map<String, Result<PlayerPVPName>> by map {}
+): ImmutableMap<String, Result<PlayerPVPName>> by map {}

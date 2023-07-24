@@ -13,7 +13,7 @@ interface PreGameUserClient {
 
     fun createMatchClient(matchID: String): PreGameUserMatchClient
 
-    fun fetchPingMillis(): Deferred<Result<Map<String, Int>>>
+    fun fetchPingMillisAsync(): Deferred<Result<Map<String, Int>>>
 
     fun fetchPlayerMMRData(
         subjectPUUID: String

@@ -6,7 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import dev.flammky.valorantcompanion.base.runRemember
+import dev.flammky.valorantcompanion.base.rememberThis
 
 @Composable
 fun LiveInGameTeamMembersUI(
@@ -42,7 +42,7 @@ fun LiveInGameTeamMembersUI(
 
         Box {
             LiveInGameTeamMembersColumn(
-                modifier = Modifier.runRemember(targetAlly.value) {
+                modifier = Modifier.rememberThis(targetAlly.value) {
                     zIndex(if (targetAlly.value) 1f else 0f).alpha(if (targetAlly.value) 1f else 0f)
                 },
                 matchKey = matchKey,
@@ -52,7 +52,7 @@ fun LiveInGameTeamMembersUI(
                 getMembers = { ally?.members ?: emptyList() }
             )
             LiveInGameTeamMembersColumn(
-                modifier = Modifier.runRemember(targetAlly.value) {
+                modifier = Modifier.rememberThis(targetAlly.value) {
                     zIndex(if (targetAlly.value) 0f else 1f).alpha(if (targetAlly.value) 0f else 1f)
                 },
                 matchKey = matchKey,

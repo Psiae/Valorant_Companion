@@ -10,6 +10,7 @@ import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequestResult
 import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
 import dev.flammky.valorantcompanion.pvp.player.PlayerPVPName
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 
@@ -29,7 +30,7 @@ internal class RealValorantNameService(
 
         val def = CompletableDeferred<GetPlayerNameRequestResult>()
 
-        val job = coroutineScope.launch(Dispatchers.IO) {
+        coroutineScope.launch(Dispatchers.IO) {
             runCatching {
                 val auth_token = authService.get_authorization(request.signedInUserPUUID)
                     .getOrElse { error("Unable to get authorization token") }.access_token
@@ -54,41 +55,58 @@ internal class RealValorantNameService(
                 )
                 GetPlayerNameRequestResult(
                     run {
+                        val providedSubjects = mutableListOf<String>()
                         val mappedResponse = buildMap {
-                            response.body.jsonArray
+                            response.body.getOrThrow().jsonArray
                                 .forEachIndexed { index, jsonElement ->
-                                    val obj = jsonElement.jsonObject
-                                    val subject = obj["Subject"]?.jsonPrimitive
-                                        ?.toString()
-                                        ?.removeSurrounding("\"")
-                                        ?: error("Subject not found")
-                                    if (subject !in request.lookupPUUIDs) {
-                                        return@forEachIndexed
+                                    runCatching {
+                                        val obj = jsonElement.jsonObject
+                                        val subject = obj["Subject"]?.jsonPrimitive
+                                            ?.toString()
+                                            ?.removeSurrounding("\"")
+                                            ?: error("Subject not found")
+                                        providedSubjects.add(subject)
+                                        if (subject !in request.lookupPUUIDs) {
+                                            return@forEachIndexed
+                                        }
+                                        val displayName = obj["DisplayName"]?.jsonPrimitive
+                                            ?.toString()
+                                            ?.removeSurrounding("\"")
+                                            ?: error("DisplayName not found")
+                                        val gameName = obj["GameName"]?.jsonPrimitive
+                                            ?.toString()
+                                            ?.removeSurrounding("\"")
+                                            ?: error("GameName not found")
+                                        val tagLine = obj["TagLine"]?.jsonPrimitive
+                                            ?.toString()
+                                            ?.removeSurrounding("\"")
+                                            ?: error("TagLine not found")
+                                        put(
+                                            subject,
+                                            Result.success(
+                                                PlayerPVPName(subject, displayName, gameName, tagLine)
+                                            )
+                                        )
                                     }
-                                    val displayName = obj["DisplayName"]?.jsonPrimitive
-                                        ?.toString()
-                                        ?.removeSurrounding("\"")
-                                        ?: error("DisplayName not found")
-                                    val gameName = obj["GameName"]?.jsonPrimitive
-                                        ?.toString()
-                                        ?.removeSurrounding("\"")
-                                        ?: error("GameName not found")
-                                    val tagLine = obj["TagLine"]?.jsonPrimitive
-                                        ?.toString()
-                                        ?.removeSurrounding("\"")
-                                        ?: error("TagLine not found")
-                                    put(subject, Result.success(PlayerPVPName(subject, displayName, gameName, tagLine)))
                                 }
                         }
-                        buildMap {
-                            request.lookupPUUIDs.forEach { id ->
-                                put(
-                                    id,
-                                    mappedResponse[id]
-                                        ?: Result.failure(UnexpectedResponseException(""))
-                                )
+                        persistentMapOf<String, Result<PlayerPVPName>>()
+                            .builder()
+                            .apply {
+                                request.lookupPUUIDs.forEach { id ->
+                                    put(
+                                        id,
+                                        mappedResponse[id]
+                                            ?: Result.failure(
+                                                UnexpectedResponseException(
+                                                    if (id in providedSubjects) "Endpoint did not return requested subject"
+                                                    else "Endpoint returned unexpected data for the given subject"
+                                                )
+                                            )
+                                    )
+                                }
                             }
-                        }
+                            .build()
                     },
                     null
                 )
@@ -96,19 +114,18 @@ internal class RealValorantNameService(
                 def.complete(it)
             }.onFailure { ex ->
                 if (BuildConfig.DEBUG) ex.printStackTrace()
-                def.complete(GetPlayerNameRequestResult(emptyMap(), ex as Exception))
+                def.complete(GetPlayerNameRequestResult(persistentMapOf(), ex as Exception))
             }
         }.apply {
+            def.invokeOnCompletion { ex ->
+                ex?.let { cancel() }
+            }
             invokeOnCompletion { ex ->
                 ex?.let {
-                    def.complete(GetPlayerNameRequestResult(emptyMap(), ex as Exception))
+                    def.complete(GetPlayerNameRequestResult(persistentMapOf(), ex as Exception))
                 }
                 check(def.isCompleted)
             }
-        }
-
-        def.invokeOnCompletion { ex ->
-            ex?.let { job.cancel() }
         }
 
         return def

@@ -27,10 +27,13 @@ private fun AgentSelectionPlayerCardPreviewWithNeon() {
             selectedAgentRoleIcon = LocalImage.Resource(AssetResource.raw.role_duelist_displayicon),
             selectedAgentRoleIconKey = Unit,
             isLockedIn = false,
-            tierName = "Ascendant 1",
-            tierIcon = LocalImage.Resource(AssetResource.raw.rank_ascendant1_smallicon),
-            tierIconKey = Unit,
-            isUser = true
+            competitiveTierName = "Ascendant 1",
+            competitiveTierIcon = LocalImage.Resource(AssetResource.raw.rank_ascendant1_smallicon),
+            competitiveTierIconKey = Unit,
+            isUser = true,
+            null,
+            errorCount = 0,
+            getErrors = { error("") }
         )
     }
     DefaultMaterial3Theme(dark = true) {

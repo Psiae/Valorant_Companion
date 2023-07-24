@@ -6,6 +6,7 @@ import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
 import dev.flammky.valorantcompanion.network.NetworkErrorCodes
 import dev.flammky.valorantcompanion.pvp.TeamID
 import dev.flammky.valorantcompanion.pvp.date.ISO8601
+import dev.flammky.valorantcompanion.pvp.error.PVPModuleErrorCodes
 import dev.flammky.valorantcompanion.pvp.ex.UnexpectedResponseException
 import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
@@ -108,28 +109,38 @@ internal class DisposablePreGameUserMatchClient(
             )
 
             when (response.statusCode) {
-                200 -> return@buildCatching success(
-                    mapPreGameMatchDataResponseToModel(
-                        expectedMatchID = matchId,
-                        body = response.body
+                200 -> runCatching {
+                    success(
+                        mapPreGameMatchDataResponseToModel(
+                            expectedMatchID = matchId,
+                            body = response.body.getOrThrow()
+                        )
                     )
-                )
+                }.onSuccess { result ->
+                    return@buildCatching result
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
+                }
                 400 -> /* TODO: retry */ Unit
-                404 -> {
-                    if (
-                        response.body
-                            .expectJsonObject("PlayerPreGameData response")
-                            .expectJsonProperty("errorCode")
-                            .expectJsonPrimitive("errorCode")
-                            .expectNotJsonNull("errorCode")
-                            .content
-                            .also { expectNonBlankJsonString("errorCode", it) }
-                            .let { code ->
-                                code == "PREGAME_MNF" || code == "RESOURCE_NOT_FOUND"
-                            }
-                    ) {
-                        throw PreGameMatchNotFoundException()
+                404 -> runCatching {
+                    val errorCode = response.body.getOrThrow()
+                        .expectJsonObject("PlayerPreGameData response")
+                        .expectJsonProperty("errorCode")
+                        .expectJsonPrimitive("errorCode")
+                        .expectNotJsonNull("errorCode")
+                        .content
+                        .also { expectNonBlankJsonString("errorCode", it) }
+                    if (errorCode == "PREGAME_MNF" || errorCode == "RESOURCE_NOT_FOUND") {
+                        return@runCatching failure(
+                            PreGameMatchNotFoundException(),
+                            PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE
+                        )
                     }
+                    error("404 UNHANDLED ERROR CODE ($)")
+                }.onSuccess { result ->
+                    return@buildCatching result
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
                 }
             }
 
@@ -153,7 +164,7 @@ internal class DisposablePreGameUserMatchClient(
                     JsonHttpRequest(
                         method = "POST",
                         url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}" +
-                                ".a.pvp.net/pregame/v1/matches/$matchId/select/$agentId",
+                                ".a.pvp.net/pregame/v1/matches/$matchId/lock/$agentId",
                         headers = listOf(
                             "X-Riot-Entitlements-JWT" to entitlement_token,
                             "Authorization" to "Bearer $access_token"
@@ -169,18 +180,38 @@ internal class DisposablePreGameUserMatchClient(
             }
 
             when (response.statusCode) {
-                200 -> return@buildCatching success(
-                    mapPreGameMatchDataResponseToModel(matchId, response.body)
-                )
-                404 -> {
+                200 -> runCatching {
+                    success(
+                        mapPreGameMatchDataResponseToModel(matchId, response.body.getOrThrow())
+                    )
+                }.onSuccess { result ->
+                    return@buildCatching result
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
+                }
+                404 -> runCatching {
                     val errorCode = response.body
+                        .getOrThrow()
                         .expectJsonObject("PlayerPreGameData response")
                         .expectJsonProperty("errorCode")
                         .expectJsonPrimitive("errorCode")
                         .expectNotJsonNull("errorCode")
                         .content
                         .also { expectNonBlankJsonString("errorCode", it) }
-                    if (errorCode == "PREGAME_MNF") throw PreGameMatchNotFoundException()
+                    if (errorCode == "PREGAME_MNF") {
+                        return@runCatching failure(
+                            PreGameMatchNotFoundException(),
+                            PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE
+                        )
+                    }
+                    error("404 UNHANDLED ERROR CODE ($errorCode)")
+                }.onSuccess { result ->
+                    return@buildCatching result
+                }.onFailure { ex ->
+                    return@buildCatching failure(
+                        ex as Exception,
+                        PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE
+                    )
                 }
             }
 
@@ -220,18 +251,32 @@ internal class DisposablePreGameUserMatchClient(
             }
 
             when (response.statusCode) {
-                200 -> return@buildCatching success(
-                    mapPreGameMatchDataResponseToModel(matchId, response.body)
-                )
-                404 -> {
+                200 -> runCatching {
+                    success(mapPreGameMatchDataResponseToModel(matchId, response.body.getOrThrow()))
+                }
+                404 -> runCatching {
                     val errorCode = response.body
+                        .getOrThrow()
                         .expectJsonObject("PlayerPreGameData response")
                         .expectJsonProperty("errorCode")
                         .expectJsonPrimitive("errorCode")
                         .expectNotJsonNull("errorCode")
                         .content
                         .also { expectNonBlankJsonString("errorCode", it) }
-                    if (errorCode == "PREGAME_MNF") throw PreGameMatchNotFoundException()
+                    if (errorCode == "PREGAME_MNF") {
+                        return@runCatching failure(
+                            PreGameMatchNotFoundException(),
+                            PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE
+                        )
+                    }
+                    error("404 UNHANDLED ERROR CODE ($errorCode)")
+                }.onSuccess { result ->
+                    return@buildCatching result
+                }.onFailure { ex ->
+                    return@buildCatching failure(
+                        ex as Exception,
+                        PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE
+                    )
                 }
             }
 

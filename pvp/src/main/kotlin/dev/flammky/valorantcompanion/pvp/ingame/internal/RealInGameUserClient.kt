@@ -2,15 +2,16 @@ package dev.flammky.valorantcompanion.pvp.ingame.internal
 
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
+import dev.flammky.valorantcompanion.pvp.PVPClient
+import dev.flammky.valorantcompanion.pvp.error.PVPModuleErrorCodes
+import dev.flammky.valorantcompanion.pvp.ex.PlayerNotFoundException
 import dev.flammky.valorantcompanion.pvp.ex.UnexpectedResponseException
 import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
-import dev.flammky.valorantcompanion.pvp.ingame.InGameFetchRequestResult
-import dev.flammky.valorantcompanion.pvp.ingame.InGameUserClient
-import dev.flammky.valorantcompanion.pvp.ingame.InGameUserMatchClient
+import dev.flammky.valorantcompanion.pvp.ingame.*
 import dev.flammky.valorantcompanion.pvp.ingame.ex.InGameMatchNotFoundException
-import dev.flammky.valorantcompanion.pvp.ingame.onFailure
 import dev.flammky.valorantcompanion.pvp.match.ex.UnknownTeamIdException
+import dev.flammky.valorantcompanion.pvp.party.ex.PlayerPartyNotFoundException
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 import kotlin.reflect.KClass
@@ -50,6 +51,24 @@ internal class RealInGameUserClient(
         return def
     }
 
+    override fun fetchPingMillisAsync(): Deferred<InGameFetchRequestResult<Map<String, Int>>> {
+        val def = CompletableDeferred<InGameFetchRequestResult<Map<String, Int>>>()
+
+        coroutineScope.launch(Dispatchers.IO) {
+            def.complete(fetchUserGamePodPingsFromParty())
+        }.apply {
+            invokeOnCompletion { ex ->
+                if (ex is Throwable) def.completeExceptionally(ex)
+                check(def.isCompleted)
+            }
+            def.invokeOnCompletion { ex ->
+                if (ex is Throwable) cancel(ex.message ?: "", ex)
+            }
+        }
+
+        return def
+    }
+
     private suspend fun fetchUserCurrentMatchID(): InGameFetchRequestResult<String> {
         return InGameFetchRequestResult.buildCatching {
             val access_token = auth.get_authorization(puuid).getOrElse {
@@ -75,10 +94,16 @@ internal class RealInGameUserClient(
             )
 
             when(response.statusCode) {
-                200 -> return success(parseUserCurrentMatchIdFromResponse(response.body))
-                404 -> {
+                200 -> runCatching {
+                    parseUserCurrentMatchIdFromResponse(response.body.getOrThrow())
+                }.onSuccess { data ->
+                    return@buildCatching success(data)
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
+                }
+                404 -> runCatching {
                     if (
-                        response.body
+                        response.body.getOrThrow()
                             .expectJsonObject("PlayerPreGameMatchInfo response")
                             .expectJsonProperty("errorCode")
                             .expectJsonPrimitive("errorCode")
@@ -89,6 +114,8 @@ internal class RealInGameUserClient(
                     ) {
                         throw InGameMatchNotFoundException()
                     }
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
                 }
             }
 
@@ -134,6 +161,181 @@ internal class RealInGameUserClient(
             geo = geo,
             disposeHttpClient = false
         )
+    }
+
+    private suspend fun fetchUserGamePodPingsFromParty(): InGameFetchRequestResult<Map<String, Int>> {
+        return InGameFetchRequestResult.buildCatching {
+
+            val partyID = fetchUserPartyId()
+                .getOrElse { exception, errorCode ->
+                    return@buildCatching failure(exception, errorCode)
+                }
+
+            val access_token = auth.get_authorization(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve access token", it)
+            }.access_token
+
+            val entitlement_token = auth.get_entitlement_token(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve entitlement token", it)
+            }
+            val geo = geo.getGeoShardInfo(puuid) ?: error("Unable to retrieve GeoShard info")
+
+            /*runCatching refreshPing@ {
+                val url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}" +
+                        ".a.pvp.net/parties/v1/parties/$partyID/members/$puuid/refreshPings"
+                val response = httpClient.jsonRequest(
+                    JsonHttpRequest(
+                        method = "POST",
+                        url = url,
+                        headers = listOf(
+                            "X-Riot-ClientVersion" to PVPClient.VERSION,
+                            "X-Riot-Entitlements-JWT" to entitlement_token,
+                            "Authorization" to "Bearer $access_token"
+                        ),
+                        body = null
+                    )
+                )
+            }*/
+
+            val url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}" +
+                    ".a.pvp.net/parties/v1/parties/$partyID"
+            val response = httpClient.jsonRequest(
+                JsonHttpRequest(
+                    method = "GET",
+                    url = url,
+                    headers = listOf(
+                        "X-Riot-Entitlements-JWT" to entitlement_token,
+                        "Authorization" to "Bearer $access_token"
+                    ),
+                    body = null
+                )
+            )
+            when(response.statusCode) {
+                200 -> runCatching {
+                    val body = response.body
+                        .getOrThrow()
+                        .expectJsonObject("UserPartyData response body")
+                    body
+                        .expectJsonProperty("ID")
+                        .expectJsonPrimitive("ID")
+                        .expectNotJsonNull("ID")
+                        .content
+                        .also { expectNonBlankJsonString("ID", it) }
+                        .let { id ->
+                            if (id != partyID) unexpectedResponseError("PartyID mismatch")
+                        }
+                    body
+                        .expectJsonProperty("Members")
+                        .expectJsonArray("Members")
+                        .forEach { element ->
+                            element
+                                .expectJsonObjectAsJsonArrayElement("Members")
+                                .let { member ->
+                                    member
+                                        .expectJsonProperty("Subject")
+                                        .expectJsonPrimitive("Subject")
+                                        .expectNotJsonNull("Subject")
+                                        .content
+                                        .also {
+                                            expectNonBlankJsonString("Subject", it)
+                                            if (it != puuid) return@forEach
+                                        }
+                                    return@runCatching run {
+                                        member
+                                            .expectJsonProperty("Pings")
+                                            .expectJsonArray("Pings")
+                                            .associate { element ->
+                                                val ping = element.expectJsonObjectAsJsonArrayElement("Pings")
+                                                val pingMS = ping
+                                                    .expectJsonProperty("Ping")
+                                                    .expectJsonPrimitive("Ping")
+                                                    .expectNotJsonNull("Ping")
+                                                    .content
+                                                    .also { expectJsonNumber("Ping", it) }
+                                                    .toInt()
+                                                val podID = ping
+                                                    .expectJsonProperty("GamePodID")
+                                                    .expectJsonPrimitive("GamePodID")
+                                                    .expectNotJsonNull("GamePodID")
+                                                    .content
+                                                    .also { expectNonBlankJsonString("GamePodID", it) }
+                                                podID to pingMS
+                                            }
+                                    }
+                                }
+                        }
+                    error("Party Endpoint did not provide user ping info")
+                }.onSuccess { data ->
+                    return@buildCatching success(data)
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
+                }
+            }
+
+            unexpectedResponseError("unable to retrieve user party data (${response.statusCode})")
+        }
+    }
+
+    private suspend fun fetchUserPartyId(): InGameFetchRequestResult<String> {
+        return InGameFetchRequestResult.buildCatching {
+            val access_token = auth.get_authorization(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve access token", it)
+            }.access_token
+            val entitlement_token = auth.get_entitlement_token(puuid).getOrElse {
+                throw IllegalStateException("Unable to retrieve entitlement token", it)
+            }
+            val geo = geo
+                .getGeoShardInfo(puuid)
+                ?: error("Unable to retrieve GeoShard info")
+            val url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}.a.pvp.net/parties/v1/players/$puuid"
+            val response = httpClient.jsonRequest(
+                JsonHttpRequest(
+                    method = "GET",
+                    url = url,
+                    headers = listOf(
+                        "X-Riot-ClientVersion" to PVPClient.VERSION,
+                        "X-Riot-Entitlements-JWT" to entitlement_token,
+                        "Authorization" to "Bearer $access_token"
+                    ),
+                    body = null
+                )
+            )
+            when (response.statusCode) {
+                200 -> runCatching {
+                    response.body.getOrThrow()
+                        .expectJsonObject("PlayerPartyInfo response")
+                        .expectJsonProperty("CurrentPartyID")
+                        .expectJsonPrimitive("CurrentPartyID")
+                        .expectNotJsonNull("CurrentPartyID")
+                        .content
+                        .also { expectNonBlankJsonString("CurrentPartyID", it) }
+                }.onSuccess { data ->
+                    return@buildCatching success(data)
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
+                }
+                400 -> {
+                    // TODO: retry
+                }
+                404 -> runCatching {
+                    response.body.getOrThrow()
+                        .expectJsonObject("PlayerPartyInfo response")
+                        .expectJsonProperty("errorCode")
+                        .expectJsonPrimitive("errorCode")
+                        .expectNotJsonNull("errorCode")
+                        .content
+                        .also { expectNonBlankJsonString("errorCode", it) }
+                        .let { code ->
+                            if (code == "RESOURCE_NOT_FOUND") throw PlayerPartyNotFoundException()
+                            if (code == "PLAYER_DOES_NOT_EXIST") throw PlayerNotFoundException()
+                        }
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
+                }
+            }
+
+            unexpectedResponseError("unable to retrieve user party id (${response.statusCode})")
+        }
     }
 
     override fun dispose() {

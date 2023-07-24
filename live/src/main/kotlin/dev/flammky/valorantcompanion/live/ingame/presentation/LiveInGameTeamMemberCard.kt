@@ -2,18 +2,28 @@ package dev.flammky.valorantcompanion.live.ingame.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material.Text
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -22,6 +32,17 @@ import dev.flammky.valorantcompanion.base.theme.material3.LocalIsThemeDark
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.surfaceColorAsState
 import dev.flammky.valorantcompanion.assets.LocalImage
+import dev.flammky.valorantcompanion.assets.R_ASSET_DRAWABLE
+import dev.flammky.valorantcompanion.assets.R_ASSET_RAW
+import dev.flammky.valorantcompanion.base.MaterialTheme3
+import dev.flammky.valorantcompanion.base.compose.composeWithKey
+import dev.flammky.valorantcompanion.base.compose.rememberEffect
+import dev.flammky.valorantcompanion.base.compose.state.subCompose
+import dev.flammky.valorantcompanion.base.theme.material3.surfaceVariantColorAsState
+import dev.flammky.valorantcompanion.base.util.mutableValueContainerOf
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.DisposableHandle
+import kotlinx.coroutines.Job
 
 @Composable
 internal fun LiveInGameTeamMemberCard(
@@ -30,7 +51,10 @@ internal fun LiveInGameTeamMemberCard(
 ) = LiveInGameTeamMemberCardPlacement(
     modifier = modifier,
     surface = {
-        Box(it.fillMaxSize().background(Material3Theme.surfaceColorAsState().value))
+        Box(
+            it
+                .fillMaxSize()
+                .background(Material3Theme.surfaceColorAsState().value))
     },
     agentPicture = {
         LiveinGameTeamMemberCardAgentPicture(
@@ -62,6 +86,14 @@ internal fun LiveInGameTeamMemberCard(
             res = state.competitiveTierIcon,
             resKey = state.competitiveTierIconKey
         )
+    },
+    errorMessages = {
+        if (state.errorCount > 0) {
+            LiveInGameTeamMemberCardErrorMessages(
+                modifier = it,
+                messages = state.getErrors()
+            )
+        }
     }
 )
 
@@ -72,28 +104,33 @@ private fun LiveInGameTeamMemberCardPlacement(
     agentPicture: @Composable (Modifier) -> Unit,
     title: @Composable (Modifier) -> Unit,
     subtitle: @Composable (Modifier) -> Unit,
-    competitiveTierIcon: @Composable (Modifier) -> Unit
-) = Box(modifier = modifier.height(42.dp)) {
-    surface(Modifier)
-    Row(Modifier.padding(horizontal = 4.dp, vertical = 2.dp)) {
-        agentPicture(Modifier.align(Alignment.CenterVertically))
-        Spacer(modifier = Modifier.width(8.dp))
-        Column(
-            modifier = Modifier.weight(2f, true)
-        ) {
-            Row(modifier = Modifier.weight(1f)) {
-                title(Modifier.align(Alignment.CenterVertically))
+    competitiveTierIcon: @Composable (Modifier) -> Unit,
+    errorMessages: @Composable (Modifier) -> Unit
+) = Box(modifier = modifier) {
+    surface(Modifier.matchParentSize())
+    Column {
+        Row(Modifier.padding(horizontal = 4.dp, vertical = 2.dp).height(42.dp)) {
+            agentPicture(Modifier.align(Alignment.CenterVertically))
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(
+                modifier = Modifier.weight(2f, true)
+            ) {
+                Row(modifier = Modifier.weight(1f)) {
+                    title(Modifier.align(Alignment.CenterVertically))
+                }
+                Row(modifier = Modifier.weight(1f)) {
+                    subtitle(Modifier.align(Alignment.CenterVertically))
+                }
             }
-            Row(modifier = Modifier.weight(1f)) {
-                subtitle(Modifier.align(Alignment.CenterVertically))
-            }
+            Spacer(modifier = Modifier.width(8.dp))
+            competitiveTierIcon(
+                Modifier
+                    .fillMaxHeight()
+                    .aspectRatio(1f, true)
+            )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        competitiveTierIcon(
-            Modifier
-                .fillMaxHeight()
-                .aspectRatio(1f, true)
-        )
+        Spacer(modifier = Modifier.height(5.dp))
+        Box { errorMessages(Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 10.dp)) }
     }
 }
 
@@ -237,4 +274,100 @@ private fun LiveInGameTeamMemberCardCompetitiveTierIcon(
         },
         contentDescription = null
     )
+}
+
+@Composable
+private fun LiveInGameTeamMemberCardErrorMessages(
+    modifier: Modifier,
+    messages: List<LiveInGameTeamMemberCardErrorMessage>
+) = Column(modifier.heightIn(min = 32.dp)) {
+    messages.forEachIndexed { i, message ->
+        LiveInGameTeamMemberCardErrorMessageUI(modifier = Modifier, message = message)
+        if (i != messages.lastIndex) Spacer(modifier = Modifier.height(5.dp))
+    }
+}
+
+@Composable
+private fun LiveInGameTeamMemberCardErrorMessageUI(
+    modifier: Modifier,
+    message: LiveInGameTeamMemberCardErrorMessage
+) {
+    val contentColor =
+        if (LocalIsThemeDark.current) Color.White
+        else Color.Black
+    Column(modifier) {
+        composeWithKey(message.component, contentColor) { componentName, cc ->
+            BasicText(
+                modifier = Modifier,
+                style = MaterialTheme3.typography.labelSmall.copy(color = cc),
+                text = componentName,
+            )
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        subCompose {
+            val refreshing = remember(message.refresh) { mutableStateOf(false) }
+            Row(
+                modifier = remember {
+                    Modifier.heightIn(min = 26.dp)
+                } then remember(refreshing.value) {
+                    if (refreshing.value)
+                        Modifier.alpha(0.38f)
+                    else
+                        Modifier
+                } then remember(message.refresh) {
+                    Modifier.composed(
+                        factory = {
+                            if (message.refresh != null) {
+                                val def = remember { mutableValueContainerOf<Job?>(null) }
+                                val handle = remember { mutableValueContainerOf<DisposableHandle?>(null) }
+                                rememberEffect(
+                                    message.refresh,
+                                    onRemembered = {},
+                                    onForgotten = { handle.value?.dispose() ; def.value?.cancel() },
+                                    onAbandoned = { handle.value?.dispose() ; def.value?.cancel() }
+                                ) {
+                                    Modifier.clickable {
+                                        message.refresh.invoke()?.let { session ->
+                                            def.value = session
+                                            refreshing.value = !session.isCompleted
+                                            handle.value = session.invokeOnCompletion { refreshing.value = false }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Modifier
+                            }
+                        }
+                    )
+                }
+            ) {
+                composeWithKey(message.message) { rMessage ->
+                    BasicText(
+                        modifier = Modifier
+                            .weight(1f, true)
+                            .align(Alignment.CenterVertically),
+                        style = MaterialTheme3.typography.labelSmall.copy(color = MaterialTheme3.colorScheme.error),
+                        text = rMessage,
+                    )
+                }
+                composeWithKey(message.refresh, contentColor) { rMessageRefresh, rContentColor ->
+                    if (rMessageRefresh != null) {
+                        Icon(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .align(Alignment.CenterVertically),
+                            painter = painterResource(id = R_ASSET_DRAWABLE.refresh_fill0_wght400_grad0_opsz48),
+                            tint = rContentColor,
+                            contentDescription = "try again"
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        Divider(
+            modifier = Modifier.fillMaxWidth(),
+            color = Material3Theme.surfaceVariantColorAsState().value
+        )
+    }
 }

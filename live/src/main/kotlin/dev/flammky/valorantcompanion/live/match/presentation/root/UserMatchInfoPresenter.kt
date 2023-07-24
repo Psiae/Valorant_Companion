@@ -512,11 +512,18 @@ class UserMatchInfoPresenter(
                                 delay(1000 - elapsed)
                             }
                             lastPingRefreshStamp = SystemClock.elapsedRealtime()
-                            preGameUserClient
-                                .fetchPingMillis()
-                                .await()
-                                .onSuccess { pings -> onNewPingData(pings) }
-                                .onFailure { fetchPingFailure() }
+                            val def = preGameUserClient.fetchPingMillisAsync()
+                            runCatching { def.await() }
+                                .onFailure { ex ->
+                                    def.cancel()
+                                    fetchPingFailure()
+                                    throw ex
+                                }
+                                .onSuccess { result ->
+                                    result
+                                        .onFailure { fetchPingFailure() }
+                                        .onSuccess { pings -> onNewPingData(pings) }
+                                }
                         }.also {
                             runCatching { it.join() }
                         }

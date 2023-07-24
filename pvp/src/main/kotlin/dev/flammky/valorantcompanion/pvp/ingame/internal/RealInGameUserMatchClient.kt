@@ -3,6 +3,7 @@ package dev.flammky.valorantcompanion.pvp.ingame.internal
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
 import dev.flammky.valorantcompanion.pvp.TeamID
+import dev.flammky.valorantcompanion.pvp.error.PVPModuleErrorCodes
 import dev.flammky.valorantcompanion.pvp.ex.UnexpectedResponseException
 import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
@@ -79,22 +80,31 @@ internal class RealInGameUserMatchClient(
             )
 
             when (response.statusCode) {
-                200 -> return@buildCatching success(
-                    parseInGameMatchDataFromResponse(response.body)
-                )
-                404 -> {
+                200 -> runCatching {
+                    parseInGameMatchDataFromResponse(response.body.getOrThrow())
+                }.onSuccess { data ->
+                    return@buildCatching success(data)
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNEXPECTED_REMOTE_RESPONSE)
+                }
+                404 -> runCatching {
                     val propName = "errorCode"
-                    val errorCode = response.body
+                    val errorCode = response.body.getOrThrow()
                         .expectJsonObject("InGameMatchInfo response")
                         .expectJsonProperty(propName)
                         .expectJsonPrimitive(propName)
                         .expectNotJsonNull(propName)
                         .content
                         .also { expectNonBlankJsonString("errorCode", it) }
-                    if (errorCode == "RESOURCE_NOT_FOUND") return@buildCatching failure(
+                    if (errorCode == "RESOURCE_NOT_FOUND") return@runCatching failure(
                         InGameMatchNotFoundException(),
                         19404
                     )
+                    error("UNHANDLED ERROR CODE")
+                }.onSuccess { result ->
+                    return@buildCatching result
+                }.onFailure { ex ->
+                    return@buildCatching failure(ex as Exception, PVPModuleErrorCodes.UNHANDLED_EXCEPTION)
                 }
             }
 

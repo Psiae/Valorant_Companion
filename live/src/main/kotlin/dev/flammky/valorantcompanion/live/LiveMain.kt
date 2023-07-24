@@ -11,8 +11,7 @@ import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.live.ingame.presentation.LiveInGame
 import dev.flammky.valorantcompanion.live.match.presentation.root.LiveMatchUI
 import dev.flammky.valorantcompanion.live.party.presentation.LivePartyUI
-import dev.flammky.valorantcompanion.live.pregame.presentation.LivePreGame
-import dev.flammky.valorantcompanion.live.pregame.presentation.rememberLivePreGamePresenter
+import dev.flammky.valorantcompanion.live.pregame.presentation.root.LivePreGameScreen
 
 @Composable
 fun LiveMain() {
@@ -40,7 +39,7 @@ fun LiveMain() {
         matchDetail = {
             // TODO: define LocalNavigationBarInsets
             if (showPreGameScreen.value) {
-                LivePreGame(
+                LivePreGameScreen(
                     modifier = Modifier
                         .statusBarsPadding()
                         .navigationBarsPadding()

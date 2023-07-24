@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.base
 
-object C {
+typealias C_BASE = C
 
+object C {
 }

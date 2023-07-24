@@ -1,12 +1,14 @@
 package dev.flammky.valorantcompanion.pvp.map
 
+import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
+import dev.flammky.valorantcompanion.pvp.util.mapSealedObjectInstancesToPersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlin.reflect.KClass
 
 sealed class ValorantMapIdentity(
     val uuid: String,
     val display_name: String,
-    val coordinates: String,
+    val coordinates: String?,
     val map_id: String,
     val code_name: String
 ) {
@@ -91,17 +93,43 @@ sealed class ValorantMapIdentity(
         code_name = "Bonsai"
     )
 
+    object DISTRICT : ValorantMapIdentity(
+        uuid = "690b3ed2-4dff-945b-8223-6da834e30d24",
+        display_name = "District",
+        coordinates = null,
+        map_id = "/Game/Maps/HURM/HURM_Alley/HURM_Alley",
+        code_name = "HURM_Alley"
+    )
+
+    object KASBAH : ValorantMapIdentity(
+        uuid = "12452a9d-48c3-0b02-e7eb-0381c3520404",
+        display_name = "Kasbah",
+        coordinates = null,
+        map_id = "/Game/Maps/HURM/HURM_Bowl/HURM_Bowl",
+        code_name = "HURM_Bowl"
+    )
+
+    object PIAZZA : ValorantMapIdentity(
+        uuid = "de28aa9b-4cbe-1003-320e-6cb3ec309557",
+        display_name = "Piazza",
+        coordinates = null,
+        map_id = "/Game/Maps/HURM/HURM_Yard/HURM_Yard",
+        code_name = "HURM_Yard"
+    )
+
     companion object {
+
         private val SUBCLASSES by lazy {
-            ValorantMapIdentity::class.sealedSubclasses.mapNotNullTo(
-                destination = persistentListOf<ValorantMapIdentity>().builder(),
-                transform = KClass<out ValorantMapIdentity>::objectInstance
-            ).build()
+            ValorantMapIdentity::class.mapSealedObjectInstancesToPersistentList()
         }
 
-
         fun ofID(id: String): ValorantMapIdentity? {
-            return SUBCLASSES.find { it.map_id == id }
+            if (id.isBlank()) return null
+            val letters = id.filter(Char::isLetter)
+            val comparable =
+                if (letters.isNotEmpty() && letters.all(Char::isUpperCase)) id.lowercase()
+                else id
+            return SUBCLASSES.find { it.map_id == comparable }
         }
     }
 }

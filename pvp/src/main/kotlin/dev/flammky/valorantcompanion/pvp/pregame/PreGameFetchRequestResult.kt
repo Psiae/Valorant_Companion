@@ -22,33 +22,26 @@ class PreGameFetchRequestResult <T> private constructor(
         fun failure(
             exception: Exception,
             errorCode: Int
-        ): PreGameFetchRequestResult<T> {
-            return PreGameFetchRequestResult.failure(exception, errorCode)
-        }
+        ): PreGameFetchRequestResult<T> = PreGameFetchRequestResult<T>(
+            data = null,
+            ex = exception,
+            errorCode = errorCode
+        )
 
         fun success(
             data: T
-        ): PreGameFetchRequestResult<T> {
-            return PreGameFetchRequestResult.success(data)
-        }
-    }
-
-    companion object {
-
-        internal fun <T> success(data: T) = PreGameFetchRequestResult<T>(
+        ): PreGameFetchRequestResult<T> = PreGameFetchRequestResult<T>(
             data = data,
             ex = null,
             errorCode = null
         )
+    }
 
-        internal fun <T> failure(
-            ex: Exception,
-            errorCode: Int
-        ) = PreGameFetchRequestResult<T>(
-            data = null,
-            ex = ex,
-            errorCode = errorCode
-        )
+    companion object {
+
+        internal fun <T> success(data: T) = Builder<T>().success(data)
+
+        internal fun <T> failure(ex: Exception, errorCode: Int) = Builder<T>().failure(ex, errorCode)
 
         internal inline fun <T> build(
             block: Builder<T>.() -> PreGameFetchRequestResult<T>
