@@ -56,7 +56,7 @@ private fun FakeLiveInGameTeamMembersUIPreview() {
                 allyProvided = true,
                 enemyProvided = true,
                 ally = remember {
-                    InGameTeam(
+                    dev.flammky.valorantcompanion.live.pvp.ingame.presentation.InGameTeam(
                         id = TeamID.BLUE,
                         members = persistentListOf(
                             TeamMember(
@@ -98,7 +98,7 @@ private fun FakeLiveInGameTeamMembersUIPreview() {
                     )
                 },
                 enemy = remember {
-                    InGameTeam(
+                    dev.flammky.valorantcompanion.live.pvp.ingame.presentation.InGameTeam(
                         id = TeamID.BLUE,
                         members = persistentListOf(
                             TeamMember(

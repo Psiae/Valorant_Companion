@@ -25,7 +25,7 @@ internal fun FakeLiveInGameContent(
         allyProvided = true,
         enemyProvided = true,
         ally = remember {
-            InGameTeam(
+            dev.flammky.valorantcompanion.live.pvp.ingame.presentation.InGameTeam(
                 id = TeamID.BLUE,
                 members = persistentListOf(
                     TeamMember(
@@ -67,7 +67,7 @@ internal fun FakeLiveInGameContent(
             )
         },
         enemy = remember {
-            InGameTeam(
+            dev.flammky.valorantcompanion.live.pvp.ingame.presentation.InGameTeam(
                 id = TeamID.BLUE,
                 members = persistentListOf(
                     TeamMember(

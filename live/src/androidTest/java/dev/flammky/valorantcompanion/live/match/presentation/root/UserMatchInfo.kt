@@ -27,6 +27,7 @@ import dev.flammky.valorantcompanion.assets.map.ValorantMapAsset
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.live.party.presentation.root.MockedUserPartyInfo
 import dev.flammky.valorantcompanion.live.pregame.presentation.preview.TeamAgentSelectionColumnPreview
+import dev.flammky.valorantcompanion.live.pvp.match.presentation.root.UserMatchInfoUIState
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
 import dev.flammky.valorantcompanion.assets.R as ASSET_R
 

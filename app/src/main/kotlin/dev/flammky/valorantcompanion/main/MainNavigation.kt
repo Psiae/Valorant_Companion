@@ -23,7 +23,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.career.main.CareerMain
-import dev.flammky.valorantcompanion.live.LiveMain
+import dev.flammky.valorantcompanion.live.main.LiveMain
 import kotlin.math.ln
 import androidx.compose.material3.Scaffold as Material3Scaffold
 import androidx.compose.material3.Surface as Material3Surface
