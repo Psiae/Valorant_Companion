@@ -6,6 +6,8 @@ import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.debug.DebugValorantAssetService
 import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
 import dev.flammky.valorantcompanion.base.di.koin.compose.KoinDependencyInjector
+import dev.flammky.valorantcompanion.live.pvp.ingame.presentation.LiveInGameTeamMembersUI
+import dev.flammky.valorantcompanion.live.pvp.ingame.presentation.TeamMember
 import dev.flammky.valorantcompanion.pvp.TeamID
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService

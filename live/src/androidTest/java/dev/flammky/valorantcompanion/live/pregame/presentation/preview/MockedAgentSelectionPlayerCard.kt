@@ -8,9 +8,9 @@ import dev.flammky.valorantcompanion.base.theme.material3.DefaultMaterial3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.surfaceColorAsState
 import dev.flammky.valorantcompanion.assets.R as AssetResource
-import dev.flammky.valorantcompanion.live.pregame.presentation.AgentSelectionPlayerCard
-import dev.flammky.valorantcompanion.live.pregame.presentation.AgentSelectionPlayerCardState
 import dev.flammky.valorantcompanion.assets.LocalImage
+import dev.flammky.valorantcompanion.live.pvp.pregame.presentation.AgentSelectionPlayerCard
+import dev.flammky.valorantcompanion.live.pvp.pregame.presentation.AgentSelectionPlayerCardState
 
 @Composable
 @Preview

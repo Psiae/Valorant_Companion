@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.live.loadout.presentation.root
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -14,7 +15,20 @@ internal fun LiveLoadout(
     LiveLoadoutPlacement(
         modifier = modifier,
         surface = { LiveLoadoutSurface() },
-        content = {}
+        content = {
+            LiveLoadoutContent(
+                openSprayScreen = {
+                    openScreen.invoke {
+                        BackHandler(onBack = ::dismiss)
+                    }
+                },
+                openWeaponScreen = {
+                    openScreen.invoke {
+                        BackHandler(onBack = ::dismiss)
+                    }
+                }
+            )
+        }
     )
 }
 

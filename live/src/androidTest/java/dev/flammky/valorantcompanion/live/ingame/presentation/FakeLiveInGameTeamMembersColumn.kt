@@ -16,6 +16,8 @@ import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
 import dev.flammky.valorantcompanion.base.di.koin.compose.KoinDependencyInjector
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundColorAsState
+import dev.flammky.valorantcompanion.live.pvp.ingame.presentation.LiveInGameTeamMembersColumn
+import dev.flammky.valorantcompanion.live.pvp.ingame.presentation.TeamMember
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.mmr.SeasonalMMRData
 import dev.flammky.valorantcompanion.pvp.mmr.ValorantMMRService

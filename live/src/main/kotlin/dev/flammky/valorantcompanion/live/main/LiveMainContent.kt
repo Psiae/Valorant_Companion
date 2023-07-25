@@ -1,16 +1,16 @@
 package dev.flammky.valorantcompanion.live.main
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import dev.flammky.valorantcompanion.base.compose.ComposableFun
 import dev.flammky.valorantcompanion.base.compose.lazy.LazyContent
-import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
-import dev.flammky.valorantcompanion.base.theme.material3.backgroundColorAsState
+import dev.flammky.valorantcompanion.base.theme.material3.material3Background
 import dev.flammky.valorantcompanion.live.loadout.presentation.root.LiveLoadout
 import dev.flammky.valorantcompanion.live.pvp.presentation.LivePVP
 import dev.flammky.valorantcompanion.live.store.presentation.root.LiveStore
@@ -21,10 +21,8 @@ internal fun LiveMainContent() {
         mutableStateOf(0)
     }
     val container = remember {
-        object : LiveMainScreenContainer {
+        object {
             private val visibleScreenState = mutableStateListOf<Pair<String, @Composable () -> Unit>>()
-
-            override fun dismiss() = error("dismiss with key instead")
 
             fun dismiss(key: String) {
                 visibleScreenState.removeAll { it.first == key }
@@ -34,17 +32,31 @@ internal fun LiveMainContent() {
                 dismiss(key)
                 visibleScreenState.add(
                     key to @Composable {
-                        object : LiveMainScreenContainer {
-                            override fun dismiss() {
-                                dismiss(key)
+                        remember {
+                            object : LiveMainScreenContainer {
+                                override val isVisible: Boolean
+                                    get() = visibleScreenState.lastOrNull()?.first == key
+                                override fun dismiss() {
+                                    dismiss(key)
+                                }
                             }
                         }.content()
                     }
                 )
             }
 
-            fun lastContentOrNull(): ComposableFun? {
-                return visibleScreenState.lastOrNull()?.second
+            @Composable
+            fun Content() {
+                if (visibleScreenState.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {}
+                            .material3Background()
+                    ) {
+                        visibleScreenState.forEach { screen -> screen.second.invoke() }
+                    }
+                }
             }
         }
     }
@@ -88,8 +100,7 @@ internal fun LiveMainContent() {
             LazyContent(trigger = selectedTabIndex.value == 2) {
                 LiveStore(
                     modifier = Modifier
-                        .padding(top = 8.dp)
-                        .zIndex(if (selectedTabIndex.value == 1) 1f else 0f),
+                        .zIndex(if (selectedTabIndex.value == 2) 1f else 0f),
                     openScreen = { content ->
                         val key = 2.toString()
                         container.show(
@@ -101,16 +112,7 @@ internal fun LiveMainContent() {
             }
         },
         screenContainer = {
-            container.lastContentOrNull()?.let { content ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(Unit) {}
-                        .background(Material3Theme.backgroundColorAsState().value)
-                ) {
-                    content()
-                }
-            }
+            container.Content()
         }
     )
 }

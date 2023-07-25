@@ -33,6 +33,7 @@ import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.live.pingStrengthInRangeOf4
 import dev.flammky.valorantcompanion.live.pregame.presentation.*
 import dev.flammky.valorantcompanion.assets.LocalImage
+import dev.flammky.valorantcompanion.live.pvp.pregame.presentation.*
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgent
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentRole
