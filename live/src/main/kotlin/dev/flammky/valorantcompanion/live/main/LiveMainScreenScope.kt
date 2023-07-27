@@ -2,9 +2,9 @@ package dev.flammky.valorantcompanion.live.main
 
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 
-interface LiveMainScreenContainer {
+interface LiveMainScreenScope {
 
-    val isVisible: Boolean
+    val hasFocus: Boolean
         @SnapshotRead get
 
     fun dismiss()

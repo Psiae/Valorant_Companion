@@ -7,6 +7,8 @@ import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.map.MapImageIdentifier
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardIdentifier
+import dev.flammky.valorantcompanion.assets.spray.SprayImageIdentifier
+import dev.flammky.valorantcompanion.assets.spray.SprayImageType
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
@@ -17,7 +19,8 @@ class DebugValorantAssetsLoaderClient(
     private val roleIconMapping: Map<String, LocalImage<*>>,
     private val competitiveRankIconMapping: Map<CompetitiveRank, LocalImage<*>>,
     private val playerCardMapping: Map<PlayerCardIdentifier, LocalImage<*>>,
-    private val mapImageMapping: Map<MapImageIdentifier, LocalImage<*>>
+    private val mapImageMapping: Map<MapImageIdentifier, LocalImage<*>>,
+    private val sprayImageMapping: Map<SprayImageIdentifier, LocalImage<*>>
 ): ValorantAssetsLoaderClient {
 
     override fun loadMemoryCachedAgentIcon(agentId: String): LocalImage<*>? {

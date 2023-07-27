@@ -50,7 +50,8 @@ class AgentSelectionPlayerCardPresenter(
                     player.characterID,
                     player.identity.cardID,
                     player.identity.accountLevel,
-                    player.identity.incognito
+                    player.identity.incognito,
+                    player.characterSelectionState
                 )
             }
         }.readSnapshot()
@@ -82,6 +83,7 @@ class AgentSelectionPlayerCardPresenter(
         private var playerCardID: String? = null
         private var accountLevel: Int? = null
         private var incognito: Boolean? = null
+        private var playerAgentSelectionState: CharacterSelectionState? = null
 
         @SnapshotRead
         fun readSnapshot(): AgentSelectionPlayerCardState = stateValueOrUnset()
@@ -92,14 +94,21 @@ class AgentSelectionPlayerCardPresenter(
             playerAgentID: String,
             playerCardID: String,
             accountLevel: Int,
-            incognito: Boolean
+            incognito: Boolean,
+            agentSelectionState: CharacterSelectionState
         ) {
             checkInMainLooper()
             check(remembered)
             if (id != this.playerId) {
                 newPlayerID(id)
             }
-            playerDataParam(playerAgentID, playerCardID, accountLevel, incognito)
+            playerDataParam(
+                playerAgentID,
+                agentSelectionState,
+                playerCardID,
+                accountLevel,
+                incognito
+            )
         }
 
         private fun newPlayerID(
@@ -125,12 +134,16 @@ class AgentSelectionPlayerCardPresenter(
 
         private fun playerDataParam(
             playerAgentID: String,
+            playerAgentSelectionState: CharacterSelectionState,
             playerCardID: String,
             accountLevel: Int,
             incognito: Boolean
         ) {
             if (this.playerAgentID != playerAgentID) {
                 newPlayerAgent(playerAgentID)
+            }
+            if (this.playerAgentSelectionState != playerAgentSelectionState) {
+                newPlayerAgentSelectionState(playerAgentSelectionState)
             }
             if (this.playerCardID != playerCardID) {
                 // TODO
@@ -152,12 +165,24 @@ class AgentSelectionPlayerCardPresenter(
             val selectedAgentRoleIcon = identity?.role?.let { it -> assetLoader.loadMemoryCachedRoleIcon(it.uuid) }
             mutateState("newPlayerAgent") { state ->
                 state.copy(
+                    hasSelectedAgent = true,
                     selectedAgentName = identity?.displayName ?: state.UNSET.selectedAgentName,
                     selectedAgentIcon = icon ?: state.UNSET.selectedAgentIcon,
                     selectedAgentIconKey = icon?.let { Any() } ?: state.UNSET.selectedAgentIconKey,
                     selectedAgentRoleName = identity?.role?.displayName ?: state.UNSET.selectedAgentRoleName,
                     selectedAgentRoleIcon = selectedAgentRoleIcon ?: state.UNSET.selectedAgentRoleIcon,
                     selectedAgentRoleIconKey = selectedAgentRoleIcon?.let { Any() } ?: state.UNSET.selectedAgentRoleIconKey
+                )
+            }
+        }
+
+        private fun newPlayerAgentSelectionState(
+            selectionState: CharacterSelectionState
+        ) {
+            this.playerAgentSelectionState = selectionState
+            mutateState("newPlayerAgentSelectionState") { state ->
+                state.copy(
+                    isLockedIn = state.isLockedIn
                 )
             }
         }

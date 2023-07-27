@@ -5,12 +5,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import dev.flammky.valorantcompanion.live.main.LiveMainScreenContainer
+import dev.flammky.valorantcompanion.live.loadout.presentation.SprayLoadoutScreen
+import dev.flammky.valorantcompanion.live.loadout.presentation.SprayLoadoutScreenPreview
+import dev.flammky.valorantcompanion.live.main.LiveMainScreenScope
 
 @Composable
 internal fun LiveLoadout(
     modifier: Modifier = Modifier,
-    openScreen: (@Composable LiveMainScreenContainer.() -> Unit) -> Unit
+    openScreen: (@Composable LiveMainScreenScope.() -> Unit) -> Unit
 ) {
     LiveLoadoutPlacement(
         modifier = modifier,
@@ -20,6 +22,7 @@ internal fun LiveLoadout(
                 openSprayScreen = {
                     openScreen.invoke {
                         BackHandler(onBack = ::dismiss)
+                        SprayLoadoutScreenPreview()
                     }
                 },
                 openWeaponScreen = {

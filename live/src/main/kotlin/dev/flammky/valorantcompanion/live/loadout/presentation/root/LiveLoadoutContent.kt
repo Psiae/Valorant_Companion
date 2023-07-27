@@ -19,7 +19,7 @@ internal fun LiveLoadoutContent(
                     modifier = Modifier
                         .size(maxWidth / 2 - 8.dp)
                         .padding(start = 16.dp, top = 16.dp)
-                        .clickable(onClick = openSprayScreen)
+                        .clickable(onClick = openWeaponScreen)
                 )
 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -28,7 +28,7 @@ internal fun LiveLoadoutContent(
                     modifier = Modifier
                         .size(maxWidth / 2 - 8.dp)
                         .padding(end = 16.dp, top = 16.dp)
-                        .clickable(onClick = openWeaponScreen)
+                        .clickable(onClick = openSprayScreen)
                 )
             }
         }

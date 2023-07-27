@@ -77,7 +77,7 @@ class LivePartyMatchmakingColumnPresenter(
         }.apply {
             partyID = partyData.partyID
             isUserOwner = partyData.members
-                .find { it.isOwner }
+                .find { it.isLeader }
                 ?.let { owner -> owner.puuid == userPUUID } == true
             queueID = partyData.matchmakingQueueID
             eligibleQueues = partyData.eligible

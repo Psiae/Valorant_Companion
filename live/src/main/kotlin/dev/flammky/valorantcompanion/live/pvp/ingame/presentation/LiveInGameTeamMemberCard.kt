@@ -20,9 +20,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,14 +31,12 @@ import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.surfaceColorAsState
 import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.R_ASSET_DRAWABLE
-import dev.flammky.valorantcompanion.assets.R_ASSET_RAW
 import dev.flammky.valorantcompanion.base.MaterialTheme3
 import dev.flammky.valorantcompanion.base.compose.composeWithKey
-import dev.flammky.valorantcompanion.base.compose.rememberEffect
+import dev.flammky.valorantcompanion.base.compose.rememberWithCompositionObserver
 import dev.flammky.valorantcompanion.base.compose.state.subCompose
 import dev.flammky.valorantcompanion.base.theme.material3.surfaceVariantColorAsState
 import dev.flammky.valorantcompanion.base.util.mutableValueContainerOf
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.Job
 
@@ -320,7 +316,7 @@ private fun LiveInGameTeamMemberCardErrorMessageUI(
                             if (message.refresh != null) {
                                 val def = remember { mutableValueContainerOf<Job?>(null) }
                                 val handle = remember { mutableValueContainerOf<DisposableHandle?>(null) }
-                                rememberEffect(
+                                rememberWithCompositionObserver(
                                     message.refresh,
                                     onRemembered = {},
                                     onForgotten = { handle.value?.dispose() ; def.value?.cancel() },

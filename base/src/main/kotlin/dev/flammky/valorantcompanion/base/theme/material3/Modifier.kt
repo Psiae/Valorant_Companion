@@ -4,6 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 
-fun Modifier.material3Background() = composed {
+fun Modifier.localMaterial3Background() = composed {
     background(Material3Theme.backgroundColorAsState().value)
 }

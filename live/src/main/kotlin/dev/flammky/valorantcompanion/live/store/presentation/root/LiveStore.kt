@@ -4,12 +4,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import dev.flammky.valorantcompanion.live.main.LiveMainScreenContainer
+import coil.compose.AsyncImage
+import dev.flammky.valorantcompanion.live.main.LiveMainScreenScope
 
 @Composable
 fun LiveStore(
     modifier: Modifier,
-    openScreen: (@Composable LiveMainScreenContainer.() -> Unit) -> Unit
+    openScreen: (@Composable LiveMainScreenScope.() -> Unit) -> Unit
 ) {
     LiveStorePlacement(
         modifier = modifier,

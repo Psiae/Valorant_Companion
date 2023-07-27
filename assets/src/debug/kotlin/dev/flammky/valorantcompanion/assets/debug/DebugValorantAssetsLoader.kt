@@ -1,10 +1,10 @@
 package dev.flammky.valorantcompanion.assets.debug
 
-import dev.flammky.valorantcompanion.assets.LocalImage
-import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
-import dev.flammky.valorantcompanion.assets.ValorantAssetsService
+import dev.flammky.valorantcompanion.assets.*
 import dev.flammky.valorantcompanion.assets.map.MapImageIdentifier
 import dev.flammky.valorantcompanion.assets.map.ValorantMapImageType
+import dev.flammky.valorantcompanion.assets.spray.SprayImageIdentifier
+import dev.flammky.valorantcompanion.assets.spray.SprayImageType
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentRole
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
@@ -21,7 +21,8 @@ class DebugValorantAssetService : ValorantAssetsService {
             competitiveRankIconMapping = COMPETITIVE_RANK_MAPPING,
             // TODO
             playerCardMapping = emptyMap(),
-            mapImageMapping = MAP_MAPPING
+            mapImageMapping = MAP_MAPPING,
+            sprayImageMapping = SPRAY_MAPPING
         )
     }
 
@@ -266,6 +267,18 @@ class DebugValorantAssetService : ValorantAssetsService {
                         type = ValorantMapImageType.ListView
                     ),
                     LocalImage.Resource(dev.flammky.valorantcompanion.assets.R.raw.ascent_listviewicon)
+                )
+            }.build()
+        }
+
+        val SPRAY_MAPPING = run {
+            persistentMapOf<SprayImageIdentifier, LocalImage<*>>().builder().apply {
+                put(
+                    SprayImageIdentifier(
+                        puuid = "nice_to_zap_you",
+                        type = SprayImageType.FULL_ICON(transparentBackground = true)
+                    ),
+                    LocalImage.Resource(R_ASSET_RAW.debug_spray_nice_to_zap_you_transparent)
                 )
             }.build()
         }

@@ -21,17 +21,14 @@ import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.*
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import dev.flammky.valorantcompanion.assets.R_ASSET_RAW
 import dev.flammky.valorantcompanion.base.commonkt.geometry.*
 import dev.flammky.valorantcompanion.base.compose.geometry.plus
 import dev.flammky.valorantcompanion.base.compose.geometry.roundToIntOffset
-import dev.flammky.valorantcompanion.base.debug.DebugResource
+import dev.flammky.valorantcompanion.base.debug.debugResourceUsage
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import kotlin.math.PI
 import kotlin.math.roundToInt
@@ -40,6 +37,7 @@ import kotlin.math.roundToInt
 fun SprayPicker(
     modifier: Modifier,
     activeSpraySlotCount: Int,
+    activeSprayCount: Int,
     getSpray: (Int) -> String
 ) {
     check(activeSpraySlotCount > 0) {
@@ -58,7 +56,9 @@ fun SprayPicker(
         val placeable = subcompose(Unit) {
             SprayPickerLayout(
                 total = activeSpraySlotCount,
-                getSpray = getSpray,
+                getSpray = remember(getSpray) {
+                    { i -> if (i < activeSprayCount) getSpray(i) else null }
+                },
                 constraints = constraints
             )
         }.first().measure(constraints)
@@ -77,7 +77,7 @@ fun SprayPicker(
 @Composable
 private fun SprayPickerLayout(
     total: Int,
-    getSpray: (Int) -> String,
+    getSpray: (Int) -> String?,
     constraints: Constraints
 ) = with(LocalDensity.current) {
 
@@ -106,7 +106,7 @@ private fun SprayPickerLayout(
 @Composable
 private fun SprayPickerCells(
     total: Int,
-    getSpray: (Int) -> String,
+    getSpray: (Int) -> String?,
     circleRadius: Float,
     innerCircleRadius: Float,
     dividerThickness: Dp
@@ -125,81 +125,47 @@ private fun SprayPickerCells(
 private fun SprayPickerCell(
     total: Int,
     index: Int,
-    spray: String,
+    spray: String?,
     circleRadius: Float,
     innerCircleRadius: Float,
     dividerThickness: Dp
+) = Box(
+    modifier = Modifier
+        .fillMaxSize()
+        .sprayPickerCellLayoutModifiers(
+            density = LocalDensity.current,
+            total = total,
+            index = index,
+            circleRadius = circleRadius,
+            innerCircleRadius = innerCircleRadius,
+            dividerThickness = dividerThickness
+        )
+        .clickable { }
 ) {
-    val cellSize = 0.8f * (circleRadius - innerCircleRadius)
-    val density = LocalDensity.current
-    val angle = remember(index, total) { 2 * PI * (index.toFloat() / total) }
-    val angleOffset = remember(total) { PI / total }
-    val startRadians = (angle - angleOffset).toFloat()
-    val endRadians = (angle + angleOffset).toFloat()
-    val paddingRadians = if (dividerThickness.value > 0) {
-        val padding = with(density) { (dividerThickness + 5.dp).toPx() }
-        val circumference = 2 * PI.toFloat() * circleRadius
-        padding / circumference * (2 * PI.toFloat())
-    } else {
-        0f
-    }
-    Box(
+    // TODO: load spray
+    AsyncImage(
         modifier = Modifier
-            .fillMaxSize()
-            .sprayPickerCellOutline(
-                color = Material3Theme.surfaceVariantContentColorAsState().value,
+            .sprayPickerCellContentLayoutModifiers(
+                density = LocalDensity.current,
+                index = index,
+                total = total,
                 circleRadius = circleRadius,
-                innerCircleRadius = innerCircleRadius,
-                startRadians = startRadians,
-                endRadians = endRadians,
-                paddingRadians = paddingRadians,
-                thickness = 2.dp
-            )
-            .sprayPickerCellClipShape(
-                circleRadius = circleRadius,
-                innerCircleRadius = innerCircleRadius,
-                startRadians = startRadians,
-                endRadians = endRadians,
-                paddingRadians = paddingRadians,
-                padding = 8.dp
-            )
-            .sprayPickerCellLayer()
-            .clickable { }
-    ) {
-        if (spray.isNotEmpty()) {
-            // TODO: load spray
-            AsyncImage(
-                modifier = Modifier
-                    .run {
-                        with(LocalDensity.current) {
-                            Modifier.size(cellSize.toDp())
+                innerCircleRadius = innerCircleRadius
+            ),
+        model = run {
+            val ctx = LocalContext.current
+            remember {
+                ImageRequest.Builder(ctx)
+                    .data(
+                        debugResourceUsage {
+                            R_ASSET_RAW.debug_spray_nice_to_zap_you_transparent
                         }
-                    }
-                    .offset {
-                        val center = Offset(circleRadius, circleRadius)
-                        val length = (circleRadius + innerCircleRadius) / 2
-                        val angle = Angle.Radians(2 * PI * (index.toFloat() / total))
-                        val cellAlignment = Offset(
-                            x = cellSize / 2,
-                            y = cellSize / 2
-                        )
-                        val offset = center + vector2D(angle, length) - cellAlignment
-                        offset.roundToIntOffset()
-                    },
-                model = run {
-                    val ctx = LocalContext.current
-                    remember {
-                        ImageRequest.Builder(ctx)
-                            .data(
-                                with(DebugResource) { R_ASSET_RAW.nice_to_zap_you_transparent }
-                            )
-                            .build()
-                    }
-                },
-                contentDescription = "agent Icon"
-            )
-        }
-    }
+                    )
+                    .build()
+            }
+        },
+        contentDescription = "agent Icon"
+    )
 }
 
 private fun Path.drawSprayPickerCellFrame(
@@ -288,31 +254,29 @@ private fun Path.sprayPickerCellInnerFrameArc(
 }
 
 private fun Modifier.sprayPickerCellClipShape(
+    density: Density,
     circleRadius: Float,
     innerCircleRadius: Float,
     startRadians: Float,
     endRadians: Float,
     paddingRadians: Float,
     padding: Dp
-): Modifier = composed {
-    val density = LocalDensity.current
-    clip(
-        GenericShape(
-            builder = { _: Size, _: LayoutDirection ->
-                val paddingPx = with(density) { padding.toPx() }
-                drawSprayPickerCellFrame(
-                    circleRadius = circleRadius,
-                    innerCircleRadius = innerCircleRadius,
-                    startRadians = startRadians,
-                    endRadians = endRadians,
-                    paddingRadians = paddingRadians,
-                    topPadding = paddingPx,
-                    bottomPadding = paddingPx
-                )
-            }
-        )
+): Modifier = clip(
+    GenericShape(
+        builder = { _: Size, _: LayoutDirection ->
+            val paddingPx = with(density) { padding.toPx() }
+            drawSprayPickerCellFrame(
+                circleRadius = circleRadius,
+                innerCircleRadius = innerCircleRadius,
+                startRadians = startRadians,
+                endRadians = endRadians,
+                paddingRadians = paddingRadians,
+                topPadding = paddingPx,
+                bottomPadding = paddingPx
+            )
+        }
     )
-}
+)
 
 private fun Modifier.sprayPickerCellOutline(
     color: Color,
@@ -465,6 +429,83 @@ private fun SprayPickerCellDivider(
     )
 }
 
+private fun Modifier.sprayPickerCellLayoutModifiers(
+    density: Density,
+    total: Int,
+    index: Int,
+    circleRadius: Float,
+    innerCircleRadius: Float,
+    dividerThickness: Dp
+) = composed {
+    val outlineColor = Material3Theme.surfaceVariantContentColorAsState().value
+    remember(
+        total,
+        index,
+        circleRadius,
+        innerCircleRadius,
+        dividerThickness,
+        outlineColor,
+        density
+    ) {
+        val angle =  2 * PI * (index.toFloat() / total)
+        val angleOffset = PI / total
+        val startRadians = (angle - angleOffset).toFloat()
+        val endRadians = (angle + angleOffset).toFloat()
+        val paddingRadians = if (dividerThickness.value > 0) {
+            val padding = with(density) { (dividerThickness + 5.dp).toPx() }
+            val circumference = 2 * PI.toFloat() * circleRadius
+            padding / circumference * (2 * PI.toFloat())
+        } else {
+            0f
+        }
+        Modifier
+            .sprayPickerCellOutline(
+                color = outlineColor,
+                circleRadius = circleRadius,
+                innerCircleRadius = innerCircleRadius,
+                startRadians = startRadians,
+                endRadians = endRadians,
+                paddingRadians = paddingRadians,
+                thickness = 2.dp
+            )
+            .sprayPickerCellClipShape(
+                density = density,
+                circleRadius = circleRadius,
+                innerCircleRadius = innerCircleRadius,
+                startRadians = startRadians,
+                endRadians = endRadians,
+                paddingRadians = paddingRadians,
+                padding = 8.dp
+            )
+            .sprayPickerCellLayer()
+    }
+}
+
+private fun Modifier.sprayPickerCellContentLayoutModifiers(
+    density: Density,
+    index: Int,
+    total: Int,
+    circleRadius: Float,
+    innerCircleRadius: Float,
+) = composed {
+    remember(density, index, total, circleRadius, innerCircleRadius) {
+        val cellSize = 0.8f * (circleRadius - innerCircleRadius)
+        Modifier
+            .size(with(density) { cellSize.toDp() })
+            .offset {
+                val center = Offset(circleRadius, circleRadius)
+                val length = (circleRadius + innerCircleRadius) / 2
+                val angle = Angle.Radians(2 * PI * (index.toFloat() / total))
+                val cellAlignment = Offset(
+                    x = cellSize / 2,
+                    y = cellSize / 2
+                )
+                val offset = center + vector2D(angle, length) - cellAlignment
+                offset.roundToIntOffset()
+            }
+    }
+}
+
 
 @Preview
 @Composable
@@ -478,7 +519,8 @@ private fun SprayPickerPreview() {
             SprayPicker(
                 modifier = Modifier,
                 activeSpraySlotCount = 4,
-                getSpray = { it.toString() }
+                activeSprayCount = 4,
+                getSpray = { it.toString() },
             )
         }
     }

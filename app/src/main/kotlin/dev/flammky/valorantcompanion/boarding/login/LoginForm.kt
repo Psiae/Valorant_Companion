@@ -42,26 +42,29 @@ fun LoginForm(
     val slot = state.inputSlot
     LoginFormPlacements(
         modifier = modifier,
-        header = { modifier ->
+        header = { headerModifier ->
             LoginFormHeader(
-                modifier = modifier,
+                modifier = headerModifier,
                 inputSlot = slot
             )
         },
-        textFields = { modifier ->
+        textFields = { textFieldsModifier ->
             LoginFormTextFields(
-                modifier,
+                textFieldsModifier,
                 inputSlot = slot
             )
         },
-        rememberMe = { modifier ->
-            val textColor = Material3Theme.backgroundContentColorAsState().value
-            Row(modifier = modifier.height(30.dp), verticalAlignment = Alignment.CenterVertically) {
+        rememberMe = { rememberMeModifier ->
+            val enabled = /* TODO */ false
+            val textColor = Material3Theme
+                .backgroundContentColorAsState()
+                .value.copy(alpha = if (enabled) 1f else 0.38f)
+            Row(modifier = rememberMeModifier.height(30.dp), verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
                     modifier = Modifier.size(24.dp),
                     checked = false,
                     onCheckedChange = {},
-                    enabled = false,
+                    enabled = enabled,
                     colors = run {
                         val background = if (LocalIsThemeDark.current) {
                             Color(0xFF121212)

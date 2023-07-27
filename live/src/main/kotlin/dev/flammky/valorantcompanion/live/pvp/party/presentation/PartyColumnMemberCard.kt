@@ -54,7 +54,7 @@ class PartyColumnMemberCardPresenter(
             name = memberName?.getOrNull()?.name ?: "",
             tag = memberName?.getOrNull()?.tag ?: "",
             playerCardId = memberinfo.cardArtId,
-            isOwner = memberinfo.isOwner,
+            isLeader = memberinfo.isLeader,
             isReady = memberinfo.isReady,
             pods = memberinfo.gamePodData,
             preferredPods = partyPreferredPods,
@@ -69,7 +69,7 @@ class PartyColumnMemberCardPresenter(
         name: String?,
         tag: String?,
         playerCardId: String?,
-        isOwner: Boolean?,
+        isLeader: Boolean?,
         isReady: Boolean?,
         pods: List<GamePodConnection>,
         preferredPods: List<String>,
@@ -94,7 +94,7 @@ class PartyColumnMemberCardPresenter(
             value = value.copy(
                 name = name,
                 tag = tag,
-                isOwner = isOwner,
+                isLeader = isLeader,
                 isReady = isReady,
                 pods = pods,
                 preferredPods = preferredPods,
@@ -131,7 +131,7 @@ data class PartyColumnMemberCardState(
     val playerCard: Any?,
     val name: String?,
     val tag: String?,
-    val isOwner: Boolean?,
+    val isLeader: Boolean?,
     val isReady: Boolean?,
     val pods: List<GamePodConnection>,
     val preferredPods: List<String>,
@@ -149,7 +149,7 @@ fun PartyColumnMemberCard(
         state.playerCard,
         state.name ?: "",
         state.tag ?: "",
-        state.isOwner ?: false,
+        state.isLeader ?: false,
         state.isReady ?: false,
         state.pods,
         state.preferredPods,
@@ -178,7 +178,7 @@ private fun PlayerCard(
     playerCard: Any?,
     name: String,
     tag: String,
-    isOwner: Boolean,
+    isLeader: Boolean,
     isReady: Boolean,
     pods: List<GamePodConnection>,
     preferredPods: List<String>,
@@ -232,7 +232,7 @@ private fun PlayerCard(
                         )
                         Spacer(modifier = Modifier.width(2.dp))
                     }
-                    if (isOwner) {
+                    if (isLeader) {
                         Spacer(modifier = Modifier.width(5.dp))
                         Row(
                             modifier = Modifier
@@ -247,7 +247,7 @@ private fun PlayerCard(
                         ) {
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
-                                text = "owner",
+                                text = "Leader",
                                 color = Material3Theme.backgroundContentColorAsState().value,
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
                             )
@@ -318,7 +318,7 @@ private fun PlayerCard(
                                         else
                                             removePreferredPod(pod.id)
                                     },
-                                    enabled = isOwner
+                                    enabled = isLeader
                                 )
                             },
                             trailingIcon = {

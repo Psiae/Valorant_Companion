@@ -10,7 +10,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import dev.flammky.valorantcompanion.base.compose.lazy.LazyContent
-import dev.flammky.valorantcompanion.base.theme.material3.material3Background
+import dev.flammky.valorantcompanion.base.theme.material3.localMaterial3Background
 import dev.flammky.valorantcompanion.live.loadout.presentation.root.LiveLoadout
 import dev.flammky.valorantcompanion.live.pvp.presentation.LivePVP
 import dev.flammky.valorantcompanion.live.store.presentation.root.LiveStore
@@ -20,7 +20,7 @@ internal fun LiveMainContent() {
     val selectedTabIndex = remember {
         mutableStateOf(0)
     }
-    val container = remember {
+    val screenHost = remember {
         object {
             private val visibleScreenState = mutableStateListOf<Pair<String, @Composable () -> Unit>>()
 
@@ -28,13 +28,13 @@ internal fun LiveMainContent() {
                 visibleScreenState.removeAll { it.first == key }
             }
 
-            fun show(key: String, content: @Composable LiveMainScreenContainer.() -> Unit) {
+            fun show(key: String, content: @Composable LiveMainScreenScope.() -> Unit) {
                 dismiss(key)
                 visibleScreenState.add(
                     key to @Composable {
                         remember {
-                            object : LiveMainScreenContainer {
-                                override val isVisible: Boolean
+                            object : LiveMainScreenScope {
+                                override val hasFocus: Boolean
                                     get() = visibleScreenState.lastOrNull()?.first == key
                                 override fun dismiss() {
                                     dismiss(key)
@@ -52,7 +52,7 @@ internal fun LiveMainContent() {
                         modifier = Modifier
                             .fillMaxSize()
                             .pointerInput(Unit) {}
-                            .material3Background()
+                            .localMaterial3Background()
                     ) {
                         visibleScreenState.forEach { screen -> screen.second.invoke() }
                     }
@@ -75,7 +75,7 @@ internal fun LiveMainContent() {
                         .zIndex(if (selectedTabIndex.value == 0) 1f else 0f),
                     openScreen = { content ->
                         val key = 0.toString()
-                        container.show(
+                        screenHost.show(
                             key = key,
                             content = content
                         )
@@ -89,21 +89,20 @@ internal fun LiveMainContent() {
                         .zIndex(if (selectedTabIndex.value == 1) 1f else 0f),
                     openScreen = { content ->
                         val key = 1.toString()
-                        container.show(
+                        screenHost.show(
                             key = key,
                             content = content
                         )
                     }
                 )
             }
-
             LazyContent(trigger = selectedTabIndex.value == 2) {
                 LiveStore(
                     modifier = Modifier
                         .zIndex(if (selectedTabIndex.value == 2) 1f else 0f),
                     openScreen = { content ->
                         val key = 2.toString()
-                        container.show(
+                        screenHost.show(
                             key = key,
                             content = content
                         )
@@ -111,8 +110,8 @@ internal fun LiveMainContent() {
                 )
             }
         },
-        screenContainer = {
-            container.Content()
+        screenHost = {
+            screenHost.Content()
         }
     )
 }
@@ -121,7 +120,7 @@ internal fun LiveMainContent() {
 internal inline fun LiveMainContentPlacement(
     topTab: @Composable () -> Unit,
     topTabContent: @Composable () -> Unit,
-    screenContainer: @Composable () -> Unit,
+    screenHost: @Composable () -> Unit,
     // TODO: define navigation bars inset
 ) = Box(
     modifier = Modifier
@@ -134,5 +133,5 @@ internal inline fun LiveMainContentPlacement(
         Box { topTab() }
         Box { topTabContent() }
     }
-    screenContainer()
+    screenHost()
 }
