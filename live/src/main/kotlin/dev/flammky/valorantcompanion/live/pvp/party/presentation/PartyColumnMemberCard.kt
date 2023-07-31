@@ -113,8 +113,9 @@ class PartyColumnMemberCardPresenter(
                         assetClient
                             .loadUserPlayerCardAsync(LoadPlayerCardRequest(id, PlayerCardArtType.SMALL))
                             .await()
+                            .getOrThrow()
                     }.onSuccess {
-                        returns.value = returns.value.copy(playerCard = it)
+                        returns.value = returns.value.copy(playerCard = it.value)
                     }
                 }
             }

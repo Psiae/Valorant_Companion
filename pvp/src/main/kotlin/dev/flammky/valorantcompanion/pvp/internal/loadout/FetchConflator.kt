@@ -1,5 +1,7 @@
 package dev.flammky.valorantcompanion.pvp.internal.loadout
 
+import dev.flammky.valorantcompanion.base.kt.cast
+import dev.flammky.valorantcompanion.base.kt.safeCast
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.completeWith
@@ -20,9 +22,12 @@ class FetchConflator {
             defs[id] = def
             def
         }.run {
-            this as? CompletableDeferred<T>
+            safeCast<CompletableDeferred<T>>()
                 ?: throw IllegalArgumentException("Deferred type mismatch for given id=$id")
-            if (new) completeWith(runCatching { block() })
+            if (new) {
+                completeWith(runCatching { block() })
+                check(synchronized(defs) { defs.remove(id) }?.isCompleted == true)
+            }
             await()
         }
     }

@@ -33,10 +33,14 @@ class ValorantMapAssetDownloadInstance(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val result: ValorantMapImage?
-        get() = if (def.isCompleted) def.getCompleted() else null
+        get() = if (def.isCompleted && !def.isCancelled) def.getCompleted() else null
 
     val isCompleted: Boolean
         get() = def.isCompleted
+
+    val exception: Throwable?
+        @OptIn(ExperimentalCoroutinesApi::class)
+        get() = def.getCompletionExceptionOrNull()
 
     suspend fun inLifetime(
         block: suspend () -> Unit

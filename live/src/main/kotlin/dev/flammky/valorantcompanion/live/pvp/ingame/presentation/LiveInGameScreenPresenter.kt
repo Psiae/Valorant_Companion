@@ -75,7 +75,13 @@ internal class LiveInGameScreenPresenter(
     fun present(
         user: String
     ): LiveInGameScreenState {
-        return rememberStateProducer(user = user).apply { SideEffect { produce() } }.readSnapshot()
+        return rememberStateProducer(
+            user = user
+        ).apply {
+            SideEffect {
+                produce()
+            }
+        }.readSnapshot()
     }
 
     @Composable

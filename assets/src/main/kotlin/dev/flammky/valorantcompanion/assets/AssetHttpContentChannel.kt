@@ -2,7 +2,9 @@ package dev.flammky.valorantcompanion.assets
 
 import java.nio.ByteBuffer
 
-fun interface ReadableAssetByteChannel {
+interface AssetHttpContentChannel {
+    val contentLengthInfo: Long?
+    val contentTypeInfo: String?
 
     suspend fun consume(dst: ByteBuffer)
 }

@@ -33,9 +33,9 @@ fun CompositionObserver(
 @Composable
 inline fun <R> rememberWithCompositionObserver(
     key: Any?,
-    noinline onRemembered: () -> Unit,
-    noinline onForgotten: () -> Unit,
-    noinline onAbandoned: () -> Unit,
+    noinline onRemembered: (R) -> Unit,
+    noinline onForgotten: (R) -> Unit,
+    noinline onAbandoned: (R) -> Unit,
     crossinline block: @DisallowComposableCalls () -> R
 ): R {
     val upOnRemembered = rememberUpdatedState(newValue = onRemembered)
@@ -46,15 +46,15 @@ inline fun <R> rememberWithCompositionObserver(
             val value = block()
 
             override fun onAbandoned() {
-                upOnAbandoned.value.invoke()
+                upOnAbandoned.value.invoke(value)
             }
 
             override fun onForgotten() {
-                upOnForgotten.value.invoke()
+                upOnForgotten.value.invoke(value)
             }
 
             override fun onRemembered() {
-                upOnRemembered.value.invoke()
+                upOnRemembered.value.invoke(value)
             }
         }
     }.value

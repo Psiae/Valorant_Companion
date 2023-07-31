@@ -13,6 +13,7 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 
+// TODO: user persistentList over ArrayList
 internal class DisposablePlayerLoadoutClientImpl(
     private val repo: PlayerLoadoutRepositoryImpl,
     private val auth: AuthProvider,
@@ -22,21 +23,12 @@ internal class DisposablePlayerLoadoutClientImpl(
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
+    // TODO: global fetch conflator
     private val fetchConflator = FetchConflator()
 
-    override fun getCachedOrFetchPlayerLoadoutAsync(puuid: String): Deferred<Result<PlayerLoadout>> {
-       return coroutineScope.async(Dispatchers.IO) {
-           runCatching {
-               repo.getCached(puuid).onSuccess { cached ->
-                   if (cached != null) return@runCatching cached
-               }
-               fetchConflator.fetch(puuid) {
-                   val fetch = fetchPlayerLoadout(puuid).getOrThrow()
-                   repo.update(puuid, fetch)
-                   fetch
-               }
-           }
-        }
+    // what was I'm on when I wrote this ???
+    override fun getLatestCachedLoadoutAsync(puuid: String): Result<PlayerLoadout?> {
+       return runBlocking { repo.getCached(puuid) }
     }
 
     override fun fetchPlayerLoadoutAsync(puuid: String): Deferred<Result<PlayerLoadout>> {
@@ -208,7 +200,7 @@ internal class DisposablePlayerLoadoutClientImpl(
                                         ?: return Result.failure(
                                             UnexpectedResponseException("Atachments not found")
                                         )
-                                    GunLoadout(
+                                    GunLoadoutItem(
                                         id = id,
                                         skinId = skin_id,
                                         skinLevelId = skin_level_id,
@@ -278,7 +270,7 @@ internal class DisposablePlayerLoadoutClientImpl(
                                                 "SprayLevelID not found"
                                             )
                                         )
-                                    SprayLoadout(
+                                    SprayLoadoutItem(
                                         equipSlotId = equipSlotId,
                                         sprayId = sprayId,
                                         sprayLevelId = sprayLevelId

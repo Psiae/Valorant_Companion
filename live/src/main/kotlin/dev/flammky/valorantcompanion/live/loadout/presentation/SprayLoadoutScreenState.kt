@@ -1,14 +1,15 @@
 package dev.flammky.valorantcompanion.live.loadout.presentation
 
-import kotlinx.collections.immutable.ImmutableList
+import dev.flammky.valorantcompanion.base.UNSET
 
-data class SprayLoadoutScreenState(
-    val loadoutData: LoadoutData
-) {
+class SprayLoadoutScreenState(
+): UNSET<SprayLoadoutScreenState> by Companion {
 
 
-    data class LoadoutData(
-        val activeSprays: ImmutableList<String>,
-        val ownedSprays: ImmutableList<String>
-    )
+    companion object : UNSET<SprayLoadoutScreenState> {
+
+        override val UNSET: SprayLoadoutScreenState = SprayLoadoutScreenState(
+
+        )
+    }
 }

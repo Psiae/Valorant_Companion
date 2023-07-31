@@ -9,6 +9,8 @@ import dev.flammky.valorantcompanion.assets.map.ValorantApiMapAssetEndpoint
 import dev.flammky.valorantcompanion.assets.map.ValorantMapAssetDownloader
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardAssetDownloader
 import dev.flammky.valorantcompanion.assets.player_card.ValorantApiPlayerCardAssetEndpoint
+import dev.flammky.valorantcompanion.assets.spray.ValorantApiSprayAssetEndpoint
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetDownloader
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.logging.*
@@ -27,6 +29,10 @@ class ValorantAssetsServiceImpl(
             map_asset_downloader = ValorantMapAssetDownloader(
                 KtorWrappedHttpClient(createKtorHttpClient()),
                 ValorantApiMapAssetEndpoint()
+            ),
+            spray_asset_downloader = ValorantSprayAssetDownloader(
+                KtorWrappedHttpClient(createKtorHttpClient()),
+                ValorantApiSprayAssetEndpoint()
             )
         )
     }

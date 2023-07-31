@@ -21,7 +21,6 @@ internal class ConflatedCacheWriteMutex() : CacheWriteMutex {
         val current = synchronized(_lock) {
             _currentWrite?.apply { cancel() }.also {
                 _currentWrite = handle
-                _mutex.tryLock()
             }
         }
         val doBlock = runCatching {

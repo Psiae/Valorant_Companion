@@ -1,6 +1,6 @@
 package dev.flammky.valorantcompanion.pvp.loadout
 
-data class GunLoadout(
+data class GunLoadoutItem(
     val id: String,
     val skinId: String,
     val skinLevelId: String,

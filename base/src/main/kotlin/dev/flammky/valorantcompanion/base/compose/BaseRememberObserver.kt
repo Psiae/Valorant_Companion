@@ -21,18 +21,3 @@ interface BaseRememberObserver : RememberObserver {
         check(inMainLooper())
     }
 }
-
-abstract class AbstractRememberObserver : BaseRememberObserver {
-
-    override fun onAbandoned() {
-        super.onAbandoned()
-    }
-
-    override fun onForgotten() {
-        super.onForgotten()
-    }
-
-    override fun onRemembered() {
-        super.onRemembered()
-    }
-}

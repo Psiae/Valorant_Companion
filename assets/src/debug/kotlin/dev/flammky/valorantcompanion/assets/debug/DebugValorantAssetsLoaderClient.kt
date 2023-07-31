@@ -7,12 +7,11 @@ import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.map.MapImageIdentifier
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardIdentifier
+import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
 import dev.flammky.valorantcompanion.assets.spray.SprayImageIdentifier
-import dev.flammky.valorantcompanion.assets.spray.SprayImageType
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
-import java.io.File
 
 class DebugValorantAssetsLoaderClient(
     private val agentIconMapping: Map<String, LocalImage<*>>,
@@ -51,12 +50,40 @@ class DebugValorantAssetsLoaderClient(
         )
     }
 
-    override fun loadUserPlayerCardAsync(req: LoadPlayerCardRequest): Deferred<File> {
-        TODO("Not yet implemented")
+    override fun loadUserPlayerCardAsync(req: LoadPlayerCardRequest): Deferred<Result<LocalImage<*>>> {
+        req.acceptableTypes.forEach { type ->
+            playerCardMapping[PlayerCardIdentifier(req.uuid, type)]
+                ?.let {
+                    return CompletableDeferred(Result.success(it))
+                }
+        }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
     }
 
-    override fun loadMapImageAsync(req: LoadMapImageRequest): Deferred<Result<File>> {
-        TODO("Not yet implemented")
+    override fun loadMapImageAsync(req: LoadMapImageRequest): Deferred<Result<LocalImage<*>>> {
+        req.acceptableTypes.forEach { type ->
+            mapImageMapping[MapImageIdentifier(req.uuid, type)]
+                ?.let {
+                    return CompletableDeferred(Result.success(it))
+                }
+        }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
+    }
+
+    override fun loadSprayImageAsync(req: LoadSprayImageRequest): Deferred<Result<LocalImage<*>>> {
+        req.acceptableTypes.forEach { type ->
+            sprayImageMapping[SprayImageIdentifier(req.uuid, type)]
+                ?.let {
+                    return CompletableDeferred(Result.success(it))
+                }
+        }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
     }
 
     override fun dispose() {

@@ -6,11 +6,11 @@ import kotlinx.collections.immutable.persistentListOf
 
 data class InGameTeam(
     val id: TeamID?,
-    val members: List<dev.flammky.valorantcompanion.live.pvp.ingame.presentation.TeamMember>
-): UNSET<dev.flammky.valorantcompanion.live.pvp.ingame.presentation.InGameTeam> by dev.flammky.valorantcompanion.live.pvp.ingame.presentation.InGameTeam.Companion {
+    val members: List<TeamMember>
+): UNSET<InGameTeam> by Companion {
 
-    companion object : UNSET<dev.flammky.valorantcompanion.live.pvp.ingame.presentation.InGameTeam> {
-        override val UNSET = dev.flammky.valorantcompanion.live.pvp.ingame.presentation.InGameTeam(
+    companion object : UNSET<InGameTeam> {
+        override val UNSET = InGameTeam(
             null,
             emptyList()
         )

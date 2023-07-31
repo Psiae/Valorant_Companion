@@ -182,7 +182,7 @@ class AgentSelectionPlayerCardPresenter(
             this.playerAgentSelectionState = selectionState
             mutateState("newPlayerAgentSelectionState") { state ->
                 state.copy(
-                    isLockedIn = state.isLockedIn
+                    isLockedIn = selectionState.isLocked
                 )
             }
         }

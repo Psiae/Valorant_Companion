@@ -1,6 +1,13 @@
 package dev.flammky.valorantcompanion.assets.player_card
 
+import android.util.Log
+import dev.flammky.valorantcompanion.assets.BuildConfig
+import dev.flammky.valorantcompanion.assets.ex.AssetNotFoundException
 import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
+import dev.flammky.valorantcompanion.base.storage.ByteUnit
+import dev.flammky.valorantcompanion.base.storage.kiloByteUnit
+import dev.flammky.valorantcompanion.base.storage.noIntOverflow
+import io.ktor.http.*
 import io.ktor.util.*
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.coroutines.*
@@ -26,30 +33,84 @@ class PlayerCardAssetDownloader(
     private fun initiateDownloadForInstance(instance: PlayerCardAssetDownloadInstance) {
         coroutineScope.launch(Dispatchers.IO) {
             instance.inLifetime {
-                val id = instance.id
                 instance.acceptableTypes.forEach { type ->
                     runCatching {
-                        // TODO: handle status code
-                        val response = assetHttpClient
-                            . get(endpoint.buildArtUrl(instance.id, instance.acceptableTypes.first()))
-                        // TODO: should be less than 500kb
-                        val bb = ByteBuffer.allocate(1_000_000)
-                        response.contentChannel.consume(bb)
-                        instance.completeWith(
-                            Result.success(
-                                PlayerCardArt(
-                                    id = id,
-                                    type = type,
-                                    bb.apply { flip() }.moveToByteArray()
+                        var result: ByteArray? = null
+
+                        val contentSizeLimit = contentSizeLimitOfImageType(
+                            type
+                        ).noIntOverflow().bytes().toInt()
+
+                        assetHttpClient.get(
+                            url = endpoint.buildArtUrl(instance.id, type),
+                            sessionHandler = handler@ {
+                                Log.d(
+                                    BuildConfig.LIBRARY_PACKAGE_NAME,
+                                    "PlayerCardAssetDownloaderKt: " +
+                                            "PlayerCardAssetDownloader_initiateDownloadForInstance_sessionHandler(" +
+                                            "method=$httpMethod, " +
+                                            "status=$httpStatusCode, " +
+                                            "contentType=$contentType, " +
+                                            "contentSubType=$contentSubType, " +
+                                            "contentLength=$contentLength" +
+                                            ")"
+                                )
+                                if (
+                                    contentType != "image"
+                                ) return@handler reject()
+                                if (
+                                    contentSubType != "png" &&
+                                    contentSubType != "jpg" &&
+                                    contentSubType != "jpeg"
+                                ) return@handler reject()
+
+                                val contentLength = contentLength
+                                val bb = when {
+                                    contentLength == null -> return@handler reject()
+                                    contentLength <= contentSizeLimit -> {
+                                        ByteBuffer.allocate(contentLength.toInt())
+                                    }
+                                    // TODO: ask for confirmation
+                                    else -> return@handler reject()
+                                }
+                                consume(bb)
+                                result = bb.apply { flip() }.moveToByteArray()
+                            }
+                        )
+
+                        result?.let { arr ->
+                            instance.completeWith(
+                                Result.success(
+                                    PlayerCardArt(
+                                        instance.id,
+                                        type,
+                                        arr
+                                    )
                                 )
                             )
-                        )
-                        return@inLifetime
+                        }
                     }
                 }
             }
+            // TODO: differentiate between remote error and local error
+            instance.completeWith(
+                Result.failure(
+                    AssetNotFoundException("None of the acceptable types were available")
+                )
+            )
         }.invokeOnCompletion { ex ->
             ex?.let { instance.completeWith(Result.failure(ex)) }
+            check(instance.isCompleted)
+        }
+    }
+
+    companion object {
+        fun contentSizeLimitOfImageType(type: PlayerCardArtType): ByteUnit {
+            return when(type) {
+                PlayerCardArtType.SMALL -> 100.kiloByteUnit()
+                PlayerCardArtType.WIDE -> 200.kiloByteUnit()
+                PlayerCardArtType.TALL -> 300.kiloByteUnit()
+            }
         }
     }
 }

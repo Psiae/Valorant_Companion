@@ -4,7 +4,7 @@ import dev.flammky.valorantcompanion.assets.*
 import dev.flammky.valorantcompanion.assets.map.MapImageIdentifier
 import dev.flammky.valorantcompanion.assets.map.ValorantMapImageType
 import dev.flammky.valorantcompanion.assets.spray.SprayImageIdentifier
-import dev.flammky.valorantcompanion.assets.spray.SprayImageType
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentRole
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
@@ -263,7 +263,7 @@ class DebugValorantAssetService : ValorantAssetsService {
             persistentMapOf<MapImageIdentifier, LocalImage<*>>().builder().apply {
                 put(
                     MapImageIdentifier(
-                        puuid = ValorantMapIdentity.ASCENT.map_id,
+                        uuid = ValorantMapIdentity.ASCENT.map_id,
                         type = ValorantMapImageType.ListView
                     ),
                     LocalImage.Resource(dev.flammky.valorantcompanion.assets.R.raw.ascent_listviewicon)
@@ -275,8 +275,8 @@ class DebugValorantAssetService : ValorantAssetsService {
             persistentMapOf<SprayImageIdentifier, LocalImage<*>>().builder().apply {
                 put(
                     SprayImageIdentifier(
-                        puuid = "nice_to_zap_you",
-                        type = SprayImageType.FULL_ICON(transparentBackground = true)
+                        uuid = "nice_to_zap_you",
+                        type = ValorantSprayImageType.FULL_ICON(transparentBackground = true)
                     ),
                     LocalImage.Resource(R_ASSET_RAW.debug_spray_nice_to_zap_you_transparent)
                 )

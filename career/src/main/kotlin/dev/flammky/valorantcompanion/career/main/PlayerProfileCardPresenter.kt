@@ -122,7 +122,7 @@ class PlayerProfileCardPresenter(
                     latestJob = launch {
                         runCatching {
                             val cardId = loadoutClient
-                                .getCachedOrFetchPlayerLoadoutAsync(puuid)
+                                .fetchPlayerLoadoutAsync(puuid)
                                 .await()
                                 .onFailure { it.printStackTrace() }
                                 .getOrNull()?.identity?.playerCardId
@@ -132,7 +132,7 @@ class PlayerProfileCardPresenter(
                                     cardId,
                                     PlayerCardArtType.SMALL, PlayerCardArtType.TALL
                                 )
-                            ).await()
+                            ).await().getOrThrow().value
                         }.onFailure {
                             it.printStackTrace()
                             if (currentCoroutineContext().job.isActive) returns.value = null

@@ -9,10 +9,16 @@ fun inMainLooper(): Boolean {
         } == true
 }
 
-fun checkInMainLooper() = check(
-    value = inMainLooper(),
+inline fun checkInMainLooper() = checkInMainLooper(
     lazyMessage = {
         "Invalid Thread Access, expected Main, " +
                 "current=${Thread.currentThread().name};looper=${Looper.myLooper()}"
     }
+)
+
+inline fun checkInMainLooper(
+    lazyMessage: () -> Any
+) = check(
+    value = inMainLooper(),
+    lazyMessage = lazyMessage
 )

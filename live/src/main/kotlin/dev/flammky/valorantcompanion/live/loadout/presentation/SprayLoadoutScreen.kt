@@ -53,10 +53,7 @@ internal fun SprayLoadoutScreenPreview() {
         SprayLoadoutScreen(
             modifier = Modifier,
             state = SprayLoadoutScreenState(
-                loadoutData = SprayLoadoutScreenState.LoadoutData(
-                    activeSprays = persistentListOf("a", "b", "c"),
-                    ownedSprays = persistentListOf("a", "b", "c", "d")
-                )
+
             ),
             dismiss = {}
         )

@@ -5,8 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.base.debug.debugBlock
-import dev.flammky.valorantcompanion.base.debug.debugResourceUsage
-import dev.flammky.valorantcompanion.pvp.spray.PvpSpray
+import dev.flammky.valorantcompanion.pvp.PvpConstants
+import dev.flammky.valorantcompanion.pvp.spray.C
 import kotlinx.collections.immutable.persistentListOf
 
 @Composable
@@ -18,15 +18,13 @@ fun SprayLoadoutScreenContent(
     SprayLoadoutScreenContentPlacement(
         modifier = modifier,
         sprayPicker = { sprayPickerModifier ->
-            SprayPicker(
+            SprayLoadoutPicker(
                 modifier = sprayPickerModifier,
-                activeSpraySlotCount = PvpSpray.SLOT_COUNT,
-                activeSprayCount = state.loadoutData.activeSprays.size,
-                getSpray = { index -> state.loadoutData.activeSprays[index] }
+                state = rememberSprayLoadoutPickerPresenter().present()
             )
         },
         sprayPickerPool = { sprayPoolModifier ->
-            SprayPickerPool(
+            SprayLoadoutPickerPool(
                 modifier = sprayPoolModifier,
                 ownedSprays = debugBlock {
                     persistentListOf<String>().builder()

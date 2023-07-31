@@ -12,4 +12,8 @@ interface PlatformFileSystem {
     fun buildStringWithDefaultInternalCacheFolder(
         path: (cachePath: String) -> String
     ): String
+
+    fun buildStringWithDefaultInternalDataFolder(
+        path: (dataPath: String) -> String
+    ): String
 }

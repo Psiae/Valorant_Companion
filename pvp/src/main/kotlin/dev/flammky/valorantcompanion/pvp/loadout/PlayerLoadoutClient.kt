@@ -1,13 +1,12 @@
 package dev.flammky.valorantcompanion.pvp.loadout
 
-import dev.flammky.valorantcompanion.pvp.loadout.PlayerLoadout
 import kotlinx.coroutines.Deferred
 
 interface PlayerLoadoutClient {
 
-    fun getCachedOrFetchPlayerLoadoutAsync(
+    fun getLatestCachedLoadoutAsync(
         puuid: String
-    ): Deferred<Result<PlayerLoadout>>
+    ): Result<PlayerLoadout?>
 
     fun fetchPlayerLoadoutAsync(
         puuid: String

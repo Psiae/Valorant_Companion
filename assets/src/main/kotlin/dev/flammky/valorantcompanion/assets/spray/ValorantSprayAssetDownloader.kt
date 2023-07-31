@@ -1,34 +1,34 @@
-package dev.flammky.valorantcompanion.assets.map
+package dev.flammky.valorantcompanion.assets.spray
 
 import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
+import dev.flammky.valorantcompanion.assets.map.ValorantMapImage
 import dev.flammky.valorantcompanion.base.storage.ByteUnit
 import dev.flammky.valorantcompanion.base.storage.kiloByteUnit
-import dev.flammky.valorantcompanion.base.storage.megaByteUnit
 import dev.flammky.valorantcompanion.base.storage.noIntOverflow
 import io.ktor.util.*
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.coroutines.*
 import java.nio.ByteBuffer
 
-class ValorantMapAssetDownloader(
+class ValorantSprayAssetDownloader(
     private val assetHttpClient: AssetHttpClient,
-    private val endpoint: ValorantMapAssetEndpoint
+    private val endpoint: ValorantSprayAssetEndpoint
 ) {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
     fun downloadImage(
         id: String,
-        types: ImmutableSet<ValorantMapImageType>
-    ): ValorantMapAssetDownloadInstance {
-        return ValorantMapAssetDownloadInstance(
+        acceptableTypes: ImmutableSet<ValorantSprayImageType>
+    ): ValorantSprayDownloadInstance {
+        return ValorantSprayDownloadInstance(
             id,
-            types
+            acceptableTypes
         ).apply { initiateDownloadForInstance(this) }
     }
 
     private fun initiateDownloadForInstance(
-        instance: ValorantMapAssetDownloadInstance
+        instance: ValorantSprayDownloadInstance
     ) {
         coroutineScope.launch(Dispatchers.IO) {
 
@@ -37,23 +37,30 @@ class ValorantMapAssetDownloader(
 
                     var result: ByteArray? = null
 
-                    val contentSizeLimit = contentSizeLimitOfImageType(type)
-                        .noIntOverflow()
-                        .bytes()
-                        .toInt()
+                    val contentSizeLimit = contentSizeLimitOfImageType(
+                        type
+                    ).noIntOverflow().bytes().toInt()
 
                     assetHttpClient.get(
-                        url = endpoint.buildImageUrl(instance.id, type),
+                        url = endpoint.buildImageUrl(instance.uuid, type),
                         sessionHandler = handler@ {
+                            if (
+                                httpStatusCode !in 200..299
+                            ) return@handler reject()
+                            if (
+                                contentType != "image"
+                            ) return@handler reject()
+                            if (
+                                contentSubType != "png" &&
+                                contentSubType != "jpg" &&
+                                contentSubType != "jpeg"
+                            ) return@handler reject()
+
                             val contentLength = contentLength
 
                             val bb = when {
-                                contentLength == null -> {
-                                    ByteBuffer.allocate(contentSizeLimit)
-                                }
-                                contentSizeLimit >= contentLength -> {
-                                    ByteBuffer.allocate(contentLength.toInt())
-                                }
+                                contentLength == null -> return@handler reject()
+                                contentSizeLimit >= contentLength -> ByteBuffer.allocate(contentLength.toInt())
                                 else -> return@handler reject()
                             }
                             consume(bb)
@@ -64,8 +71,8 @@ class ValorantMapAssetDownloader(
                     result?.let { arr ->
                         instance.completeWith(
                             Result.success(
-                                ValorantMapImage(
-                                    instance.id,
+                                ValorantSprayImage(
+                                    instance.uuid,
                                     type,
                                     arr
                                 )
@@ -83,20 +90,21 @@ class ValorantMapAssetDownloader(
                 )
             )
 
-        }.invokeOnCompletion { ex ->
-            ex?.let { instance.completeWith(Result.failure(ex)) }
-            check(instance.isCompleted)
+        }.apply {
+            invokeOnCompletion { ex ->
+                ex?.let { instance.completeExceptionally(ex) }
+                check(instance.isCompleted)
+            }
+            instance.invokeOnCompletion { ex ->
+                cancel(ex as? CancellationException?)
+            }
         }
     }
 
     companion object {
-
-        fun contentSizeLimitOfImageType(type: ValorantMapImageType): ByteUnit {
-            return if (type is ValorantMapImageType.Splash) {
-                3.megaByteUnit()
-            }  else {
-                100.kiloByteUnit()
-            }
+        fun contentSizeLimitOfImageType(type: ValorantSprayImageType): ByteUnit {
+            return 200.kiloByteUnit()
         }
     }
+
 }

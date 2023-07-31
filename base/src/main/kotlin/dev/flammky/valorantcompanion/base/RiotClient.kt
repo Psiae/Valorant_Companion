@@ -1,5 +1,5 @@
 package dev.flammky.valorantcompanion.base
 
 object RiotClient {
-    const val VERSION = "release-07.00-shipping-29-913116"
+    const val VERSION = "release-07.01-shipping-28-925799"
 }

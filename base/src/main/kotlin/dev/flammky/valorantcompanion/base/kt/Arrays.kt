@@ -1,4 +1,4 @@
-package dev.flammky.valorantcompanion.base
+package dev.flammky.valorantcompanion.base.kt
 
 fun <A, B> Array<A>.contentEqualsBy(other: Array<B>, selector: (A, B) -> Boolean): Boolean {
     if (this === other) return true

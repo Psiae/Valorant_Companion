@@ -1,18 +1,14 @@
 package dev.flammky.valorantcompanion.assets.ktor
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.util.Log
-import android.widget.ImageView
-import androidx.core.content.FileProvider
-import dev.flammky.valorantcompanion.assets.ReadableAssetByteChannel
 import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
-import dev.flammky.valorantcompanion.assets.http.AssetHttpResponse
-import io.ktor.client.call.*
-import io.ktor.client.plugins.*
+import dev.flammky.valorantcompanion.assets.http.AssetHttpSession
+import dev.flammky.valorantcompanion.assets.http.AssetHttpSessionHandler
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.http.*
 import io.ktor.utils.io.*
+import kotlinx.atomicfu.atomic
+import java.nio.ByteBuffer
 import io.ktor.client.HttpClient as KtorHttpClient
 
 class KtorWrappedHttpClient(
@@ -20,21 +16,56 @@ class KtorWrappedHttpClient(
 ) : AssetHttpClient() {
 
     // TODO: limit download, simply prepare custom execute block, the call will be closed once it returns
-    override suspend fun get(url: String): AssetHttpResponse {
-        val response = self.get(url) {
-            onDownload { bytesSentTotal, contentLength ->
-                Log.d("KtorWrappedHttpClient", "get($url), downloaded$bytesSentTotal, contentLength=$contentLength")
+    override suspend fun get(
+        url: String,
+        sessionHandler: AssetHttpSessionHandler
+    ) {
+        val request = self.prepareRequest {
+            method = HttpMethod.Get
+            url(url)
+        }
+        request.execute { response ->
+            val channel = response.bodyAsChannel()
+            val consumed = atomic(false)
+            val closed = atomic(false)
+            object : AssetHttpSession {
+
+                override val httpMethod: String
+                    get() = response.request.method.value
+                override val httpStatusCode: Int
+                    get() = response.status.value
+
+                override val contentType: String?
+                    get() = response.contentType()?.contentType
+                override val contentSubType: String?
+                    get() = response.contentType()?.contentSubtype
+                override val contentLength: Long?
+                    get() = response.contentLength()
+
+                override val closed: Boolean
+                    get() = closed.value
+
+                override val consumed: Boolean
+                    get() = consumed.value
+
+                override suspend fun consume(byteBuffer: ByteBuffer) {
+                    if (!consumed.compareAndSet(expect = false, update = true)) {
+                        error("AssetHttpSession is already consumed")
+                    }
+                    if (!closed.compareAndSet(false, update = true)) {
+                        error("AssetHttpSession is already closed")
+                    }
+                    channel.readFully(byteBuffer)
+                    channel.cancel()
+                }
+
+                override fun reject() {
+                    channel.cancel()
+                }
+            }.apply {
+                sessionHandler()
+                reject()
             }
         }
-        val content = response.bodyAsChannel()
-        Log.d("assets.ktor.KtorWrappedHttpClient", "get($url), status=${response.status}")
-        return AssetHttpResponse(
-            statusCode = response.status.value,
-            contentChannel = ReadableAssetByteChannel { bb ->
-                while (true) {
-                    if (content.readAvailable(bb) == -1) break
-                }
-            }
-        )
     }
 }

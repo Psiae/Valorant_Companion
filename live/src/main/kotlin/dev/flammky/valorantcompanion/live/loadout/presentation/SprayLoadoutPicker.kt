@@ -6,8 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.GenericShape
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
@@ -17,24 +16,51 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.util.fastForEach
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import dev.flammky.valorantcompanion.assets.R_ASSET_RAW
+import dev.flammky.valorantcompanion.assets.ValorantAssetsService
+import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
 import dev.flammky.valorantcompanion.base.commonkt.geometry.*
 import dev.flammky.valorantcompanion.base.compose.geometry.plus
 import dev.flammky.valorantcompanion.base.compose.geometry.roundToIntOffset
-import dev.flammky.valorantcompanion.base.debug.debugResourceUsage
+import dev.flammky.valorantcompanion.base.compose.rememberWithCompositionObserver
+import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
+import dev.flammky.valorantcompanion.base.di.requireInject
 import dev.flammky.valorantcompanion.base.theme.material3.*
+import dev.flammky.valorantcompanion.pvp.PvpConstants
+import dev.flammky.valorantcompanion.pvp.spray.pvpSpraySlotUUIDOf4CircularIndex
 import kotlin.math.PI
 import kotlin.math.roundToInt
 
 @Composable
-fun SprayPicker(
+fun SprayLoadoutPicker(
+    modifier: Modifier,
+    state: SprayLoadoutPickerState
+) {
+    SprayLoadoutPicker(
+        modifier = modifier,
+        activeSpraySlotCount = PvpConstants.SPRAY_SLOT_COUNT,
+        activeSprayCount = state.activeSprays.size,
+        getSpray = remember(state.activeSpraysKey) {
+            { index ->
+                state.activeSprays.find { it.equipSlotId == pvpSpraySlotUUIDOf4CircularIndex(index) }
+                    ?.sprayId
+                    ?: ""
+            }
+        }
+    )
+}
+
+@Composable
+fun SprayLoadoutPicker(
     modifier: Modifier,
     activeSpraySlotCount: Int,
     activeSprayCount: Int,
@@ -114,10 +140,10 @@ private fun SprayPickerCells(
     SprayPickerCell(
         total = total,
         index = index,
-        spray = getSpray(index),
         circleRadius = circleRadius,
         innerCircleRadius = innerCircleRadius,
-        dividerThickness = dividerThickness
+        dividerThickness = dividerThickness,
+        Content = { modifier -> SprayPickerCellContent(modifier = modifier, spray = getSpray(index)) },
     )
 }
 
@@ -125,11 +151,11 @@ private fun SprayPickerCells(
 private fun SprayPickerCell(
     total: Int,
     index: Int,
-    spray: String?,
     circleRadius: Float,
     innerCircleRadius: Float,
-    dividerThickness: Dp
-) = Box(
+    dividerThickness: Dp,
+    Content: @Composable BoxScope.(modifier: Modifier) -> Unit
+) = Layout(
     modifier = Modifier
         .fillMaxSize()
         .sprayPickerCellLayoutModifiers(
@@ -140,27 +166,74 @@ private fun SprayPickerCell(
             innerCircleRadius = innerCircleRadius,
             dividerThickness = dividerThickness
         )
-        .clickable { }
-) {
-    // TODO: load spray
-    AsyncImage(
-        modifier = Modifier
-            .sprayPickerCellContentLayoutModifiers(
-                density = LocalDensity.current,
-                index = index,
-                total = total,
-                circleRadius = circleRadius,
-                innerCircleRadius = innerCircleRadius
-            ),
-        model = run {
-            val ctx = LocalContext.current
-            remember {
-                ImageRequest.Builder(ctx)
-                    .data(
-                        debugResourceUsage {
-                            R_ASSET_RAW.debug_spray_nice_to_zap_you_transparent
-                        }
+        .clickable { },
+    content = {
+        Box {
+            Content(
+                modifier = Modifier
+                    .sprayPickerCellContentLayoutModifiers(
+                        density = LocalDensity.current,
+                        index = index,
+                        total = total,
+                        circleRadius = circleRadius,
+                        innerCircleRadius = innerCircleRadius
                     )
+            )
+        }
+    },
+    measurePolicy = { measurables, constraint ->
+        layout(constraint.maxWidth, constraint.maxHeight) {
+            measurables.fastForEach { it.measure(constraint).place(0, 0) }
+        }
+    }
+)
+
+@Composable
+fun SprayPickerCellContent(
+    modifier: Modifier,
+    spray: String?
+) {
+// TODO: use content lambda
+    AsyncImage(
+        modifier = modifier.fillMaxSize(),
+        model = run {
+            // TODO: make into se
+            val ctx = LocalContext.current
+            val assetLoaderService =
+                LocalDependencyInjector
+                    .current
+                    .requireInject<ValorantAssetsService>()
+            val assetLoaderClient =
+                rememberWithCompositionObserver(
+                    key = assetLoaderService,
+                    onRemembered = { client -> ; },
+                    onForgotten = { client -> client.dispose() },
+                    onAbandoned = { client -> client.dispose() },
+                    block = { assetLoaderService.createLoaderClient() }
+                )
+            val dataState = remember(spray) {
+                mutableStateOf<Any?>(null)
+            }
+            LaunchedEffect(
+                key1 = spray,
+                key2 = assetLoaderClient,
+            ) {
+                if (spray == null) return@LaunchedEffect
+                val def = assetLoaderClient.loadSprayImageAsync(
+                    req = LoadSprayImageRequest(
+                        uuid = spray,
+                        ValorantSprayImageType.FULL_ICON(transparentBackground = true),
+                        ValorantSprayImageType.FULL_ICON(transparentBackground = false),
+                        ValorantSprayImageType.DISPLAY_ICON
+                    )
+                )
+                val image = runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
+                // TODO: if it fails ask to refresh
+                dataState.value = image.getOrNull()?.value
+            }
+            remember(dataState.value) {
+                ImageRequest.Builder(ctx)
+                    .data(dataState.value)
                     .build()
             }
         },
@@ -516,7 +589,7 @@ private fun SprayPickerPreview() {
                 .fillMaxSize()
                 .background(Material3Theme.backgroundColorAsState().value)
         ) {
-            SprayPicker(
+            SprayLoadoutPicker(
                 modifier = Modifier,
                 activeSpraySlotCount = 4,
                 activeSprayCount = 4,

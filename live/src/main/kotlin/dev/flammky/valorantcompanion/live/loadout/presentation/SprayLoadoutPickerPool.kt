@@ -2,6 +2,7 @@ package dev.flammky.valorantcompanion.live.loadout.presentation
 
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.snapping.SnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -25,14 +26,14 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlin.math.ceil
 
 @Composable
-fun SprayPickerPool(
+fun SprayLoadoutPickerPool(
     modifier: Modifier,
     ownedSprays: List<String>,
 ) {
    SubcomposeLayout(modifier) { constraints ->
 
        val placeable = subcompose(Unit) {
-            SprayPickerPool(
+            SprayLoadoutPickerPool(
                 modifier = Modifier,
                 density = LocalDensity.current,
                 constraints = constraints,
@@ -49,7 +50,7 @@ fun SprayPickerPool(
 }
 
 @Composable
-fun SprayPickerPool(
+fun SprayLoadoutPickerPool(
     modifier: Modifier,
     density: Density,
     constraints: Constraints,
@@ -266,7 +267,7 @@ private fun SprayPickerPoolPreview() {
                 .fillMaxSize()
                 .localMaterial3Background()
         ) {
-            SprayPickerPool(
+            SprayLoadoutPickerPool(
                 modifier = Modifier
                     .fillMaxWidth(1f)
                     .fillMaxHeight(0.4f)

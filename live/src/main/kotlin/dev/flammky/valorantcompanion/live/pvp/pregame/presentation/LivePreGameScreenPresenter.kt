@@ -66,7 +66,9 @@ class LivePreGameScreenPresenter(
             )
         }
         return activeAccountState.value
-            ?.let { account -> present(account.model.id) }
+            ?.let { account ->
+                present(account.model.id)
+            }
             ?: LivePreGameScreenState.UNSET.copy(
                 noOp = true,
                 noOpMessage = "USER NOT LOGGED IN"
@@ -509,8 +511,8 @@ class LivePreGameScreenPresenter(
             check(!forgotten)
             check(!abandoned)
             forgotten = true
-            _coroutineScope?.cancel()
-            _preGameClient?.dispose()
+            coroutineScope.cancel()
+            preGameClient.dispose()
             lifetime.cancel()
         }
 
@@ -520,7 +522,7 @@ class LivePreGameScreenPresenter(
             check(!forgotten)
             check(!abandoned)
             remembered = true
-            _coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+            _coroutineScope = CoroutineScope(Dispatchers.Main + lifetime)
             _preGameClient = preGameService.createUserClient(user)
         }
 

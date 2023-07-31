@@ -4,7 +4,7 @@ import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.toPersistentSet
 
 class LoadPlayerCardRequest private constructor(
-    val player_card_id: String,
+    val uuid: String,
     // ordered
     val acceptableTypes: PersistentSet<PlayerCardArtType>,
 ) {
