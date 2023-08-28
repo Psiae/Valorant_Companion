@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
+import dev.flammky.valorantcompanion.base.checkInMainLooper
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.pvp.party.PartyService
 import dev.flammky.valorantcompanion.pvp.party.PartyState
@@ -43,11 +44,12 @@ import org.koin.androidx.compose.get as getFromKoin
 @Composable
 fun LivePartyUI(
     modifier: Modifier,
+    visibleToUser: Boolean
 ) {
     Column(modifier.fillMaxWidth()) {
         LivePartyUI(
             padding = PaddingValues(15.dp),
-            state = rememberLivePartyPresenter().present()
+            state = rememberLivePartyPresenter().present(visibleToUser)
         )
     }
 }
@@ -177,6 +179,7 @@ private fun LivePartyUI(
             }
         }
     }
+    // TODO: move it to presenter
     LaunchedEffect(state) {
         Log.d("live.LiveParty.kt", "LiveParty() { LaunchedEffect($state) }")
         state.initialRefresh()
@@ -185,8 +188,11 @@ private fun LivePartyUI(
         var job: Job? = null
         var stamp = SystemClock.elapsedRealtime()
         runCatching {
-            snapshotFlow { state.autoRefreshOn && state.exceptionMessage.isEmpty() }
-                .distinctUntilChanged()
+            snapshotFlow {
+                state.autoRefreshOn &&
+                        state.exceptionMessage.isEmpty() &&
+                        state.isVisibleToUser.value
+            }.distinctUntilChanged()
                 .collect { on ->
                     job?.cancel()
                     if (on) job = launch {
@@ -217,7 +223,7 @@ fun rememberLivePartyPresenter(
 class LivePartyState(
     val userPUUID: String,
     private val fetch: () -> Deferred<PlayerPartyData>,
-    private val coroutineScope: CoroutineScope
+    private val coroutineScope: CoroutineScope,
 ) {
 
     val partyDataState = mutableStateOf<PlayerPartyData?>(null)
@@ -228,6 +234,7 @@ class LivePartyState(
     var autoRefreshOn by mutableStateOf(true)
     var isUserRefreshing by mutableStateOf(false)
     val loading by derivedStateOf { initialRefresh || isUserRefreshing }
+    val isVisibleToUser = mutableStateOf(false)
 
     fun initialRefresh() {
         if (!initialRefresh) return
@@ -310,6 +317,11 @@ class LivePartyState(
         }
     }
 
+    fun userVisibility(visible: Boolean) {
+        checkInMainLooper()
+        isVisibleToUser.value = visible
+    }
+
     private fun onRefreshFailure(
         ex: Throwable
     ) {
@@ -341,7 +353,9 @@ class LivePartyPresenter(
 ) {
 
     @Composable
-    fun present(): LivePartyState {
+    fun present(
+        visibleToUser: Boolean
+    ): LivePartyState {
         val activeAccountState = remember(this) {
             mutableStateOf<AuthenticatedAccount?>(null)
         }
@@ -358,12 +372,16 @@ class LivePartyPresenter(
                 authRepository.unRegisterActiveAccountListener(listener)
             }
         }
-        return present(puuid = activeAccountState.value?.model?.id ?: "")
+        return present(
+            puuid = activeAccountState.value?.model?.id ?: "",
+            visibleToUser = visibleToUser
+        )
     }
 
     @Composable
     fun present(
-        puuid: String
+        puuid: String,
+        visibleToUser: Boolean
     ): LivePartyState {
         val coroutineScope = rememberCoroutineScope()
         val partyServiceClient = remember(this) {
@@ -399,6 +417,10 @@ class LivePartyPresenter(
                 },
                 coroutineScope
             )
+        }.apply {
+            SideEffect {
+                userVisibility(visibleToUser)
+            }
         }
     }
 }

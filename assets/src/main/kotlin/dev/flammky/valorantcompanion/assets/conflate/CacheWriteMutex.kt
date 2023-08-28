@@ -26,6 +26,7 @@ internal class ConflatedCacheWriteMutex() : CacheWriteMutex {
         val doBlock = runCatching {
             withContext(handle.coroutineJob) {
                 current?.awaitCompletion()
+                _mutex.lock()
                 block(handle.coroutineJob)
             }
         }

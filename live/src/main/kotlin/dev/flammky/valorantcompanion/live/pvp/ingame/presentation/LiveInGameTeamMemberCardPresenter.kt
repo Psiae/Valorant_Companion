@@ -7,7 +7,7 @@ import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.base.*
-import dev.flammky.valorantcompanion.base.compose.BaseRememberObserver
+import dev.flammky.valorantcompanion.base.compose.RememberObserver
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.di.compose.inject
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
@@ -62,7 +62,7 @@ private class RealLiveInGameTeamMemberPresenter(
         accountLevel: Int,
         incognito: Boolean
     ): LiveInGameTeamMemberCardState {
-        val producer = remember(user, matchKey) { StateProducer(user) }
+        val producer = remember(this, user, matchKey) { StateProducer(user) }
 
         SideEffect {
             producer.produceParams(id, playerAgentID, playerCardID, accountLevel, incognito)
@@ -74,7 +74,7 @@ private class RealLiveInGameTeamMemberPresenter(
 
     private inner class StateProducer(
         private val user: String,
-    ) : BaseRememberObserver {
+    ) : RememberObserver {
 
         private val _state = mutableStateOf<LiveInGameTeamMemberCardState?>(null, neverEqualPolicy())
 

@@ -11,9 +11,12 @@ import dev.flammky.valorantcompanion.assets.map.ValorantMapAssetDownloader
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardAssetDownloader
 import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetDownloader
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
+import dev.flammky.valorantcompanion.base.kt.coroutines.initAsParentCompleter
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.*
-import java.io.File
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -68,6 +71,18 @@ internal class DisposableValorantAssetsLoaderClient(
         return def
     }
 
+    override fun loadSprayLevelImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
+        val def = CompletableDeferred<Result<LocalImage<*>>>(coroutineScope.coroutineContext.job)
+        loadSprayLevelImage(id, def)
+        return def
+    }
+
+    override fun loadSprayIdentityAsync(id: String): Deferred<Result<ValorantSprayAssetIdentity>> {
+        val def = CompletableDeferred<Result<ValorantSprayAssetIdentity>>(coroutineScope.coroutineContext.job)
+        loadSprayIdentity(id, def)
+        return def
+    }
+
     override fun dispose() {
         lifetime.cancel()
         coroutineScope.cancel()
@@ -98,12 +113,12 @@ internal class DisposableValorantAssetsLoaderClient(
                             "DisposableValorantAssetLoaderKt: DisposableValorantAssetLoaderClient_loadUserPlayerCard_downloadInstanceInvokeOnCompletion($t)"
                         )
                         if (t != null) {
-                            def.complete(Result.failure(t))
                             cont.resumeWithException(t)
                         } else {
                             cont.resume(requireNotNull(result))
                         }
                     }
+                    cont.invokeOnCancellation { ex -> cancel(CancellationException(null, ex)) }
                 }
             }
             repository.cachePlayerCard(
@@ -146,11 +161,11 @@ internal class DisposableValorantAssetsLoaderClient(
                         .run {
                             invokeOnCompletion { t ->
                                 if (t != null) {
-                                    def.completeExceptionally(t)
-                                    cont.cancel(t)
+                                    cont.resumeWithException(t)
                                 } else {
                                     cont.resume(requireNotNull(result))
                                 }
+                                cont.invokeOnCancellation { ex -> cancel(CancellationException(null, ex)) }
                             }
                         }
                 }
@@ -192,16 +207,16 @@ internal class DisposableValorantAssetsLoaderClient(
                 // TODO: conflate download
                 val image = suspendCancellableCoroutine { cont ->
                     spray_asset_downloader
-                        .downloadImage(req.uuid, req.acceptableTypes)
+                        .downloadSprayImage(req.uuid, req.acceptableTypes)
                         .run {
                             invokeOnCompletion { t ->
                                 if (t != null) {
-                                    def.completeExceptionally(t)
                                     cont.resumeWithException(t)
                                 } else {
                                     cont.resume(getCompleted())
                                 }
                             }
+                            cont.invokeOnCancellation { ex -> cancel(CancellationException(null, ex)) }
                         }
                 }
                 repository.cacheSprayImage(
@@ -225,7 +240,114 @@ internal class DisposableValorantAssetsLoaderClient(
                 ex?.let { def.cancel(ex as? CancellationException) }
                 check(def.isCompleted)
             }
-            def.invokeOnCompletion { cancel() }
+            def.invokeOnCompletion { ex -> cancel(ex as? CancellationException) }
+        }
+    }
+
+    private fun loadSprayLevelImage(
+        uuid: String,
+        def: CompletableDeferred<Result<LocalImage<*>>>
+    ) {
+        val acceptableTypes = persistentSetOf(ValorantSprayImageType.DISPLAY_ICON)
+        coroutineScope.launch(Dispatchers.IO) {
+            val result = runCatching {
+                repository
+                    .loadCachedSprayImage(
+                        id = uuid,
+                        types = acceptableTypes,
+                        awaitAnyWrite = true
+                    )
+                    .getOrNull()
+                    ?.let { file -> return@runCatching file }
+                val image = suspendCancellableCoroutine { cont ->
+                    spray_asset_downloader
+                        .downloadSprayLevelImage(uuid)
+                        .apply {
+                            invokeOnCompletion { t ->
+                                if (t != null) {
+                                    cont.resumeWithException(t)
+                                } else {
+                                    cont.resume(getCompleted())
+                                }
+                            }
+                            cont.invokeOnCancellation { ex -> cancel(CancellationException(null, ex)) }
+                        }
+                }
+                repository.cacheSprayImage(
+                    id = image.uuid,
+                    type = image.type,
+                    data = image.data
+                )
+                repository.loadCachedSprayImage(uuid, acceptableTypes, true)
+                    .getOrElse { ex ->
+                        if (ex is CancellationException) throw ex
+                        error("repository load gave an error")
+                    }
+                    ?: error("repository returned null")
+            }.fold(
+                onSuccess = {
+                    Result.success(LocalImage.File(it))
+                },
+                onFailure = {
+                    Result.failure(it)
+                }
+            )
+            def.complete(result)
+        }.apply {
+            initAsParentCompleter(def)
+        }
+    }
+
+    private fun loadSprayIdentity(
+        uuid: String,
+        def: CompletableDeferred<Result<ValorantSprayAssetIdentity>>
+    ) {
+        coroutineScope.launch(Dispatchers.IO) {
+            val result = runCatching {
+                repository
+                    .loadCachedSprayIdentity(
+                        id = uuid,
+                        awaitAnyWrite = true
+                    )
+                    .getOrNull()
+                    ?.let { file -> return@runCatching file }
+                val identity = suspendCancellableCoroutine { cont ->
+                    spray_asset_downloader
+                        .downloadIdentity(uuid)
+                        .apply {
+                            invokeOnCompletion { t ->
+                                if (t != null) {
+                                    cont.resumeWithException(t)
+                                } else {
+                                    cont.resume(getCompleted())
+                                }
+                            }
+                            cont.invokeOnCancellation { ex -> cancel() }
+                        }
+                }
+                repository.cacheSprayIdentity(
+                    id = uuid,
+                    data = identity
+                )
+                repository.loadCachedSprayIdentity(
+                    uuid,
+                    true
+                ).getOrElse { ex ->
+                    if (ex is CancellationException) throw ex
+                    error("repository load gave an error")
+                } ?: error("repository returned null")
+            }.fold(
+                onSuccess = {
+                    Result.success(it)
+                },
+                onFailure = {
+                    it.printStackTrace()
+                    Result.failure(it)
+                }
+            )
+            def.complete(result)
+        }.apply {
+            initAsParentCompleter(def)
         }
     }
 }

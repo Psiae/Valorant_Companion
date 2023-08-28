@@ -17,6 +17,7 @@ import dev.flammky.valorantcompanion.live.pvp.pregame.presentation.root.LivePreG
 @Composable
 fun LivePVP(
     modifier: Modifier,
+    isVisibleToUser: Boolean,
     openScreen: (@Composable LiveMainScreenScope.() -> Unit) -> Unit
 ) {
 
@@ -33,6 +34,8 @@ fun LivePVP(
         var forgotten = false
 
         object : RememberObserver {
+
+            val hasContent: Boolean get() = contents.isNotEmpty()
 
             fun showPreGameDetail() {
                 prepareAttachHost()
@@ -134,11 +137,15 @@ fun LivePVP(
     LiveMainPlacement(
         modifier = modifier,
         liveParty = {
-            LivePartyUI(modifier = Modifier)
+            LivePartyUI(
+                modifier = Modifier,
+                visibleToUser = isVisibleToUser && !screenHost.hasContent
+            )
         },
         liveMatch = {
             LiveMatchUI(
                 modifier = Modifier,
+                visibleToUser = isVisibleToUser && !screenHost.hasContent,
                 openPreGameDetail = screenHost::showPreGameDetail,
                 openInGameDetail = screenHost::showInGameDetail
             )

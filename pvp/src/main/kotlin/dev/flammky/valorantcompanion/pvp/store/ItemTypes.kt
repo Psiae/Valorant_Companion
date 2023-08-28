@@ -20,7 +20,7 @@ sealed class ItemType(
         id = "d5f120f8-ff8c-4aac-92ea-f2b5acbe9475"
     )
 
-    object Gun_Buddy : ItemType(
+    object GunBuddy : ItemType(
         name = "gun buddy",
         id = "dd3bf334-87f3-40bd-b043-682a57a8dc3a"
     )
@@ -35,7 +35,7 @@ sealed class ItemType(
         id = "e7c63390-eda7-46e0-bb7a-a6abdacd2433"
     )
 
-    object Skin_Variant : ItemType(
+    object SkinVariant : ItemType(
         name = "skin variant",
         id = "3ad1b2b2-acdb-4524-852f-954a76ddae0a"
     )

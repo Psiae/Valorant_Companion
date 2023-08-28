@@ -6,4 +6,14 @@ interface ValorantSprayAssetEndpoint {
         uuid: String,
         type: ValorantSprayImageType
     ): String
+
+    fun buildIdentityUrl(
+        uuid: String
+    ): String
+
+    fun buildSprayLevelDisplayImageUrl(
+        uuid: String,
+    ): String
+
 }
+

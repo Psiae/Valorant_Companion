@@ -7,9 +7,10 @@ import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.base.*
-import dev.flammky.valorantcompanion.base.compose.BaseRememberObserver
+import dev.flammky.valorantcompanion.base.compose.RememberObserver
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.di.compose.inject
+import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.getOrThrow
 import dev.flammky.valorantcompanion.pvp.mmr.*
@@ -43,7 +44,7 @@ class AgentSelectionPlayerCardPresenter(
         player: PreGamePlayer,
         matchID: String,
     ): AgentSelectionPlayerCardState {
-        return remember(user) { StateProducer(user) }.apply {
+        return remember(this, user) { StateProducer(user) }.apply {
             SideEffect {
                 produceParams(
                     player.puuid,
@@ -59,7 +60,7 @@ class AgentSelectionPlayerCardPresenter(
 
     private inner class StateProducer(
         private val user: String
-    ) : BaseRememberObserver {
+    ) : RememberObserver {
 
         private val _state = mutableStateOf<AgentSelectionPlayerCardState?>(null, neverEqualPolicy())
 
@@ -404,7 +405,7 @@ class AgentSelectionPlayerCardPresenter(
                     assetLoader.loadMemoryCachedCompetitiveRankIcon(mmrResult.competitiveRank)
                         ?.let { return@run Result.success(it) }
                     val def = assetLoader.loadCompetitiveRankIconAsync(mmrResult.competitiveRank)
-                    runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
+                    def.awaitOrCancelOnException()
                 }.getOrElse {
                     mutateState("newPlayerIdSideEffect_iconResult_fail") { state ->
                         state.copy(

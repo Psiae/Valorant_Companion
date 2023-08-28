@@ -18,6 +18,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.assets.R_ASSET_DRAWABLE
+import dev.flammky.valorantcompanion.base.compose.consumeDownGesture
 import dev.flammky.valorantcompanion.base.theme.material3.*
 
 @Composable
@@ -173,7 +174,7 @@ private fun LiveInGameContentNoOp(
 ) = Box(
     modifier = modifier
         .fillMaxSize()
-        .pointerInput(Unit) {}
+        .consumeDownGesture()
 ) {
     Text(
         modifier = Modifier.align(Alignment.Center),

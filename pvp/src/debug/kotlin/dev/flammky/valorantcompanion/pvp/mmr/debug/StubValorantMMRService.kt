@@ -56,7 +56,7 @@ class StubValorantMMRService(
 
     companion object {
         val DEFAULT_FAKE_PROVIDER: StubSeasonalMMRProvider = provider@ { season, subject ->
-            val resolveSeason = ValorantSeasons.ofId(season)
+            val resolveSeason = ValorantSeasons.ofActID(season)
                 ?: return@provider null
             val rankResolver = ValorantCompetitiveRankResolver.getResolverOfSeason(
                 resolveSeason.episode.num,

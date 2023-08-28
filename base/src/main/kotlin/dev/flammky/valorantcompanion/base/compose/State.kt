@@ -9,3 +9,10 @@ fun <T> rememberUpdatedState(
 ): State<T> = remember(mutationPolicy) {
     mutableStateOf(newValue, mutationPolicy)
 }.apply { value = newValue }
+
+object AlwaysEqualPolicy : SnapshotMutationPolicy<Any?> {
+
+    override fun equivalent(a: Any?, b: Any?): Boolean {
+        return true
+    }
+}

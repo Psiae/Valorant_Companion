@@ -34,7 +34,7 @@ import dev.flammky.valorantcompanion.assets.R_ASSET_DRAWABLE
 import dev.flammky.valorantcompanion.base.MaterialTheme3
 import dev.flammky.valorantcompanion.base.compose.composeWithKey
 import dev.flammky.valorantcompanion.base.compose.rememberWithCompositionObserver
-import dev.flammky.valorantcompanion.base.compose.state.subCompose
+import dev.flammky.valorantcompanion.base.compose.compose
 import dev.flammky.valorantcompanion.base.theme.material3.surfaceVariantColorAsState
 import dev.flammky.valorantcompanion.base.util.mutableValueContainerOf
 import kotlinx.coroutines.DisposableHandle
@@ -300,7 +300,7 @@ private fun LiveInGameTeamMemberCardErrorMessageUI(
             )
         }
         Spacer(modifier = Modifier.height(2.dp))
-        subCompose {
+        compose {
             val refreshing = remember(message.refresh) { mutableStateOf(false) }
             Row(
                 modifier = remember {

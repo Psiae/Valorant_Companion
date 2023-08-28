@@ -3,23 +3,31 @@ package dev.flammky.valorantcompanion.assets.internal
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
-import dev.flammky.valorantcompanion.assets.player_card.PlayerCardArtType
+import dev.flammky.valorantcompanion.assets.BuildConfig
 import dev.flammky.valorantcompanion.assets.conflate.CacheWriteMutex
 import dev.flammky.valorantcompanion.assets.conflate.ConflatedCacheWriteMutex
 import dev.flammky.valorantcompanion.assets.filesystem.PlatformFileSystem
 import dev.flammky.valorantcompanion.assets.map.ValorantMapImageType
+import dev.flammky.valorantcompanion.assets.player_card.PlayerCardArtType
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetSerializer
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
-import dev.flammky.valorantcompanion.assets.sync
+import dev.flammky.valorantcompanion.base.kt.sync
+import dev.flammky.valorantcompanion.base.storage.ByteUnit
+import io.ktor.util.cio.*
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
-import java.io.File as jFile
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.*
 import java.io.FileOutputStream
+import java.io.File as jFile
 
 class ValorantAssetRepository(
-    private val platformFS: PlatformFileSystem
+    private val platformFS: PlatformFileSystem,
+    private val sprayAssetSerializer: ValorantSprayAssetSerializer
 ) {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
@@ -62,6 +70,12 @@ class ValorantAssetRepository(
                     .appendFolder("assets")
                     .appendFolder("sprays")
             }
+        }
+    }
+
+    private val valorantSprayIdentityFolderPath by lazy {
+        with(platformFS) {
+            valorantSprayFolderPath.appendFolder("identity")
         }
     }
 
@@ -254,6 +268,106 @@ class ValorantAssetRepository(
                     }?.let { return@withContext it }
             }
             null
+        }
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    suspend fun cacheSprayIdentity(
+        id: String,
+        data: ValorantSprayAssetIdentity
+    ): Result<Unit> = runCatching {
+        withContext(Dispatchers.IO) {
+            val fileName = id
+            val folder = jFile(valorantSprayIdentityFolderPath)
+            val file = with(platformFS) {
+                jFile(valorantSprayIdentityFolderPath.appendFile("v01_$fileName"))
+            }
+            // use channel and single writer instead ?
+            val mutex = synchronized(cacheWriteMutexes) {
+                cacheWriteMutexes.getOrPut("spray_identity_v01_$fileName") { ConflatedCacheWriteMutex() }
+            }
+            Log.d(
+                BuildConfig.LIBRARY_PACKAGE_NAME,
+                "cacheSprayIdentity($id), file=$file"
+            )
+            mutex.write { _ ->
+                if (file.isDirectory) file.delete()
+                folder.mkdirs()
+                val fileOutputStream = FileOutputStream(file)
+                try {
+                    fileOutputStream.use { fos ->
+                        val lock = fos.channel.lock()
+                            ?: error("Could not lock FileChannel")
+                        try {
+                            val obj = buildJsonObject {
+                                put("uuid", JsonPrimitive(data.uuid))
+                                put("displayName", JsonPrimitive(data.displayName))
+                                put("category", JsonPrimitive(data.category.codeName))
+                                putJsonArray(
+                                    key = "levels",
+                                    builderAction = {
+                                        data.levels.forEach { level ->
+                                            addJsonObject {
+                                                put("uuid", level.uuid)
+                                                put("sprayLevel", level.sprayLevel)
+                                                put("displayName", level.displayName)
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                            Json.encodeToStream(
+                                serializer = JsonElement.serializer(),
+                                value = obj,
+                                stream = fos
+                            )
+                        } finally {
+                            lock.release()
+                        }
+                    }
+                } catch (e: Exception) {
+                    file.delete()
+                    throw e
+                }
+            }
+            // TODO: notify
+        }
+    }.apply {
+        onFailure { ex ->
+            ex.printStackTrace()
+        }
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    suspend fun loadCachedSprayIdentity(
+        id: String,
+        awaitAnyWrite: Boolean
+    ): Result<ValorantSprayAssetIdentity?> = runCatching {
+        withContext(Dispatchers.IO) {
+            val fileName = id
+            val file = with(platformFS) {
+                jFile(valorantSprayIdentityFolderPath.appendFile("v01_$fileName"))
+            }.takeIf { file ->
+                if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
+                    cacheWriteMutexes["spray_identity_v01_$fileName"]
+                }?.awaitUnlock()
+                file.exists()
+            }
+            file?.inputStream()?.use { inStream ->
+                if (inStream.available() <= 0 || inStream.available() > 20 * ByteUnit.KB) {
+                    //TODO: notify that the said file is unexpected and delete it
+                    error("Unexpected File")
+                }
+                sprayAssetSerializer.deserializeIdentity(
+                    uuid = id,
+                    raw = inStream.readBytes(),
+                    charset = Charsets.UTF_8
+                ).getOrThrow()
+            }
+        }
+    }.apply {
+        onFailure { ex ->
+            ex.printStackTrace()
         }
     }
 

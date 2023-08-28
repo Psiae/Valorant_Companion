@@ -4,9 +4,10 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import dev.flammky.valorantcompanion.live.loadout.presentation.SprayLoadoutScreen
-import dev.flammky.valorantcompanion.live.loadout.presentation.SprayLoadoutScreenPreview
+import dev.flammky.valorantcompanion.live.loadout.presentation.SprayLoadoutScreenState
 import dev.flammky.valorantcompanion.live.main.LiveMainScreenScope
 
 @Composable
@@ -22,7 +23,16 @@ internal fun LiveLoadout(
                 openSprayScreen = {
                     openScreen.invoke {
                         BackHandler(onBack = ::dismiss)
-                        SprayLoadoutScreenPreview()
+                        SprayLoadoutScreen(
+                            modifier = Modifier,
+                            state = // TODO
+                            remember {
+                                SprayLoadoutScreenState(
+
+                                )
+                            } ,
+                            dismiss = {}
+                        )
                     }
                 },
                 openWeaponScreen = {

@@ -4,9 +4,10 @@ import android.util.Log
 import dev.flammky.valorantcompanion.assets.BuildConfig
 import dev.flammky.valorantcompanion.assets.ex.AssetNotFoundException
 import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
+import dev.flammky.valorantcompanion.base.kt.coroutines.initAsCompleterJob
 import dev.flammky.valorantcompanion.base.storage.ByteUnit
 import dev.flammky.valorantcompanion.base.storage.kiloByteUnit
-import dev.flammky.valorantcompanion.base.storage.noIntOverflow
+import dev.flammky.valorantcompanion.base.storage.checkNoIntOverflow
 import io.ktor.http.*
 import io.ktor.util.*
 import kotlinx.collections.immutable.ImmutableSet
@@ -32,63 +33,61 @@ class PlayerCardAssetDownloader(
 
     private fun initiateDownloadForInstance(instance: PlayerCardAssetDownloadInstance) {
         coroutineScope.launch(Dispatchers.IO) {
-            instance.inLifetime {
-                instance.acceptableTypes.forEach { type ->
-                    runCatching {
-                        var result: ByteArray? = null
+            instance.acceptableTypes.forEach { type ->
+                runCatching {
+                    var result: ByteArray? = null
 
-                        val contentSizeLimit = contentSizeLimitOfImageType(
-                            type
-                        ).noIntOverflow().bytes().toInt()
+                    val contentSizeLimit = contentSizeLimitOfImageType(
+                        type
+                    ).bytes().checkNoIntOverflow().toInt()
 
-                        assetHttpClient.get(
-                            url = endpoint.buildArtUrl(instance.id, type),
-                            sessionHandler = handler@ {
-                                Log.d(
-                                    BuildConfig.LIBRARY_PACKAGE_NAME,
-                                    "PlayerCardAssetDownloaderKt: " +
-                                            "PlayerCardAssetDownloader_initiateDownloadForInstance_sessionHandler(" +
-                                            "method=$httpMethod, " +
-                                            "status=$httpStatusCode, " +
-                                            "contentType=$contentType, " +
-                                            "contentSubType=$contentSubType, " +
-                                            "contentLength=$contentLength" +
-                                            ")"
-                                )
-                                if (
-                                    contentType != "image"
-                                ) return@handler reject()
-                                if (
-                                    contentSubType != "png" &&
-                                    contentSubType != "jpg" &&
-                                    contentSubType != "jpeg"
-                                ) return@handler reject()
+                    assetHttpClient.get(
+                        url = endpoint.buildArtUrl(instance.id, type),
+                        sessionHandler = handler@ {
+                            Log.d(
+                                BuildConfig.LIBRARY_PACKAGE_NAME,
+                                "PlayerCardAssetDownloaderKt: " +
+                                        "PlayerCardAssetDownloader_initiateDownloadForInstance_sessionHandler(" +
+                                        "method=$httpMethod, " +
+                                        "status=$httpStatusCode, " +
+                                        "contentType=$contentType, " +
+                                        "contentSubType=$contentSubType, " +
+                                        "contentLength=$contentLength" +
+                                        ")"
+                            )
+                            if (
+                                contentType != "image"
+                            ) return@handler reject()
+                            if (
+                                contentSubType != "png" &&
+                                contentSubType != "jpg" &&
+                                contentSubType != "jpeg"
+                            ) return@handler reject()
 
-                                val contentLength = contentLength
-                                val bb = when {
-                                    contentLength == null -> return@handler reject()
-                                    contentLength <= contentSizeLimit -> {
-                                        ByteBuffer.allocate(contentLength.toInt())
-                                    }
-                                    // TODO: ask for confirmation
-                                    else -> return@handler reject()
+                            val contentLength = contentLength
+                            val bb = when {
+                                contentLength == null -> return@handler reject()
+                                contentLength <= contentSizeLimit -> {
+                                    ByteBuffer.allocate(contentLength.toInt())
                                 }
-                                consume(bb)
-                                result = bb.apply { flip() }.moveToByteArray()
+                                // TODO: ask for confirmation
+                                else -> return@handler reject()
                             }
-                        )
+                            consume(bb)
+                            result = bb.apply { flip() }.moveToByteArray()
+                        }
+                    )
 
-                        result?.let { arr ->
-                            instance.completeWith(
-                                Result.success(
-                                    PlayerCardArt(
-                                        instance.id,
-                                        type,
-                                        arr
-                                    )
+                    result?.let { arr ->
+                        instance.completeWith(
+                            Result.success(
+                                PlayerCardArt(
+                                    instance.id,
+                                    type,
+                                    arr
                                 )
                             )
-                        }
+                        )
                     }
                 }
             }
@@ -98,9 +97,12 @@ class PlayerCardAssetDownloader(
                     AssetNotFoundException("None of the acceptable types were available")
                 )
             )
-        }.invokeOnCompletion { ex ->
-            ex?.let { instance.completeWith(Result.failure(ex)) }
-            check(instance.isCompleted)
+        }.apply {
+            invokeOnCompletion { ex ->
+                ex?.let { instance.cancel(CancellationException(null, ex)) }
+                instance.invokeOnCompletion { cancel() }
+                check(instance.isCompleted)
+            }
         }
     }
 
@@ -120,17 +122,15 @@ class PlayerCardAssetDownloadInstance(
     val acceptableTypes: ImmutableSet<PlayerCardArtType>
 ) {
 
-    private val cancellationHandle: Job = Job()
     private val def = CompletableDeferred<PlayerCardArt>()
 
     fun invokeOnCompletion(
         block: (t: Throwable?) -> Unit
     ) = def.invokeOnCompletion { t -> block(t) }
 
-    fun cancel() {
-        cancellationHandle.cancel()
-        def.cancel()
-    }
+    fun cancel(
+        ex: CancellationException? = null
+    ) = def.cancel(ex)
 
     fun completeWith(result: Result<PlayerCardArt>) {
         result.onSuccess {
@@ -146,11 +146,6 @@ class PlayerCardAssetDownloadInstance(
 
     val isCompleted: Boolean
         get() = def.isCompleted
-
-    suspend fun inLifetime(
-        block: suspend () -> Unit
-        // TODO: find proper solution
-    ) = withContext(Job(cancellationHandle)) { block() }
 }
 
 class PlayerCardArt(

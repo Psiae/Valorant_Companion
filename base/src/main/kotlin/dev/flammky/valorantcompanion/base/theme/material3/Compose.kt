@@ -66,3 +66,10 @@ fun Material3Theme.secondaryContainerColorAsState(): State<Color> {
 fun Material3Theme.secondaryContainerContentColorAsState(): State<Color> {
     return rememberUpdatedState(newValue = colorScheme.onSecondaryContainer)
 }
+
+@Composable
+fun Material3Theme.surfaceColorAsState(
+    transform: (Color) -> Color
+): State<Color> {
+    return rememberUpdatedState(newValue = transform(colorScheme.surface))
+}

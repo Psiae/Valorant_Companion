@@ -28,7 +28,8 @@ class ResultingLoop internal constructor() {
     inline fun <T> loop(block: ResultingLoopScope<T>.() -> Unit): T {
         return object : ResultingLoopScope<T> {
 
-            private var state = atomic(OPEN)
+            // do we really need synchronized FU ?
+            private val state = atomic(Any()).apply { loopOpen() }
 
             fun start() = state.loopStart()
 
@@ -59,6 +60,10 @@ class ResultingLoop internal constructor() {
 
     fun breakLoop(): Nothing = throw BreakLoopException()
     fun continueLoop(): Nothing = throw ContinueLoopException()
+
+    fun AtomicRef<Any>.loopOpen() {
+        value = LOOP_OPEN
+    }
 
     fun AtomicRef<Any>.loopStart() {
         fuLoop { state ->
@@ -100,7 +105,7 @@ class ResultingLoop internal constructor() {
     fun shouldContinue(ex: Exception) = ex is ContinueLoopException
 
     companion object {
-        val OPEN: Any = LOOP_OPEN
+        val OPEN: Any get() = LOOP_OPEN
     }
 }
 

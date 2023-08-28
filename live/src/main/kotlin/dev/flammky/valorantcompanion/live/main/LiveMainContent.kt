@@ -10,6 +10,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import dev.flammky.valorantcompanion.base.compose.lazy.LazyContent
+import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.theme.material3.localMaterial3Background
 import dev.flammky.valorantcompanion.live.loadout.presentation.root.LiveLoadout
 import dev.flammky.valorantcompanion.live.pvp.presentation.LivePVP
@@ -23,6 +24,9 @@ internal fun LiveMainContent() {
     val screenHost = remember {
         object {
             private val visibleScreenState = mutableStateListOf<Pair<String, @Composable () -> Unit>>()
+
+            val hasVisibleScreen
+                @SnapshotRead get() = visibleScreenState.isNotEmpty()
 
             fun dismiss(key: String) {
                 visibleScreenState.removeAll { it.first == key }
@@ -47,14 +51,14 @@ internal fun LiveMainContent() {
 
             @Composable
             fun Content() {
-                if (visibleScreenState.isNotEmpty()) {
+                if (hasVisibleScreen) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .pointerInput(Unit) {}
                             .localMaterial3Background()
                     ) {
-                        visibleScreenState.forEach { screen -> screen.second.invoke() }
+                        visibleScreenState.forEach { (key, screen) -> screen.invoke() }
                     }
                 }
             }
@@ -70,9 +74,11 @@ internal fun LiveMainContent() {
         },
         topTabContent = {
             LazyContent(trigger = selectedTabIndex.value == 0) {
+                val visible = selectedTabIndex.value == 0
                 LivePVP(
                     modifier = Modifier
-                        .zIndex(if (selectedTabIndex.value == 0) 1f else 0f),
+                        .zIndex(if (visible) 1f else 0f),
+                    isVisibleToUser = visible && !screenHost.hasVisibleScreen,
                     openScreen = { content ->
                         val key = 0.toString()
                         screenHost.show(

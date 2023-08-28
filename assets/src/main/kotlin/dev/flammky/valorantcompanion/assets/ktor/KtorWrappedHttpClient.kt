@@ -3,6 +3,7 @@ package dev.flammky.valorantcompanion.assets.ktor
 import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
 import dev.flammky.valorantcompanion.assets.http.AssetHttpSession
 import dev.flammky.valorantcompanion.assets.http.AssetHttpSessionHandler
+import dev.flammky.valorantcompanion.base.loop
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -55,8 +56,11 @@ class KtorWrappedHttpClient(
                     if (!closed.compareAndSet(false, update = true)) {
                         error("AssetHttpSession is already closed")
                     }
-                    channel.readFully(byteBuffer)
-                    channel.cancel()
+                    try {
+                        loop { if (channel.readAvailable(byteBuffer) <= 0) LOOP_BREAK() }
+                    } finally {
+                        channel.cancel()
+                    }
                 }
 
                 override fun reject() {
@@ -64,7 +68,7 @@ class KtorWrappedHttpClient(
                 }
             }.apply {
                 sessionHandler()
-                reject()
+                channel.cancel()
             }
         }
     }

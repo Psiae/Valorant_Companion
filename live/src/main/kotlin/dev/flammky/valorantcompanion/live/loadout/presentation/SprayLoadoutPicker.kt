@@ -31,40 +31,76 @@ import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
 import dev.flammky.valorantcompanion.base.commonkt.geometry.*
 import dev.flammky.valorantcompanion.base.compose.geometry.plus
 import dev.flammky.valorantcompanion.base.compose.geometry.roundToIntOffset
+import dev.flammky.valorantcompanion.base.compose.rememberUpdatedState
 import dev.flammky.valorantcompanion.base.compose.rememberWithCompositionObserver
 import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
 import dev.flammky.valorantcompanion.base.di.requireInject
+import dev.flammky.valorantcompanion.base.isUNSET
 import dev.flammky.valorantcompanion.base.theme.material3.*
+import dev.flammky.valorantcompanion.base.util.mutableValueContainerOf
 import dev.flammky.valorantcompanion.pvp.PvpConstants
-import dev.flammky.valorantcompanion.pvp.spray.pvpSpraySlotUUIDOf4CircularIndex
 import kotlin.math.PI
 import kotlin.math.roundToInt
 
 @Composable
 fun SprayLoadoutPicker(
     modifier: Modifier,
-    state: SprayLoadoutPickerState
+    state: SprayLoadoutPickerState,
+    onSlotClicked: ((String) -> Unit)?
 ) {
-    SprayLoadoutPicker(
+    val upState = remember {
+        mutableValueContainerOf(state)
+    }.apply {
+        value = state
+    }
+    val upOnSlotClicked = remember {
+        mutableValueContainerOf(onSlotClicked)
+    }.apply {
+        value = onSlotClicked
+    }
+    if (state.activeSprays.size > 0) SprayLoadoutPicker(
         modifier = modifier,
-        activeSpraySlotCount = PvpConstants.SPRAY_SLOT_COUNT,
-        activeSprayCount = state.activeSprays.size,
+        activeSpraySlotCount = state.activeSprays.size,
         getSpray = remember(state.activeSpraysKey) {
             { index ->
-                state.activeSprays.find { it.equipSlotId == pvpSpraySlotUUIDOf4CircularIndex(index) }
-                    ?.sprayId
-                    ?: ""
+                state.activeSprays[index].sprayId
             }
-        }
-    )
+        },
+        onCellClicked = remember(upOnSlotClicked.value, upState.value.activeSpraysKey) {
+            upOnSlotClicked.value?.let {
+                { index ->
+                    it(upState.value.activeSprays[index].equipSlotId)
+                }
+            }
+        },
+    ) else if (!state.isUNSET) {
+        // TODO: display message that no slot is provided
+    }
 }
 
 @Composable
 fun SprayLoadoutPicker(
     modifier: Modifier,
     activeSpraySlotCount: Int,
-    activeSprayCount: Int,
-    getSpray: (Int) -> String
+    getSpray: (Int) -> String,
+    onCellClicked: ((Int) -> Unit)?,
+) = SprayLoadoutPicker(
+    modifier = modifier,
+    activeSpraySlotCount = activeSpraySlotCount,
+    getSpray = getSpray,
+    onCellClicked = onCellClicked,
+    cellSurfaceColor = Material3Theme.surfaceVariantColorAsState().value.let { { _ -> it } },
+    cellSurfaceModifier = { Modifier }
+)
+
+@Composable
+fun SprayLoadoutPicker(
+    modifier: Modifier,
+    activeSpraySlotCount: Int,
+    getSpray: (Int) -> String,
+    onCellClicked: ((Int) -> Unit)?,
+    cellSurfaceColor: (Int) -> Color,
+    cellSurfaceModifier: (Int) -> Modifier
 ) {
     check(activeSpraySlotCount > 0) {
         "activeSpraySlotCount must be more than 0"
@@ -82,10 +118,53 @@ fun SprayLoadoutPicker(
         val placeable = subcompose(Unit) {
             SprayPickerLayout(
                 total = activeSpraySlotCount,
-                getSpray = remember(getSpray) {
-                    { i -> if (i < activeSprayCount) getSpray(i) else null }
-                },
-                constraints = constraints
+                constraints = constraints,
+                getSpray = getSpray,
+                onCellClicked = onCellClicked,
+                cellSurface = cellSurfaceColor,
+                cellSurfaceModifier = cellSurfaceModifier
+            )
+        }.first().measure(constraints)
+
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            val circleRadius = minOf(center.width, center.height)
+            placeable.place(
+                x = circleRadius.roundToInt() - placeable.width / 2,
+                y = circleRadius.roundToInt() - placeable.height / 2,
+                zIndex = 0f
+            )
+        }
+    }
+}
+
+@Composable
+fun SprayLoadoutPicker(
+    modifier: Modifier,
+    activeSpraySlotCount: Int,
+    cellSurface: (Int) -> Color = { Color.Unspecified },
+    cellSurfaceModifier: (Int) -> Modifier = { Modifier },
+    cellContent: @Composable (Int) -> Unit,
+) {
+    check(activeSpraySlotCount > 0) {
+        "activeSpraySlotCount must be more than 0"
+    }
+    SubcomposeLayout(modifier) { parentConstraints ->
+        val constraints = minOf(parentConstraints.maxWidth, parentConstraints.maxHeight).let { size ->
+            Constraints(maxWidth = size, maxHeight = size)
+        }
+
+        val center = Size(
+            constraints.maxWidth.toFloat() / 2,
+            constraints.maxHeight.toFloat() / 2
+        )
+
+        val placeable = subcompose(Unit) {
+            SprayPickerLayout(
+                total = activeSpraySlotCount,
+                constraints = constraints,
+                cellSurface = cellSurface,
+                cellSurfaceModifier = cellSurfaceModifier,
+                sprayCellContent = cellContent,
             )
         }.first().measure(constraints)
 
@@ -104,7 +183,35 @@ fun SprayLoadoutPicker(
 private fun SprayPickerLayout(
     total: Int,
     getSpray: (Int) -> String?,
-    constraints: Constraints
+    onCellClicked: ((Int) -> Unit)?,
+    constraints: Constraints,
+    cellSurface: (Int) -> Color,
+    cellSurfaceModifier: (Int) -> Modifier,
+) = SprayPickerLayout(
+    total = total,
+    constraints = constraints,
+    cellSurface = cellSurface,
+    cellSurfaceModifier = cellSurfaceModifier,
+    sprayCellContent = { index ->
+        SprayPickerCellContent(
+            modifier = Modifier.then(
+                if (onCellClicked != null)
+                    Modifier.clickable(onClick = { onCellClicked.invoke(index) })
+                else
+                    Modifier
+            ),
+            spray = getSpray(index),
+        )
+    }
+)
+
+@Composable
+private fun SprayPickerLayout(
+    total: Int,
+    constraints: Constraints,
+    cellSurface: (Int) -> Color,
+    cellSurfaceModifier: (Int) -> Modifier,
+    sprayCellContent: @Composable (Int) -> Unit,
 ) = with(LocalDensity.current) {
 
     if (total <= 0) {
@@ -124,7 +231,15 @@ private fun SprayPickerLayout(
             constraints.maxHeight.toFloat() / 2
         )
         val innerCircleRadius = 0.3f * circleRadius
-        SprayPickerCells(total, getSpray, circleRadius, innerCircleRadius, dividerThickness = 5.dp)
+        SprayPickerCells(
+            total = total,
+            circleRadius = circleRadius,
+            innerCircleRadius = innerCircleRadius,
+            dividerThickness = 5.dp,
+            cellSurface = cellSurface,
+            cellSurfaceModifier = cellSurfaceModifier,
+            sprayCellContent = sprayCellContent
+        )
         SprayPickerCellsDivider(total, circleRadius, innerCircleRadius, thickness = 5.dp)
     }
 }
@@ -132,10 +247,12 @@ private fun SprayPickerLayout(
 @Composable
 private fun SprayPickerCells(
     total: Int,
-    getSpray: (Int) -> String?,
     circleRadius: Float,
     innerCircleRadius: Float,
-    dividerThickness: Dp
+    dividerThickness: Dp,
+    cellSurface: (Int) -> Color,
+    cellSurfaceModifier: (Int) -> Modifier,
+    sprayCellContent: @Composable (Int) -> Unit,
 ) = repeat(total) { index ->
     SprayPickerCell(
         total = total,
@@ -143,7 +260,12 @@ private fun SprayPickerCells(
         circleRadius = circleRadius,
         innerCircleRadius = innerCircleRadius,
         dividerThickness = dividerThickness,
-        Content = { modifier -> SprayPickerCellContent(modifier = modifier, spray = getSpray(index)) },
+        Surface = { Box(modifier = cellSurfaceModifier(index)
+            .fillMaxSize()
+            .background(cellSurface(index))) },
+        Content = { modifier ->
+            Box(modifier) { sprayCellContent(index) }
+        },
     )
 }
 
@@ -154,6 +276,7 @@ private fun SprayPickerCell(
     circleRadius: Float,
     innerCircleRadius: Float,
     dividerThickness: Dp,
+    Surface: @Composable () -> Unit,
     Content: @Composable BoxScope.(modifier: Modifier) -> Unit
 ) = Layout(
     modifier = Modifier
@@ -164,12 +287,12 @@ private fun SprayPickerCell(
             index = index,
             circleRadius = circleRadius,
             innerCircleRadius = innerCircleRadius,
-            dividerThickness = dividerThickness
-        )
-        .clickable { },
+            dividerThickness = dividerThickness,
+        ),
     content = {
-        Box {
-            Content(
+        Box() {
+            Surface()
+            Box(
                 modifier = Modifier
                     .sprayPickerCellContentLayoutModifiers(
                         density = LocalDensity.current,
@@ -178,7 +301,7 @@ private fun SprayPickerCell(
                         circleRadius = circleRadius,
                         innerCircleRadius = innerCircleRadius
                     )
-            )
+            ) { Content(Modifier) }
         }
     },
     measurePolicy = { measurables, constraint ->
@@ -191,13 +314,11 @@ private fun SprayPickerCell(
 @Composable
 fun SprayPickerCellContent(
     modifier: Modifier,
-    spray: String?
+    spray: String?,
 ) {
-// TODO: use content lambda
     AsyncImage(
         modifier = modifier.fillMaxSize(),
         model = run {
-            // TODO: make into se
             val ctx = LocalContext.current
             val assetLoaderService =
                 LocalDependencyInjector
@@ -433,12 +554,12 @@ private fun Modifier.sprayPickerCellInnerOutline(
 }
 
 private fun Modifier.sprayPickerCellLayer(
-
-): Modifier = composed {
-    val surface = Material3Theme.surfaceVariantColorAsState().value
-    remember(surface) {
-        background(surface.copy(alpha = 0.74f))
+    surface: Color
+): Modifier {
+    check(surface.isSpecified) {
+        "SprayPickerCellLayer surface color must be specified"
     }
+    return background(surface)
 }
 
 @Composable
@@ -508,7 +629,7 @@ private fun Modifier.sprayPickerCellLayoutModifiers(
     index: Int,
     circleRadius: Float,
     innerCircleRadius: Float,
-    dividerThickness: Dp
+    dividerThickness: Dp,
 ) = composed {
     val outlineColor = Material3Theme.surfaceVariantContentColorAsState().value
     remember(
@@ -550,7 +671,6 @@ private fun Modifier.sprayPickerCellLayoutModifiers(
                 paddingRadians = paddingRadians,
                 padding = 8.dp
             )
-            .sprayPickerCellLayer()
     }
 }
 
@@ -592,9 +712,13 @@ private fun SprayPickerPreview() {
             SprayLoadoutPicker(
                 modifier = Modifier,
                 activeSpraySlotCount = 4,
-                activeSprayCount = 4,
                 getSpray = { it.toString() },
+                onCellClicked = {},
             )
         }
     }
+}
+
+object SprayLoadoutPickerKtLogger {
+
 }

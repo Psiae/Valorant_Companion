@@ -3,6 +3,7 @@ package dev.flammky.valorantcompanion.assets
 import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import kotlinx.coroutines.Deferred
 import java.io.File
@@ -42,6 +43,14 @@ interface ValorantAssetsLoaderClient {
     fun loadSprayImageAsync(
         req: LoadSprayImageRequest,
     ): Deferred<Result<LocalImage<*>>>
+
+    fun loadSprayLevelImageAsync(
+        id: String
+    ): Deferred<Result<LocalImage<*>>>
+
+    fun loadSprayIdentityAsync(
+        id: String
+    ): Deferred<Result<ValorantSprayAssetIdentity>>
 
     fun dispose()
 }

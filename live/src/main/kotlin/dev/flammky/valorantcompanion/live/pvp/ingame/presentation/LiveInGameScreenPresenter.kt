@@ -7,7 +7,7 @@ import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
 import dev.flammky.valorantcompanion.base.*
-import dev.flammky.valorantcompanion.base.compose.BaseRememberObserver
+import dev.flammky.valorantcompanion.base.compose.RememberObserver
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotWrite
 import dev.flammky.valorantcompanion.base.di.compose.inject
@@ -88,7 +88,7 @@ internal class LiveInGameScreenPresenter(
     private fun rememberStateProducer(
         user: String
     ): StateProducer {
-        return remember(user) {
+        return remember(this, user) {
             check(user.isNotBlank()) {
                 "Cannot Present without User"
             }
@@ -97,7 +97,8 @@ internal class LiveInGameScreenPresenter(
     }
 
 
-    private inner class StateProducer(private val user: String) : BaseRememberObserver {
+    private inner class StateProducer(private val user: String) :
+        RememberObserver {
 
         private val _state = mutableStateOf<LiveInGameScreenState?>(null)
         private var _coroutineScope: CoroutineScope? = null

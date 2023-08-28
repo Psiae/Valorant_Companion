@@ -2,10 +2,7 @@ package dev.flammky.valorantcompanion.assets.map
 
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardArt
 import kotlinx.collections.immutable.ImmutableSet
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 
 class ValorantMapAssetDownloadInstance(
     val id: String,
@@ -18,10 +15,9 @@ class ValorantMapAssetDownloadInstance(
         block: (t: Throwable?) -> Unit
     ) = def.invokeOnCompletion { t -> block(t) }
 
-    fun cancel() {
-        cancellationHandle.cancel()
-        def.cancel()
-    }
+    fun cancel(
+        cancellationException: CancellationException? = null
+    ) = def.cancel(cancellationException)
 
     fun completeWith(result: Result<ValorantMapImage>) {
         result.onSuccess {
@@ -41,9 +37,4 @@ class ValorantMapAssetDownloadInstance(
     val exception: Throwable?
         @OptIn(ExperimentalCoroutinesApi::class)
         get() = def.getCompletionExceptionOrNull()
-
-    suspend fun inLifetime(
-        block: suspend () -> Unit
-        // TODO: find proper solution
-    ) = withContext(Job(cancellationHandle)) { block() }
 }

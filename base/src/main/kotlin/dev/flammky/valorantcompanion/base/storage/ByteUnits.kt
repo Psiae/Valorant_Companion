@@ -15,6 +15,15 @@ sealed class ByteUnit(
         }
     }
 
+    val abbreviation: String
+        get() = when(this) {
+            is Bytes -> "B"
+            is KiloBytes -> "KB"
+            is MegaBytes -> "MB"
+            is GigaBytes -> "GB"
+            is TeraBytes -> "TB"
+        }
+
     fun bytes(): Bytes = this as? Bytes ?: Bytes(byFactor(B))
 
     fun kiloBytes(): KiloBytes = this as? KiloBytes ?: KiloBytes(byFactor(KB))
@@ -62,6 +71,9 @@ sealed class ByteUnit(
 
     fun toInt(): Int = checkedIntOverflow()
 
+    // make extension function for each use-case instead of making it public
+    internal fun toIntUnsafe(): Int = amount.toInt()
+
     fun willIntOverflow(): Boolean = amount > Int.MAX_VALUE || amount < Int.MIN_VALUE
 
     operator fun compareTo(other: ByteUnit): Int {
@@ -90,6 +102,9 @@ sealed class ByteUnit(
         return Objects.hash(amount, byteFactor)
     }
 
+    override fun toString(): String {
+        return "ByteUnit: $amount $abbreviation"
+    }
 
     class Bytes(amount: Long) : ByteUnit(amount, B)
 
@@ -130,6 +145,8 @@ fun Int.megaByteUnit() = toLong().megaByteUnit()
 fun Int.gigaByteUnit() = toLong().gigaByteUnit()
 fun Int.teraByteUnit() = toLong().teraByteUnit()
 
+fun Int.kiloByteInBytes(): Long = kiloByteUnit().byteToLong()
+
 fun Long.byteUnit() = ByteUnit.Bytes(this)
 fun Long.kiloByteUnit() = ByteUnit.KiloBytes(this)
 fun Long.megaByteUnit() = ByteUnit.MegaBytes(this)
@@ -138,14 +155,20 @@ fun Long.teraByteUnit() = ByteUnit.TeraBytes(this)
 
 fun ByteUnit.byteToLong() = bytes().toLong()
 
-inline fun ByteUnit.noIntOverflow(
+inline fun ByteUnit.checkNoIntOverflow(
     lazyMessage: () -> Any
 ): ByteUnit {
     check(!willIntOverflow(), lazyMessage)
     return this
 }
 
-inline fun ByteUnit.noIntOverflow(): ByteUnit {
-    check(!willIntOverflow())
+inline fun ByteUnit.checkNoIntOverflow(): ByteUnit {
+    checkNoIntOverflow {
+        "check failed: ${toString()} will Int Overflow"
+    }
     return this
+}
+
+fun ByteUnit.toIntCheckNoOverflow(): Int {
+    return checkNoIntOverflow().toIntUnsafe()
 }

@@ -17,7 +17,7 @@ data class PlayerPartyData(
     val errorNotification: ErrorNotification,
     val restrictedSeconds: Int,
     val eligibleQueues: List<String>,
-    val queueIneligibilities: List<String>,
+    val queueIneligibilities: List<QueueIneligibilityData>,
     val cheatData: CheatData,
     val xpBonuses: List<Any?>
 )

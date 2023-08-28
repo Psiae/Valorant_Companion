@@ -4,7 +4,7 @@ import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
 import dev.flammky.valorantcompanion.base.storage.ByteUnit
 import dev.flammky.valorantcompanion.base.storage.kiloByteUnit
 import dev.flammky.valorantcompanion.base.storage.megaByteUnit
-import dev.flammky.valorantcompanion.base.storage.noIntOverflow
+import dev.flammky.valorantcompanion.base.storage.checkNoIntOverflow
 import io.ktor.util.*
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.coroutines.*
@@ -38,8 +38,8 @@ class ValorantMapAssetDownloader(
                     var result: ByteArray? = null
 
                     val contentSizeLimit = contentSizeLimitOfImageType(type)
-                        .noIntOverflow()
                         .bytes()
+                        .checkNoIntOverflow()
                         .toInt()
 
                     assetHttpClient.get(

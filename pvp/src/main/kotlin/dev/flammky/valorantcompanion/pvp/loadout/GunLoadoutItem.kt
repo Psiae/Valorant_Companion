@@ -8,5 +8,6 @@ data class GunLoadoutItem(
     val charmInstanceId: String?,
     val charmId: String?,
     val charmLevelId: String?,
+    // TODO: figure out
     val attachements: List<Any>
 )

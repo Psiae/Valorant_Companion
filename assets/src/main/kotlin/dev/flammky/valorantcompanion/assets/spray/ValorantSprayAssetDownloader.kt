@@ -1,34 +1,55 @@
 package dev.flammky.valorantcompanion.assets.spray
 
 import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
-import dev.flammky.valorantcompanion.assets.map.ValorantMapImage
+import dev.flammky.valorantcompanion.base.kt.coroutines.initAsParentCompleter
 import dev.flammky.valorantcompanion.base.storage.ByteUnit
+import dev.flammky.valorantcompanion.base.storage.checkNoIntOverflow
 import dev.flammky.valorantcompanion.base.storage.kiloByteUnit
-import dev.flammky.valorantcompanion.base.storage.noIntOverflow
+import dev.flammky.valorantcompanion.base.storage.toIntCheckNoOverflow
 import io.ktor.util.*
 import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.*
 import java.nio.ByteBuffer
+import java.nio.charset.Charset
 
 class ValorantSprayAssetDownloader(
     private val assetHttpClient: AssetHttpClient,
-    private val endpoint: ValorantSprayAssetEndpoint
+    private val endpoint: ValorantSprayAssetEndpoint,
+    private val parser: ValorantSprayAssetResponseParser
 ) {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
-    fun downloadImage(
+    fun downloadSprayImage(
         id: String,
         acceptableTypes: ImmutableSet<ValorantSprayImageType>
-    ): ValorantSprayDownloadInstance {
-        return ValorantSprayDownloadInstance(
+    ): ValorantSprayImageDownloadInstance {
+        return ValorantSprayImageDownloadInstance(
             id,
             acceptableTypes
         ).apply { initiateDownloadForInstance(this) }
     }
 
+    fun downloadSprayLevelImage(
+        id: String
+    ): ValorantSprayImageDownloadInstance {
+        return ValorantSprayImageDownloadInstance(
+            id,
+            persistentSetOf(ValorantSprayImageType.DISPLAY_ICON)
+        )
+    }
+
+    fun downloadIdentity(
+        id: String
+    ): ValorantSprayIdentityDownloadInstance {
+        return ValorantSprayIdentityDownloadInstance(
+            id
+        ).apply { initiateDownloadForInstance(this) }
+    }
+
     private fun initiateDownloadForInstance(
-        instance: ValorantSprayDownloadInstance
+        instance: ValorantSprayImageDownloadInstance
     ) {
         coroutineScope.launch(Dispatchers.IO) {
 
@@ -39,7 +60,7 @@ class ValorantSprayAssetDownloader(
 
                     val contentSizeLimit = contentSizeLimitOfImageType(
                         type
-                    ).noIntOverflow().bytes().toInt()
+                    ).bytes().checkNoIntOverflow().toInt()
 
                     assetHttpClient.get(
                         url = endpoint.buildImageUrl(instance.uuid, type),
@@ -86,22 +107,88 @@ class ValorantSprayAssetDownloader(
             // TODO: differentiate between remote error and local error
             instance.completeWith(
                 Result.failure(
-                    CancellationException("None of the acceptable types were available")
+                    IllegalStateException("None of the acceptable types were available")
                 )
             )
 
         }.apply {
-            invokeOnCompletion { ex ->
-                ex?.let { instance.completeExceptionally(ex) }
-                check(instance.isCompleted)
-            }
-            instance.invokeOnCompletion { ex ->
-                cancel(ex as? CancellationException?)
-            }
+            initAsParentCompleter(
+                instance::invokeOnCompletion,
+                instance::cancel,
+                instance::isCompleted,
+                instance::toString
+            )
+        }
+    }
+
+    private fun initiateDownloadForInstance(
+        instance: ValorantSprayIdentityDownloadInstance
+    ) {
+        coroutineScope.launch(Dispatchers.IO) {
+            runCatching {
+
+                var result: ByteArray? = null
+
+                val contentSizeLimit = identityContentSizeLimit
+                    .bytes()
+                    .toIntCheckNoOverflow()
+
+                assetHttpClient.get(
+                    url = endpoint.buildIdentityUrl(instance.uuid),
+                    sessionHandler = handler@ {
+                        if (
+                            httpStatusCode !in 200..299
+                        ) return@handler reject()
+                        if (
+                            contentType != "application"
+                        ) return@handler reject()
+                        if (
+                            contentSubType != "json"
+                        ) return@handler reject()
+
+                        val contentLength = contentLength
+
+                        val bb = when {
+                            contentLength == null -> ByteBuffer.allocate(contentSizeLimit)
+                            contentSizeLimit >= contentLength -> ByteBuffer.allocate(contentLength.toInt())
+                            else -> return@handler reject()
+                        }
+                        consume(bb)
+                        result = bb.apply { flip() }.moveToByteArray()
+                    }
+                )
+
+                result?.let { arr ->
+                    return@runCatching parser
+                        .parseIdentity(instance.uuid, arr, Charsets.UTF_8)
+                        .getOrThrow()
+                }
+
+                // TODO: differentiate between remote error and local error
+                error("None of the acceptable types were available")
+            }.fold(
+                onSuccess = {
+                    instance.completeWith(Result.success(it))
+                },
+                onFailure = {
+                    it.printStackTrace()
+                    instance.completeExceptionally(it)
+                }
+            )
+        }.apply {
+            initAsParentCompleter(
+                instance::invokeOnCompletion,
+                instance::cancel,
+                instance::isCompleted,
+                instance::toString
+            )
         }
     }
 
     companion object {
+
+        val identityContentSizeLimit: ByteUnit = 20.kiloByteUnit()
+
         fun contentSizeLimitOfImageType(type: ValorantSprayImageType): ByteUnit {
             return 200.kiloByteUnit()
         }

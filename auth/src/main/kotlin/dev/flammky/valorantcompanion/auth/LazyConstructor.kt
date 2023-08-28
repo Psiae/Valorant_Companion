@@ -37,10 +37,12 @@ internal class LazyConstructor<T> @JvmOverloads constructor(lock: Any = Any()) {
 
     @Suppress("UNCHECKED_CAST")
     private val castValue: T
-        get() = try {
-            _value as T
-        } catch (cce: ClassCastException) {
-            error("localValue=$_value was UNSET")
+        get() {
+            val value = _value
+            if (value === UNSET) {
+                error("localValue=$value was UNSET")
+            }
+            return value as T
         }
 
     /**

@@ -1,9 +1,10 @@
 package dev.flammky.valorantcompanion.assets
 
 import java.util.*
+import java.io.File as jFile
 
 sealed class LocalImage<T>(val value: T) {
-    class File(file: java.io.File) : LocalImage<java.io.File>(file) {
+    class File(file: jFile) : LocalImage<java.io.File>(file) {
 
         override fun equals(other: Any?): Boolean {
             return this === other || other is File && other.value == value
@@ -23,4 +24,6 @@ sealed class LocalImage<T>(val value: T) {
             return Objects.hash(value)
         }
     }
+
+    companion object {}
 }

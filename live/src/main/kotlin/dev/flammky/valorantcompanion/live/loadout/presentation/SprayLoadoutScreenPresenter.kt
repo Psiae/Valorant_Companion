@@ -7,7 +7,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import dev.flammky.valorantcompanion.base.checkInMainLooper
-import dev.flammky.valorantcompanion.base.compose.BaseRememberObserver
+import dev.flammky.valorantcompanion.base.compose.RememberObserver
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.loop
 import dev.flammky.valorantcompanion.live.BuildConfig
@@ -15,7 +15,6 @@ import dev.flammky.valorantcompanion.pvp.loadout.PlayerLoadout
 import dev.flammky.valorantcompanion.pvp.loadout.PlayerLoadoutClient
 import dev.flammky.valorantcompanion.pvp.loadout.PlayerLoadoutService
 import kotlinx.coroutines.*
-import kotlin.coroutines.coroutineContext
 
 class SprayLoadoutScreenPresenter(
     private val loadoutService: PlayerLoadoutService
@@ -36,7 +35,7 @@ class SprayLoadoutScreenPresenter(
 
     private inner class StateProducer(
         private val user: String
-    ): BaseRememberObserver {
+    ): RememberObserver {
 
         private var _state = mutableStateOf<SprayLoadoutScreenState?>(null)
 

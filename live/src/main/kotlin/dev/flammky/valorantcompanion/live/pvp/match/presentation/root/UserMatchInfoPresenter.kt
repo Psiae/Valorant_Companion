@@ -17,6 +17,7 @@ import dev.flammky.valorantcompanion.pvp.pregame.PreGameUserClient
 import dev.flammky.valorantcompanion.pvp.pregame.PreGameService
 import dev.flammky.valorantcompanion.pvp.pregame.ex.PreGameMatchNotFoundException
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 
 class UserMatchInfoPresenter(
@@ -26,7 +27,9 @@ class UserMatchInfoPresenter(
 ) {
 
     @Composable
-    fun present(): UserMatchInfoUIState {
+    fun present(
+        visibleToUser: Boolean
+    ): UserMatchInfoUIState {
         val activeAccountState = remember(this) {
             mutableStateOf<AuthenticatedAccount?>(null)
         }
@@ -53,19 +56,22 @@ class UserMatchInfoPresenter(
                 showLoadingOnly = true
             )
         }
-        return present(puuid = activeAccountState.value?.model?.id ?: "")
+        return present(
+            puuid = activeAccountState.value?.model?.id ?: "",
+            visibleToUser = visibleToUser
+        )
     }
 
     @Composable
     private fun present(
-        puuid: String
+        puuid: String,
+        visibleToUser: Boolean
     ): UserMatchInfoUIState {
         if (puuid.isBlank()) {
             return UserMatchInfoUIState.UNSET
         }
         return remember(this, puuid) { UserMatchInfoUIStateProducer(puuid) }
-            .apply { onRemembered() }
-            .produceState()
+            .produceState(visibleToUser)
     }
 
 
@@ -112,16 +118,23 @@ class UserMatchInfoPresenter(
 
         private var stateGamePodID: String? = null
 
-        @SnapshotRead
-        fun produceState(): UserMatchInfoUIState {
-            check(rememberedByComposition) {
-                "produceState is called before onRemembered"
-            }
-            check(!forgottenByComposition) {
-                "produceState is called after onForgotten"
-            }
-            if (init) {
-                initialize()
+        private val isVisibleToUser = mutableStateOf(false)
+
+        @Composable
+        fun produceState(
+            visibleToUser: Boolean
+        ): UserMatchInfoUIState {
+            SideEffect {
+                check(rememberedByComposition) {
+                    "produceState is called before onRemembered"
+                }
+                check(!forgottenByComposition) {
+                    "produceState is called after onForgotten"
+                }
+                if (init) {
+                    initialize()
+                }
+                isVisibleToUser.value = visibleToUser
             }
             return state.value
         }
@@ -168,6 +181,7 @@ class UserMatchInfoPresenter(
                 state.copy(showLoading = true, showLoadingOnly = true)
             }
             currentInitialRefresh = coroutineScope.launch {
+                snapshotFlow { isVisibleToUser.value }.first { it }
                 refresh("initialize")
                 mutateState("initialRefresh_done") { state ->
                     state.copy(showLoading = false, showLoadingOnly = false)
@@ -220,9 +234,12 @@ class UserMatchInfoPresenter(
         }
 
         private fun autoRefreshScheduler(): Job {
+            val userVisibilitySnapshot = snapshotFlow { isVisibleToUser.value }
+                .distinctUntilChanged()
             return coroutineScope.launch {
                 currentInitialRefresh?.join()
                 while (true) {
+                    userVisibilitySnapshot.first { it }
                     if (lastDataRefreshStamp != -1L) {
                         val elapsed = SystemClock.elapsedRealtime() - lastDataRefreshStamp
                         delay(1000 - elapsed)

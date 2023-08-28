@@ -1,6 +1,6 @@
 package dev.flammky.valorantcompanion.pvp
 
-import dev.flammky.valorantcompanion.pvp.spray.PvpSprayConstants
+import dev.flammky.valorantcompanion.pvp.loadout.spray.PvpSprayConstants
 
 typealias PvpConstants = C
 

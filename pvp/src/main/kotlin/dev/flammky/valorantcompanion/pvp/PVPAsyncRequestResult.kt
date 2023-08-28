@@ -1,6 +1,9 @@
 package dev.flammky.valorantcompanion.pvp
 
 import dev.flammky.valorantcompanion.pvp.error.PVPModuleErrorCodes
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 class PVPAsyncRequestResult <T> private constructor(
     private val data: T?,
@@ -119,6 +122,22 @@ inline fun <T> PVPAsyncRequestResult<T>.asKtResult(): Result<T> {
         Result.success(getOrNull() as T)
     } else {
         Result.failure(getExceptionOrNull()!!)
+    }
+}
+
+@OptIn(ExperimentalContracts::class)
+inline fun <T, R> PVPAsyncRequestResult<T>.fold(
+    onSuccess: (data: T) -> R,
+    onFailure: (exception: Exception, errorCode: Int) -> R
+): R {
+    contract {
+        callsInPlace(onSuccess, InvocationKind.AT_MOST_ONCE)
+        callsInPlace(onFailure, InvocationKind.AT_MOST_ONCE)
+    }
+    return if (isSuccess) {
+        onSuccess(getOrNull()!!)
+    } else {
+        onFailure(getExceptionOrNull()!!, getErrorCodeOrNull()!!)
     }
 }
 

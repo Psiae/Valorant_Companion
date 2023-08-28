@@ -10,7 +10,7 @@ class AuthProviderImpl(
         return authService.get_entitlement_token(puuid)
     }
 
-    override suspend fun get_authorization_tokens(puuid: String): Result<AuthorizationTokens> {
+    override suspend fun get_authorization_token(puuid: String): Result<AuthorizationTokens> {
        return runCatching {
            val data = authService.get_authorization(puuid).getOrThrow()
            AuthorizationTokens(data.access_token, data.id_token)

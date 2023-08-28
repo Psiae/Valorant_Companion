@@ -7,11 +7,12 @@ import androidx.compose.ui.Modifier
 fun LiveMatchUI(
     modifier: Modifier,
     openPreGameDetail: () -> Unit,
-    openInGameDetail: () -> Unit
+    openInGameDetail: () -> Unit,
+    visibleToUser: Boolean
 ) {
     UserMatchInfoUI(
         modifier = modifier,
-        state = rememberUserMatchInfoPresenter().present(),
+        state = rememberUserMatchInfoPresenter().present(visibleToUser),
         openPreGameDetail = openPreGameDetail,
         openInGameDetail = openInGameDetail
     )

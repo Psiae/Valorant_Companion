@@ -3,6 +3,7 @@ package dev.flammky.valorantcompanion.pvp.party.internal
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
 import dev.flammky.valorantcompanion.pvp.PVPClient
+import dev.flammky.valorantcompanion.pvp.date.ISO8601
 import dev.flammky.valorantcompanion.pvp.ex.UnexpectedResponseException
 import dev.flammky.valorantcompanion.pvp.ext.jsonObjectOrNull
 import dev.flammky.valorantcompanion.pvp.ext.jsonPrimitiveOrNull
@@ -11,7 +12,13 @@ import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpResponse
 import dev.flammky.valorantcompanion.pvp.party.*
 import dev.flammky.valorantcompanion.pvp.ex.PlayerNotFoundException
+import dev.flammky.valorantcompanion.pvp.http.json.*
+import dev.flammky.valorantcompanion.pvp.http.json.expectJsonObject
+import dev.flammky.valorantcompanion.pvp.http.json.expectJsonPrimitive
+import dev.flammky.valorantcompanion.pvp.http.json.expectJsonProperty
+import dev.flammky.valorantcompanion.pvp.http.json.expectNonBlankJsonString
 import dev.flammky.valorantcompanion.pvp.party.ex.PlayerPartyNotFoundException
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 
@@ -574,7 +581,38 @@ internal class DisposablePartyServiceClient(
                 queueIneligibilities = run {
                     val arr = response.body.getOrThrow().jsonObject["QueueIneligibilities"]?.jsonArray
                         ?: unexpectedResponse("QueueIneligibilities not found")
-                    arr.map { it.jsonPrimitive.toString().removeSurrounding("\"") }
+                    arr.map { element ->
+                        val obj = element
+                            .expectJsonObject("QueueIneligibilities[]")
+                        QueueIneligibilityData(
+                            subject = obj
+                                .expectJsonProperty("Subject")
+                                .expectJsonPrimitive("Subject")
+                                .expectNonBlankJsonString("Subject")
+                                .content,
+                            queueIds = obj
+                                .expectJsonProperty("QueueIDs")
+                                .expectJsonArray("QueueIDs")
+                                .mapTo(persistentListOf<String>().builder()) {
+                                    it
+                                        .expectJsonPrimitive("QueueIDs[]")
+                                        .expectNonBlankJsonString("QueueIDs[]")
+                                        .content
+                                }
+                                .build(),
+                            reason = obj
+                                .expectJsonProperty("Reason")
+                                .expectJsonPrimitive("Reason")
+                                .expectNonBlankJsonString("Reason")
+                                .content,
+                            expiry = obj
+                                .expectJsonProperty("Expiry")
+                                .expectJsonPrimitive("Expiry")
+                                .expectNonBlankJsonString("Expiry")
+                                .content
+                                .let { runCatching { ISO8601.fromISOString(it) }.getOrNull() }
+                        )
+                    }
                 },
                 cheatData = run {
                     val data = response.body.getOrThrow().jsonObject["CheatData"]?.jsonObject

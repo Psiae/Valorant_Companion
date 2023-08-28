@@ -9,7 +9,7 @@ import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
 import dev.flammky.valorantcompanion.base.*
-import dev.flammky.valorantcompanion.base.compose.BaseRememberObserver
+import dev.flammky.valorantcompanion.base.compose.RememberObserver
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.di.compose.inject
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
@@ -98,7 +98,7 @@ class LivePreGameScreenPresenter(
 
     inner class UIStateProducer (
         private val user: String
-    ) : BaseRememberObserver {
+    ) : RememberObserver {
         private var _state = mutableStateOf<LivePreGameScreenState?>(null)
 
         private var remembered = false

@@ -4,9 +4,16 @@ import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.filesystem.AndroidFileSystem
 import dev.flammky.valorantcompanion.assets.internal.ValorantAssetRepository
 import dev.flammky.valorantcompanion.assets.internal.ValorantAssetsServiceImpl
+import dev.flammky.valorantcompanion.assets.spray.KotlinxSerializationValorantSprayAssetSerializer
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetSerializer
 import org.koin.dsl.module
 
 val KoinAssetsModule = module {
-    single<ValorantAssetRepository> { ValorantAssetRepository(AndroidFileSystem(get())) }
-    single<ValorantAssetsService> { ValorantAssetsServiceImpl(get<ValorantAssetRepository>()) }
+    single<ValorantAssetRepository> {
+        ValorantAssetRepository(
+            AndroidFileSystem(get()),
+            KotlinxSerializationValorantSprayAssetSerializer()
+        )
+    }
+    single<ValorantAssetsService> { ValorantAssetsServiceImpl(get()) }
 }

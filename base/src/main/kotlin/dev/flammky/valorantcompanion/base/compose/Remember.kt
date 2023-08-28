@@ -1,6 +1,7 @@
 package dev.flammky.valorantcompanion.base.compose
 
 import androidx.compose.runtime.*
+import androidx.compose.runtime.RememberObserver
 
 @Composable
 fun CompositionObserver(
@@ -31,13 +32,13 @@ fun CompositionObserver(
 }
 
 @Composable
-inline fun <R> rememberWithCompositionObserver(
+inline fun <T> rememberWithCompositionObserver(
     key: Any?,
-    noinline onRemembered: (R) -> Unit,
-    noinline onForgotten: (R) -> Unit,
-    noinline onAbandoned: (R) -> Unit,
-    crossinline block: @DisallowComposableCalls () -> R
-): R {
+    noinline onRemembered: (T) -> Unit,
+    noinline onForgotten: (T) -> Unit,
+    noinline onAbandoned: (T) -> Unit,
+    crossinline block: @DisallowComposableCalls () -> T
+): T {
     val upOnRemembered = rememberUpdatedState(newValue = onRemembered)
     val upOnForgotten = rememberUpdatedState(newValue = onForgotten)
     val upOnAbandoned = rememberUpdatedState(newValue = onAbandoned)
@@ -61,11 +62,11 @@ inline fun <R> rememberWithCompositionObserver(
 }
 
 @Composable
-fun <T, R> rememberWithCustomEquality(
+fun <T> rememberWithCustomEquality(
     key: Any?,
     equality: (old: Any?, new: Any?) -> Boolean,
-    calculation: @androidx.compose.runtime.DisallowComposableCalls () -> R
-): R {
+    calculation: @DisallowComposableCalls () -> T
+): T {
     return remember {
         object {
             var latestKey: Any? = RememberKtObj
@@ -76,7 +77,7 @@ fun <T, R> rememberWithCustomEquality(
             latestKey = key
             state.value = calculation()
         }
-    }.state.value as R
+    }.state.value as T
 }
 
 private object RememberKtObj

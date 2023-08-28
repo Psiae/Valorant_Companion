@@ -4,9 +4,9 @@ import dev.flammky.valorantcompanion.pvp.http.ktor.KtorWrappedHttpClient
 import dev.flammky.valorantcompanion.pvp.ingame.InGameService
 import dev.flammky.valorantcompanion.pvp.ingame.internal.RealInGameService
 import dev.flammky.valorantcompanion.pvp.internal.AuthProviderImpl
-import dev.flammky.valorantcompanion.pvp.internal.loadout.GeoProviderImpl
-import dev.flammky.valorantcompanion.pvp.internal.loadout.PlayerLoadoutRepositoryImpl
-import dev.flammky.valorantcompanion.pvp.internal.loadout.PlayerLoadoutServiceImpl
+import dev.flammky.valorantcompanion.pvp.internal.GeoProviderImpl
+import dev.flammky.valorantcompanion.pvp.loadout.internal.PlayerLoadoutRepositoryImpl
+import dev.flammky.valorantcompanion.pvp.loadout.internal.PlayerLoadoutServiceImpl
 import dev.flammky.valorantcompanion.pvp.loadout.PlayerLoadoutRepository
 import dev.flammky.valorantcompanion.pvp.loadout.PlayerLoadoutService
 import dev.flammky.valorantcompanion.pvp.mmr.RealValorantMMRService

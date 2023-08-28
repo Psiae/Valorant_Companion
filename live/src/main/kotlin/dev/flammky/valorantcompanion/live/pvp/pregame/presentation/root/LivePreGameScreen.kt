@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import dev.flammky.valorantcompanion.base.compose.state.subCompose
+import dev.flammky.valorantcompanion.base.compose.compose
 import dev.flammky.valorantcompanion.live.pvp.pregame.presentation.LivePreGameBackground
 import dev.flammky.valorantcompanion.live.pvp.pregame.presentation.LivePreGameContent
 import dev.flammky.valorantcompanion.live.pvp.pregame.presentation.rememberLivePreGameScreenPresenter
@@ -27,7 +27,7 @@ fun LivePreGameScreen(
         }
     ) {
         LivePreGameBackground(modifier = Modifier)
-        subCompose {
+        compose {
             LivePreGameContent(
                 modifier = Modifier,
                 state = rememberLivePreGameScreenPresenter().present()

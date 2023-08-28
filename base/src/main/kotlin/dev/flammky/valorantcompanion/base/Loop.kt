@@ -4,7 +4,7 @@ package dev.flammky.valorantcompanion.base
 @Suppress("FunctionName")
 inline fun loop(
     block: LoopScope.() -> Unit
-): Unit = (LoopScope() as RealLoop).loop(block)
+): Unit = (LoopScope() as Looper).loop(block)
 
 // block must return nothing, that includes call to `breakLoop` or `continueLoop`
 @Suppress("FunctionName")
@@ -12,7 +12,7 @@ inline fun strictLoop(
     block: LoopScope.() -> Nothing
 ): Unit = loop(block)
 
-fun LoopScope(): LoopScope = RealLoop()
+fun LoopScope(): LoopScope = Looper()
 
 interface LoopScope {
 
@@ -24,7 +24,7 @@ interface LoopScope {
 // TODO: LoopBuilder
 
 // public so we can inline the block
-class RealLoop internal constructor(): LoopScope {
+class Looper internal constructor(): LoopScope {
 
     inline fun loop(block: LoopScope.() -> Unit): Unit {
         while (true) {

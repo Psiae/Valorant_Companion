@@ -180,6 +180,7 @@ internal class RealInGameUserClient(
             }
             val geo = geo.getGeoShardInfo(puuid) ?: error("Unable to retrieve GeoShard info")
 
+            // don't use this
             /*runCatching refreshPing@ {
                 val url = "https://glz-${geo.region.assignedUrlName}-1.${geo.shard.assignedUrlName}" +
                         ".a.pvp.net/parties/v1/parties/$partyID/members/$puuid/refreshPings"

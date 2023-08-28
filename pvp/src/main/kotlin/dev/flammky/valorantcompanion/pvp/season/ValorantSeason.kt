@@ -223,6 +223,36 @@ object ValorantSeasons {
         )
     )
 
+    val EPISODE_7 = ValorantSeason(
+        ValorantEpisode(
+            "1a2fc1de-4f58-4a89-49d0-f28b720ff76f",
+            7,
+            "EVOLUTION",
+            ISO8601.fromISOString("2023-06-27T21:15:00Z"),
+            ISO8601.fromISOString("2024-01-09T21:15:00Z")
+        ),
+        persistentListOf(
+            ValorantAct(
+                "0981a882-4e7d-371a-70c4-c3b4f46c504a",
+                1,
+                ISO8601.fromISOString("2023-06-27T21:15:00Z"),
+                ISO8601.fromISOString("2023-08-29T21:15:00Z",),
+            ),
+            ValorantAct(
+                "03dfd004-45d4-ebfd-ab0a-948ce780dac4",
+                2,
+                ISO8601.fromISOString("2023-08-29T21:15:00Z"),
+                ISO8601.fromISOString("2023-10-31T21:15:00Z")
+            ),
+            ValorantAct(
+                "4401f9fd-4170-2e4c-4bc3-f3b4d7d150d1",
+                3,
+                ISO8601.fromISOString("2023-10-31T21:15:00Z"),
+                ISO8601.fromISOString("2024-01-09T21:15:00Z")
+            )
+        )
+    )
+
     private val ALL by lazy {
         persistentListOf<ValorantSeason>().builder()
             .apply {
@@ -232,20 +262,21 @@ object ValorantSeasons {
                 add(EPISODE_4)
                 add(EPISODE_5)
                 add(EPISODE_6)
+                add(EPISODE_7)
             }
             .build()
     }
 
     val ACTIVE_STAGED by lazy {
         ValorantActiveSeason(
-            episode = EPISODE_6.episode,
-            act = EPISODE_6.acts[2]
+            episode = EPISODE_7.episode,
+            act = EPISODE_7.acts[1]
         )
     }
 
     fun asList() = ALL
 
-    fun ofId(id: String): ValorantActiveSeason? {
+    fun ofActID(id: String): ValorantActiveSeason? {
         ALL.forEach { season ->
             season.acts.find { it.id == id }?.let { return ValorantActiveSeason(season.episode, it) }
         }

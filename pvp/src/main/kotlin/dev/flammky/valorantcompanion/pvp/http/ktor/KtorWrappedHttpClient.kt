@@ -38,6 +38,9 @@ internal class KtorWrappedHttpClient(
             install(Logging) {
                 logger = object : Logger {
                     override fun log(message: String) {
+                        val message = message
+                            .chunked(4000)
+                            .joinToString(separator = "\n")
                         Log.i("KtorHttpClient", message)
                     }
                 }
@@ -58,6 +61,7 @@ internal class KtorWrappedHttpClient(
     }
 
     // TODO: rethrow ktor module exceptions
+    // TODO: don't return response instead ask for handler
     override suspend fun jsonRequest(request: JsonHttpRequest): JsonHttpResponse {
         val ktorResponse = self.prepareRequest {
             method = HttpMethod.parse(request.method)

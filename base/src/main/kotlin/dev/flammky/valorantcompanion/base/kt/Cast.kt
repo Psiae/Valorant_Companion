@@ -12,9 +12,9 @@ inline fun <reified R> Any?.cast(): R {
 }
 
 @OptIn(ExperimentalContracts::class)
-inline fun <reified R> Any?.safeCast(): R? {
+inline fun <reified R> Any?.castOrNull(): R? {
     contract {
-        returns() implies (this@safeCast is R?)
+        returns() implies (this@castOrNull is R?)
     }
     return this as? R
 }

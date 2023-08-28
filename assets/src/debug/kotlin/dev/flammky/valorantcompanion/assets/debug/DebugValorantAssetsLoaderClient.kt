@@ -9,6 +9,8 @@ import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardIdentifier
 import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
 import dev.flammky.valorantcompanion.assets.spray.SprayImageIdentifier
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
@@ -19,7 +21,8 @@ class DebugValorantAssetsLoaderClient(
     private val competitiveRankIconMapping: Map<CompetitiveRank, LocalImage<*>>,
     private val playerCardMapping: Map<PlayerCardIdentifier, LocalImage<*>>,
     private val mapImageMapping: Map<MapImageIdentifier, LocalImage<*>>,
-    private val sprayImageMapping: Map<SprayImageIdentifier, LocalImage<*>>
+    private val sprayImageMapping: Map<SprayImageIdentifier, LocalImage<*>>,
+    private val sprayIdentityMapping: Map<String, ValorantSprayAssetIdentity>
 ): ValorantAssetsLoaderClient {
 
     override fun loadMemoryCachedAgentIcon(agentId: String): LocalImage<*>? {
@@ -81,6 +84,26 @@ class DebugValorantAssetsLoaderClient(
                     return CompletableDeferred(Result.success(it))
                 }
         }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
+    }
+
+    override fun loadSprayLevelImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
+        sprayImageMapping[SprayImageIdentifier(id, ValorantSprayImageType.DISPLAY_ICON)]
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
+    }
+
+    override fun loadSprayIdentityAsync(id: String): Deferred<Result<ValorantSprayAssetIdentity>> {
+        sprayIdentityMapping[id]
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
         return CompletableDeferred(
             value = Result.failure(AssetNotFoundException())
         )

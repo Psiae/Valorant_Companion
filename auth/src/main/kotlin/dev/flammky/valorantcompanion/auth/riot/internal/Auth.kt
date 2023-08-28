@@ -83,36 +83,40 @@ internal suspend fun retrieveAccessToken(
         return
     }
 
-    val access_token = obj["response"]
+    val uriString = obj["response"]
         ?.jsonObjectOrNull?.get("parameters")
         ?.jsonObjectOrNull?.get("uri")
         ?.jsonPrimitiveOrNull
         ?.takeIf { it.isString }
-        ?.toString()?.run {
+        ?.content
+
+    if (uriString == null) {
+        session.onException(
+            ResponseParsingException("uri not fround")
+        )
+        return
+    }
+
+    val access_token = uriString.run {
             indexOf("access_token=").takeIf { it >= 0 }?.let { i ->
                 drop(i + "access_token=".length).takeWhile { it != '&' }
             }
         }
 
-    if (access_token == null || access_token.isEmpty()) {
+    if (access_token == null || access_token.isBlank()) {
         session.onException(
             ResponseParsingException("access_token not found")
         )
         return
     }
 
-    val id_token = obj["response"]
-        ?.jsonObjectOrNull?.get("parameters")
-        ?.jsonObjectOrNull?.get("uri")
-        ?.jsonPrimitiveOrNull
-        ?.takeIf { it.isString }
-        ?.toString()?.run {
-            indexOf("id_token=").takeIf { it >= 0 }?.let { i ->
-                drop(i + "id_token=".length).takeWhile { it != '&' }
-            }
+    val id_token = uriString.run {
+        indexOf("id_token=").takeIf { it >= 0 }?.let { i ->
+            drop(i + "id_token=".length).takeWhile { it != '&' }
         }
+    }
 
-    if (id_token == null || id_token.isEmpty()) {
+    if (id_token == null || id_token.isBlank()) {
         session.onException(
             ResponseParsingException("id_token not found")
         )

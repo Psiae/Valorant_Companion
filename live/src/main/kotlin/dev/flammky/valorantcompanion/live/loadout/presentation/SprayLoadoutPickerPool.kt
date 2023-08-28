@@ -2,11 +2,14 @@ package dev.flammky.valorantcompanion.live.loadout.presentation
 
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.snapping.SnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,17 +21,38 @@ import androidx.compose.ui.unit.*
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import dev.flammky.valorantcompanion.assets.R_ASSET_RAW
+import dev.flammky.valorantcompanion.assets.ValorantAssetsService
+import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
+import dev.flammky.valorantcompanion.base.compose.rememberWithCompositionObserver
 import dev.flammky.valorantcompanion.base.debug.debugResourceUsage
+import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
+import dev.flammky.valorantcompanion.base.di.requireInject
 import dev.flammky.valorantcompanion.base.theme.material3.DefaultMaterial3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.localMaterial3Background
 import dev.flammky.valorantcompanion.live.BuildConfig
 import kotlinx.collections.immutable.persistentListOf
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 @Composable
 fun SprayLoadoutPickerPool(
     modifier: Modifier,
+    state: SprayLoadoutPickerPoolState,
+    onSprayClicked: (String) -> Unit
+) = SprayLoadoutPickerPool(
+    modifier = modifier,
+    ownedSpraysKey = state.ownedSpraysKey,
+    ownedSprays = state.ownedSprays,
+    onSprayClicked = onSprayClicked
+)
+
+@Composable
+fun SprayLoadoutPickerPool(
+    modifier: Modifier,
+    ownedSpraysKey: Any,
     ownedSprays: List<String>,
+    onSprayClicked: (String) -> Unit
 ) {
    SubcomposeLayout(modifier) { constraints ->
 
@@ -37,7 +61,9 @@ fun SprayLoadoutPickerPool(
                 modifier = Modifier,
                 density = LocalDensity.current,
                 constraints = constraints,
-                ownedSprays = ownedSprays
+                ownedSpraysKey = ownedSpraysKey,
+                ownedSprays = ownedSprays,
+                onSprayClicked = onSprayClicked
             )
        }.first().measure(constraints)
 
@@ -54,7 +80,9 @@ fun SprayLoadoutPickerPool(
     modifier: Modifier,
     density: Density,
     constraints: Constraints,
+    ownedSpraysKey: Any,
     ownedSprays: List<String>,
+    onSprayClicked: (String) -> Unit
 ) {
     Box(
         modifier = modifier
@@ -72,7 +100,7 @@ fun SprayLoadoutPickerPool(
             )
             .fillMaxSize()
     ) {
-        val totalCell = ownedSprays.size
+        val totalCell = remember(ownedSpraysKey) { ownedSprays.size }
         val minRowSpacing = 8.dp
         val rowSpacingPx = with(density) { minRowSpacing.roundToPx() }
         val minRowCellSpacing = 8.dp
@@ -135,7 +163,10 @@ fun SprayLoadoutPickerPool(
             rowSpacing = minRowSpacing,
             cellSize = with(density) { optimalCellSize.toDp() },
             cellSpacing = with(density) { optimalCellSpacing.toDp() },
-            getCellSpray = { index -> ownedSprays[index] }
+            getCellSpray = remember(ownedSpraysKey) {
+                { index -> ownedSprays[index] }
+            },
+            onSprayClicked = onSprayClicked
         )
     }
 }
@@ -150,7 +181,8 @@ private fun SprayPickerPoolPager(
     rowSpacing: Dp,
     cellSize: Dp,
     cellSpacing: Dp,
-    getCellSpray: (Int) -> String
+    getCellSpray: (Int) -> String,
+    onSprayClicked: (String) -> Unit
 ) {
     val groupCount = run {
         if (totalCell == 0) return@run 0
@@ -185,7 +217,8 @@ private fun SprayPickerPoolPager(
             },
             rowCellSize = cellSize,
             rowCellSpacing = cellSpacing,
-            getCellSpray = { indexInGroup -> getCellSpray(groupCellStartIndex + indexInGroup) }
+            getCellSpray = { indexInGroup -> getCellSpray(groupCellStartIndex + indexInGroup) },
+            onSprayClicked = onSprayClicked
         )
     }
 }
@@ -199,12 +232,13 @@ private fun SprayPickerPoolCellGroup(
     getRowCellCount: (Int) -> Int,
     rowCellSize: Dp,
     rowCellSpacing: Dp,
-    getCellSpray: (Int) -> String
+    getCellSpray: (Int) -> String,
+    onSprayClicked: (String) -> Unit
 ) = Column(modifier.fillMaxSize()) {
 
     Log.d(
         BuildConfig.LIBRARY_PACKAGE_NAME,
-        "live.loadout.presentation.SprayPickerPoolKt.SprayPickerPoolCellGroup(rowCount=$rowCount, rowSpacing=$rowSpacing, rowCelLSize=$rowCellSize, rowCellSpacing=$rowCellSpacing)"
+        "live.loadout.presentation.SprayPickerPoolKt.SprayPickerPoolCellGroup(rowCount=$rowCount, rowSpacing=$rowSpacing, rowCelLSize=$rowCellSize, rowCellSpacing=$rowCellSpacing, onSprayClicked=$onSprayClicked@${System.identityHashCode(onSprayClicked)})"
     )
 
     repeat(rowCount) { rowIndex ->
@@ -212,10 +246,11 @@ private fun SprayPickerPoolCellGroup(
         Row(getRowModifier.invoke(rowIndex)) {
             val rowCellCount = getRowCellCount(rowIndex)
             repeat(rowCellCount) { cellIndex ->
-                val indexInGroup = rowIndex * (rowCellCount - 1) + cellIndex
+                val indexInGroup = (rowCellCount * rowIndex) + cellIndex
+                val spray = getCellSpray.invoke(indexInGroup)
                 SprayPickerPoolCell(
-                    modifier = Modifier.size(rowCellSize),
-                    cellSpray = getCellSpray.invoke(indexInGroup)
+                    modifier = Modifier.size(rowCellSize).clickable(onClick = { onSprayClicked(spray) }),
+                    spray = spray
                 )
                 if (cellIndex < rowCellCount - 1) {
                     Spacer(modifier = Modifier.width(rowCellSpacing))
@@ -232,27 +267,73 @@ private fun SprayPickerPoolCellGroup(
 @Composable
 private fun SprayPickerPoolCell(
     modifier: Modifier,
-    cellSpray: String
+    spray: String
 ) {
-    val ctx = LocalContext.current
-    AsyncImage(
-        modifier = modifier.fillMaxSize(),
-        model = remember(cellSpray, ctx) {
-            // TODO: Load Spray from AssetLoader
-            ImageRequest.Builder(ctx)
-                .data(
-                    debugResourceUsage {
-                        R_ASSET_RAW.debug_spray_nice_to_zap_you_transparent
-                    }
-                )
-                .build()
-        },
-        contentDescription = null
-    )
+    Box(modifier) {
+        AsyncImage(
+            modifier = Modifier.fillMaxSize(),
+            model = run {
+                val ctx = LocalContext.current
+                val assetLoaderService =
+                    LocalDependencyInjector
+                        .current
+                        .requireInject<ValorantAssetsService>()
+                val assetLoaderClient =
+                    rememberWithCompositionObserver(
+                        key = assetLoaderService,
+                        onRemembered = { client -> ; },
+                        onForgotten = { client -> client.dispose() },
+                        onAbandoned = { client -> client.dispose() },
+                        block = { assetLoaderService.createLoaderClient() }
+                    )
+                val dataState = remember(spray) {
+                    mutableStateOf<Any?>(null)
+                }
+                LaunchedEffect(
+                    key1 = spray,
+                    key2 = assetLoaderClient,
+                ) {
+                    if (spray.isEmpty()) return@LaunchedEffect
+                    val def = assetLoaderClient.loadSprayImageAsync(
+                        req = LoadSprayImageRequest(
+                            uuid = spray,
+                            ValorantSprayImageType.FULL_ICON(transparentBackground = true),
+                            ValorantSprayImageType.FULL_ICON(transparentBackground = false),
+                            ValorantSprayImageType.DISPLAY_ICON
+                        )
+                    )
+                    val image = runCatching { def.await() }.onFailure { def.cancel() }.getOrThrow()
+                    // TODO: if it fails ask to refresh
+                    dataState.value = image.getOrNull()?.value
+                }
+                remember(dataState.value) {
+                    ImageRequest.Builder(ctx)
+                        .data(dataState.value)
+                        .build()
+                }
+            },
+            contentDescription = null
+        )
+    }
 }
 
 private val SprayPickerPoolCellGroupMinSize = 80.dp
 private val SprayPickerPoolCellGroupMaxSize = 120.dp
+
+object SprayLoadoutPickerPool {
+
+    fun optimalHeight(
+        verticalCellCount: Int
+    ): Float {
+        return SprayPickerPoolCellGroupMaxSize.value * verticalCellCount + (8f * (verticalCellCount - 1))
+    }
+
+    fun optimalWidth(
+        horizontalCellCount: Int
+    ): Float {
+        return SprayPickerPoolCellGroupMaxSize.value * horizontalCellCount + (8f * horizontalCellCount - 1)
+    }
+}
 
 // TODO: move to debug module variant
 
@@ -272,13 +353,17 @@ private fun SprayPickerPoolPreview() {
                     .fillMaxWidth(1f)
                     .fillMaxHeight(0.4f)
                     .align(Alignment.BottomCenter),
-                ownedSprays = persistentListOf<String>().builder()
-                    .apply {
-                        repeat(17) { index ->
-                            add(index.toString())
+                ownedSpraysKey = remember { Any() },
+                ownedSprays = remember {
+                    persistentListOf<String>().builder()
+                        .apply {
+                            repeat(17) { index ->
+                                add("nice_to_zap_you")
+                            }
                         }
-                    }
-                    .build()
+                        .build()
+                },
+                onSprayClicked = {}
             )
         }
     }

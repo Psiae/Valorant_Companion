@@ -1,14 +1,20 @@
 package dev.flammky.valorantcompanion.assets.debug
 
-import dev.flammky.valorantcompanion.assets.*
+import dev.flammky.valorantcompanion.assets.LocalImage
+import dev.flammky.valorantcompanion.assets.R_ASSET_RAW
+import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
+import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.map.MapImageIdentifier
 import dev.flammky.valorantcompanion.assets.map.ValorantMapImageType
 import dev.flammky.valorantcompanion.assets.spray.SprayImageIdentifier
+import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
+import dev.flammky.valorantcompanion.base.debug.debugBlock
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentRole
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 
 // asset service containing debug-only asset resource that might Not packaged onto release
@@ -22,7 +28,8 @@ class DebugValorantAssetService : ValorantAssetsService {
             // TODO
             playerCardMapping = emptyMap(),
             mapImageMapping = MAP_MAPPING,
-            sprayImageMapping = SPRAY_MAPPING
+            sprayImageMapping = SPRAY_MAPPING,
+            sprayIdentityMapping = SPRAY_IDENTITY_MAPPING
         )
     }
 
@@ -259,7 +266,7 @@ class DebugValorantAssetService : ValorantAssetsService {
             }.build()
         }
 
-        val MAP_MAPPING = run {
+        val MAP_MAPPING = debugBlock {
             persistentMapOf<MapImageIdentifier, LocalImage<*>>().builder().apply {
                 put(
                     MapImageIdentifier(
@@ -271,7 +278,7 @@ class DebugValorantAssetService : ValorantAssetsService {
             }.build()
         }
 
-        val SPRAY_MAPPING = run {
+        val SPRAY_MAPPING = debugBlock {
             persistentMapOf<SprayImageIdentifier, LocalImage<*>>().builder().apply {
                 put(
                     SprayImageIdentifier(
@@ -280,7 +287,49 @@ class DebugValorantAssetService : ValorantAssetsService {
                     ),
                     LocalImage.Resource(R_ASSET_RAW.debug_spray_nice_to_zap_you_transparent)
                 )
+                put(
+                    SprayImageIdentifier(
+                        uuid = "<3",
+                        type = ValorantSprayImageType.FULL_ICON(transparentBackground = true)
+                    ),
+                    LocalImage.Resource(R_ASSET_RAW.debug_0x3c_3_transparent)
+                )
             }.build()
+        }
+
+        val SPRAY_IDENTITY_MAPPING = debugBlock {
+            persistentMapOf<String, ValorantSprayAssetIdentity>().builder().apply {
+                put(
+                    "nice_to_zap_you",
+                    ValorantSprayAssetIdentity(
+                        uuid = "nice_to_zap_you",
+                        displayName = "Nice to Zap You Spray",
+                        category = ValorantSprayAssetIdentity.Category.Contextual,
+                        levels = persistentListOf(
+                            ValorantSprayAssetIdentity.Level(
+                                uuid = "nice_to_zap_you_lv1",
+                                sprayLevel = 1,
+                                displayName = "SprinterShock"
+                            )
+                        )
+                    )
+                )
+                put(
+                    "<3",
+                    ValorantSprayAssetIdentity(
+                        uuid = "<3",
+                        displayName = "<3 Spray",
+                        category = ValorantSprayAssetIdentity.Category.None,
+                        levels = persistentListOf(
+                            ValorantSprayAssetIdentity.Level(
+                                uuid = "<3_lv1",
+                                sprayLevel = 1,
+                                displayName = "<3 Spray"
+                            )
+                        )
+                    )
+                )
+            }
         }
     }
 }

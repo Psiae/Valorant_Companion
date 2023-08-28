@@ -1,8 +1,10 @@
 package dev.flammky.valorantcompanion.pvp.ex
 
-import dev.flammky.valorantcompanion.pvp.party.ex.PVPModuleException
+open class UnexpectedResponseException : Exception, PVPModuleException {
 
-open class UnexpectedResponseException internal constructor(
-    override val message: String?
-) : Exception(), PVPModuleException {
+    internal constructor() : super()
+
+    internal constructor(message: String) : super(message)
+
+    internal constructor(message: String, cause: Throwable?) : super(message, cause)
 }

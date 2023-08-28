@@ -1,6 +1,10 @@
 package dev.flammky.valorantcompanion.pvp.ex
 
-class MissingJsonPropertyException internal constructor(
-    override val message: String?
-) : UnexpectedResponseException(message) {
+class MissingJsonPropertyException : UnexpectedResponseException  {
+
+    internal constructor() : super()
+
+    internal constructor(message: String) : super(message)
+
+    internal constructor(message: String, cause: Throwable?) : super(message, cause)
 }
