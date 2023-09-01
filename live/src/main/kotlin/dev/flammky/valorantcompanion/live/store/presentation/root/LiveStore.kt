@@ -5,17 +5,39 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import coil.compose.AsyncImage
+import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
+import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
+import dev.flammky.valorantcompanion.base.di.requireInject
 import dev.flammky.valorantcompanion.live.main.LiveMainScreenScope
 
 @Composable
 fun LiveStore(
     modifier: Modifier,
+    isVisibleToUser: Boolean,
     openScreen: (@Composable LiveMainScreenScope.() -> Unit) -> Unit
 ) {
+    val state = rememberLiveStorePresenter(
+        LocalDependencyInjector.current
+    ).present(
+        isVisibleToUser = isVisibleToUser,
+        authRepository = LocalDependencyInjector.current.requireInject()
+    )
     LiveStorePlacement(
         modifier = modifier,
         surface = { LiveStoreSurface(modifier = Modifier) },
-        content = { /* TODO */ }
+        content = {
+            LiveStoreContent(
+                modifier = Modifier,
+                dailyOfferEnabled = state.dailyOfferEnabled,
+                openDailyOffer = {},
+                nightMarketOpen = state.nightMarketEnabled,
+                openNightMarket = {},
+                accessoriesEnabled = state.accessoriesEnabled,
+                openAccessories = {},
+                agentEnabled = state.agentsEnabled,
+                openAgent = {}
+            )
+        }
     )
 }
 

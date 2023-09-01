@@ -1,6 +1,6 @@
 package dev.flammky.valorantcompanion.pvp.party
 
-import dev.flammky.valorantcompanion.pvp.date.ISO8601
+import dev.flammky.valorantcompanion.base.time.ISO8601
 import kotlinx.collections.immutable.ImmutableList
 
 data class QueueIneligibilityData(

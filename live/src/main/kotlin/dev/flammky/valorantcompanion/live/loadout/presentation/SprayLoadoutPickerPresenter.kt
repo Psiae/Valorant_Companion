@@ -49,7 +49,6 @@ class SprayLoadoutPickerPresenter(
     private val loadoutService: PlayerLoadoutService,
     private val authRepository: RiotAuthRepository,
 ) {
-
     @Composable
     fun present(): SprayLoadoutPickerState {
         val activeAccountState = remember(this) {
@@ -119,6 +118,7 @@ class SprayLoadoutPickerPresenter(
             get() = _loadoutClient!!
 
         private var latestSprayVersion = -1
+        private var failFlag = false
 
         @MainThread
         fun produce(
@@ -188,11 +188,16 @@ class SprayLoadoutPickerPresenter(
                 BuildConfig.LIBRARY_PACKAGE_NAME,
                 "live.loadout.presentation.SprayLoadoutPickerPresenterKt: StateProducer_onFetchSuccess(version=${data.version})"
             )
+            checkInMainLooper()
             if (latestSprayVersion == data.version) {
                 // same version, we trust the endpoint that there's no update
-                return
+                if (!failFlag) {
+                    return
+                }
+            } else {
+                latestSprayVersion = data.version
             }
-            latestSprayVersion = data.version
+            this.failFlag = false
             mutateState("onFetchSuccess") { state ->
                 state.copy(
                     activeSpraysKey = Any(),
@@ -216,10 +221,12 @@ class SprayLoadoutPickerPresenter(
             ex: Exception,
             // TODO: error code: Int
         ) {
+            checkInMainLooper()
             Log.d(
                 BuildConfig.LIBRARY_PACKAGE_NAME,
                 "live.loadout.presentation.SprayLoadoutPickerPresenterKt: StateProducer_onFetchFailure($ex)"
             )
+            this.failFlag = true
             mutateState("onFetchFailure") { state ->
                 state.copy(
                     activeSpraysKey = Any(),

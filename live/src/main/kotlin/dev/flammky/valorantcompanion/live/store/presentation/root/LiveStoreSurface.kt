@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundColorAsState
+import dev.flammky.valorantcompanion.base.theme.material3.localMaterial3Surface
 
 @Composable
 fun LiveStoreSurface(
@@ -15,6 +16,5 @@ fun LiveStoreSurface(
 ) = Box(
     modifier = modifier
         .fillMaxSize()
-        .pointerInput(Unit) {}
-        .background(Material3Theme.backgroundColorAsState().value)
+        .localMaterial3Surface()
 )

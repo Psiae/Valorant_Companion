@@ -3,11 +3,11 @@ package dev.flammky.valorantcompanion.pvp.mmr
 import dev.flammky.valorantcompanion.PVPClientPlatform
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
-import dev.flammky.valorantcompanion.network.NetworkErrorCodes
+import dev.flammky.valorantcompanion.base.network.NetworkErrorCodes
 import dev.flammky.valorantcompanion.pvp.PVPAsyncRequestResult
 import dev.flammky.valorantcompanion.pvp.PVPClient
 import dev.flammky.valorantcompanion.pvp.RateLimitInfo
-import dev.flammky.valorantcompanion.pvp.date.ISO8601
+import dev.flammky.valorantcompanion.base.time.ISO8601
 import dev.flammky.valorantcompanion.pvp.error.PVPModuleErrorCodes
 import dev.flammky.valorantcompanion.pvp.ex.UnexpectedResponseException
 import dev.flammky.valorantcompanion.pvp.http.HTTP_REQUEST_RECEIVED_TIMESTAMP_SYSTEM_ELAPSED_CLOCK_MILLIS
@@ -23,6 +23,7 @@ import kotlinx.serialization.json.*
 import java.io.IOException
 import java.util.Calendar
 import kotlin.reflect.KClass
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 
@@ -132,15 +133,7 @@ internal class RealValorantValorantMMRUserClient(
                                     val date = httpDateFormat().parse(data)
                                     ISO8601.fromEpochMilli(
                                         date.time,
-                                        run {
-                                            val sec = Calendar.getInstance().run {
-                                                time = date
-                                                get(Calendar.SECOND)
-                                            }
-                                            // zero can mean either the resolution is not in second
-                                            // or is actually at zero
-                                            if (sec > 0) DurationUnit.SECONDS else null
-                                        }
+                                        DurationUnit.SECONDS
                                     )
                                 }.getOrNull()
                             }

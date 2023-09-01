@@ -29,6 +29,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":base"))
     implementation(libs.androidx.core.core.ktx)
     implementation(libs.koin.android)
     implementation(libs.io.ktor.ktor.client.android)

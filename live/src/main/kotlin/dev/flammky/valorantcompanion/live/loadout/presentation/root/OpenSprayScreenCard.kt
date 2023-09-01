@@ -60,6 +60,7 @@ internal fun OpenSprayScreenCard(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
+                modifier = Modifier.size(36.dp),
                 painter = painterResource(id = R_ASSET_DRAWABLE.spray_ios_glyph_100px),
                 contentDescription = "open spray screen",
                 tint = Color.White

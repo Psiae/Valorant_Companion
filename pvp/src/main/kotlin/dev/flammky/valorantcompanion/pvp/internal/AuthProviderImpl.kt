@@ -2,7 +2,7 @@ package dev.flammky.valorantcompanion.pvp.internal
 
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 
-class AuthProviderImpl(
+internal class AuthProviderImpl(
     private val authService: RiotAuthService
 ) : AuthProvider {
 

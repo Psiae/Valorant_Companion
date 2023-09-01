@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import dev.flammky.valorantcompanion.base.compose.consumeDownGesture
 
 @Composable
 internal fun LiveInGame(
@@ -30,7 +31,7 @@ private fun LiveInGamePlacement(
     background: @Composable (Modifier) -> Unit,
     content: @Composable (Modifier) -> Unit
 ) {
-    Box(modifier.fillMaxSize().pointerInput(Unit) {}) {
+    Box(modifier.fillMaxSize().consumeDownGesture()) {
         background(Modifier)
         content(Modifier)
     }

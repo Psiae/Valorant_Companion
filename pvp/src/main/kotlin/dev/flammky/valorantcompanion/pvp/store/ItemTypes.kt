@@ -1,5 +1,8 @@
 package dev.flammky.valorantcompanion.pvp.store
 
+import dev.flammky.valorantcompanion.pvp.util.mapSealedObjectInstancesToPersistentList
+import java.util.Objects
+
 sealed class ItemType(
     val name: String,
     val id: String
@@ -44,4 +47,36 @@ sealed class ItemType(
         name = "title",
         id = "de7caa6b-adf7-4588-bbd1-143831e786c6"
     )
+
+    object Currency : ItemType(
+        name = "currency",
+        id = "ea6fcd2e-8373-4137-b1c0-b458947aa86d"
+    )
+
+    class Other(
+        name: String,
+        id: String
+    ) : ItemType(name, id)
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+        other as ItemType
+        return other.id == id && other.name == name
+    }
+
+    override fun hashCode(): Int {
+        return Objects.hash(this::class, id, name)
+    }
+
+    override fun toString(): String {
+        return "ItemType.$${this::class.simpleName}(name=$name, id=$id)"
+    }
+
+    companion object {
+
+        val OBJECTS by lazy {
+            ItemType::class.mapSealedObjectInstancesToPersistentList()
+        }
+    }
 }

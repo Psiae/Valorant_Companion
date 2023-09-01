@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.*
 import java.io.FileOutputStream
-import java.io.File as jFile
+import java.io.File as jioFile
 
 class ValorantAssetRepository(
     private val platformFS: PlatformFileSystem,
@@ -83,11 +83,11 @@ class ValorantAssetRepository(
         id: String,
         types: PersistentSet<PlayerCardArtType>,
         awaitAnyWrite: Boolean
-    ): Result<jFile?> = runCatching {
+    ): Result<jioFile?> = runCatching {
         withContext(Dispatchers.IO) {
             types.forEach { type ->
                 val fileName = id + "_" + type.name
-                with(platformFS) { jFile(playerCardFolderPath.appendFile(fileName)) }
+                with(platformFS) { jioFile(playerCardFolderPath.appendFile(fileName)) }
                     .takeIf {
                         if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
                             cacheWriteMutexes["playerCard_$fileName"]
@@ -109,8 +109,8 @@ class ValorantAssetRepository(
         withContext(Dispatchers.IO) {
             val fileName = id + "_" + type.name
             val file = with(platformFS) {
-                jFile(playerCardFolderPath).mkdirs()
-                jFile(playerCardFolderPath.appendFile(fileName))
+                jioFile(playerCardFolderPath).mkdirs()
+                jioFile(playerCardFolderPath.appendFile(fileName))
             }
             // use channel and single writer instead ?
             val mutex = synchronized(cacheWriteMutexes) {
@@ -150,8 +150,8 @@ class ValorantAssetRepository(
         withContext(Dispatchers.IO) {
             val fileName = id + "_" + type.name
             val file = with(platformFS) {
-                jFile(valorantMapFolderPath).mkdirs()
-                jFile(valorantMapFolderPath.appendFile(fileName))
+                jioFile(valorantMapFolderPath).mkdirs()
+                jioFile(valorantMapFolderPath.appendFile(fileName))
             }
             // use channel and single writer instead ?
             val mutex = synchronized(cacheWriteMutexes) {
@@ -186,11 +186,11 @@ class ValorantAssetRepository(
         id: String,
         types: ImmutableSet<ValorantMapImageType>,
         awaitAnyWrite: Boolean
-    ): Result<jFile?> = runCatching {
+    ): Result<jioFile?> = runCatching {
         withContext(Dispatchers.IO) {
             types.forEach { type ->
                 val fileName = id + "_" + type.name
-                with(platformFS) { jFile(valorantMapFolderPath.appendFile(fileName)) }
+                with(platformFS) { jioFile(valorantMapFolderPath.appendFile(fileName)) }
                     .takeIf {
                         if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
                             cacheWriteMutexes["map_$fileName"]
@@ -215,8 +215,8 @@ class ValorantAssetRepository(
         withContext(Dispatchers.IO) {
             val fileName = id + "_" + type.name
             val file = with(platformFS) {
-                jFile(valorantSprayFolderPath).mkdirs()
-                jFile(valorantSprayFolderPath.appendFile(fileName))
+                jioFile(valorantSprayFolderPath).mkdirs()
+                jioFile(valorantSprayFolderPath.appendFile(fileName))
             }
             // use channel and single writer instead ?
             val mutex = synchronized(cacheWriteMutexes) {
@@ -251,11 +251,11 @@ class ValorantAssetRepository(
         id: String,
         types: ImmutableSet<ValorantSprayImageType>,
         awaitAnyWrite: Boolean
-    ): Result<jFile?> = runCatching {
+    ): Result<jioFile?> = runCatching {
         withContext(Dispatchers.IO) {
             types.forEach { type ->
                 val fileName = id + "_" + type.name
-                with(platformFS) { jFile(valorantSprayFolderPath.appendFile(fileName)) }
+                with(platformFS) { jioFile(valorantSprayFolderPath.appendFile(fileName)) }
                     .takeIf {
                         if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
                             cacheWriteMutexes["spray_$fileName"]
@@ -278,9 +278,9 @@ class ValorantAssetRepository(
     ): Result<Unit> = runCatching {
         withContext(Dispatchers.IO) {
             val fileName = id
-            val folder = jFile(valorantSprayIdentityFolderPath)
+            val folder = jioFile(valorantSprayIdentityFolderPath)
             val file = with(platformFS) {
-                jFile(valorantSprayIdentityFolderPath.appendFile("v01_$fileName"))
+                jioFile(valorantSprayIdentityFolderPath.appendFile("v01_$fileName"))
             }
             // use channel and single writer instead ?
             val mutex = synchronized(cacheWriteMutexes) {
@@ -346,7 +346,7 @@ class ValorantAssetRepository(
         withContext(Dispatchers.IO) {
             val fileName = id
             val file = with(platformFS) {
-                jFile(valorantSprayIdentityFolderPath.appendFile("v01_$fileName"))
+                jioFile(valorantSprayIdentityFolderPath.appendFile("v01_$fileName"))
             }.takeIf { file ->
                 if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
                     cacheWriteMutexes["spray_identity_v01_$fileName"]

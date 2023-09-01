@@ -12,6 +12,7 @@ import androidx.compose.ui.zIndex
 import dev.flammky.valorantcompanion.base.compose.lazy.LazyContent
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.theme.material3.localMaterial3Background
+import dev.flammky.valorantcompanion.base.theme.material3.localMaterial3Surface
 import dev.flammky.valorantcompanion.live.loadout.presentation.root.LiveLoadout
 import dev.flammky.valorantcompanion.live.pvp.presentation.LivePVP
 import dev.flammky.valorantcompanion.live.store.presentation.root.LiveStore
@@ -77,7 +78,9 @@ internal fun LiveMainContent() {
                 val visible = selectedTabIndex.value == 0
                 LivePVP(
                     modifier = Modifier
-                        .zIndex(if (visible) 1f else 0f),
+                        .zIndex(if (visible) 1f else 0f)
+                        .fillMaxSize()
+                        .localMaterial3Surface(),
                     isVisibleToUser = visible && !screenHost.hasVisibleScreen,
                     openScreen = { content ->
                         val key = 0.toString()
@@ -92,7 +95,9 @@ internal fun LiveMainContent() {
             LazyContent(trigger = selectedTabIndex.value == 1) {
                 LiveLoadout(
                     modifier = Modifier
-                        .zIndex(if (selectedTabIndex.value == 1) 1f else 0f),
+                        .zIndex(if (selectedTabIndex.value == 1) 1f else 0f)
+                        .fillMaxSize()
+                        .localMaterial3Surface(),
                     openScreen = { content ->
                         val key = 1.toString()
                         screenHost.show(
@@ -103,9 +108,13 @@ internal fun LiveMainContent() {
                 )
             }
             LazyContent(trigger = selectedTabIndex.value == 2) {
+                val visible = selectedTabIndex.value == 2
                 LiveStore(
                     modifier = Modifier
-                        .zIndex(if (selectedTabIndex.value == 2) 1f else 0f),
+                        .zIndex(if (selectedTabIndex.value == 2) 1f else 0f)
+                        .fillMaxSize()
+                        .localMaterial3Surface(),
+                    isVisibleToUser = visible && !screenHost.hasVisibleScreen,
                     openScreen = { content ->
                         val key = 2.toString()
                         screenHost.show(

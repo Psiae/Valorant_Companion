@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.navigation.compose.NavHost
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
 import dev.flammky.valorantcompanion.base.theme.material3.localMaterial3Background
@@ -73,41 +74,53 @@ fun SprayLoadoutScreenContent(
     SprayLoadoutScreenContentPlacement(
         modifier = modifier,
         sprayPicker = { sprayPickerModifier ->
-            SprayLoadoutPicker(
-                modifier = sprayPickerModifier,
-                state = sprayPickerState,
-                onSlotClicked = { slot ->
-                    screenHost.show("picker") @Composable {
-                        val equipsIds = remember(sprayPickerState.activeSpraysKey) {
-                            sprayPickerState.activeSprays.mapTo(
-                                persistentListOf<String>().builder(),
-                                { item -> item.equipSlotId }
-                            ).build()
-                        }
-                        SprayLoadoutPickerDetailScreen(
-                            modifier = Modifier,
-                            dismiss = ::dismiss ,
-                            state = rememberSprayLoadoutPickerDetailPresenter().present(
-                                equipIdsKey = sprayPickerState.activeSpraysKey,
-                                equipIds = equipsIds,
-                                selectedSlotIndex = equipsIds.indexOf(slot)
+            BoxWithConstraints(sprayPickerModifier) {
+                SprayLoadoutPicker(
+                    modifier = Modifier.size(minOf(maxHeight, maxWidth)),
+                    state = sprayPickerState,
+                    onSlotClicked = { slot ->
+                        screenHost.show("picker") @Composable {
+                            val equipsIds = remember(sprayPickerState.activeSpraysKey) {
+                                sprayPickerState.activeSprays.mapTo(
+                                    persistentListOf<String>().builder(),
+                                    { item -> item.equipSlotId }
+                                ).build()
+                            }
+                            SprayLoadoutPickerDetailScreen(
+                                modifier = Modifier,
+                                dismiss = ::dismiss ,
+                                state = rememberSprayLoadoutPickerDetailPresenter().present(
+                                    equipIdsKey = sprayPickerState.activeSpraysKey,
+                                    equipIds = equipsIds,
+                                    selectedSlotIndex = remember(sprayPickerState.activeSpraysKey, slot) {
+                                        equipsIds.indexOf(slot)
+                                    }
+                                )
                             )
-                        )
+                        }
                     }
-                }
-            )
+                )
+            }
         },
         sprayPickerPool = { sprayPoolModifier ->
-            SprayLoadoutPickerPool(
-                modifier = sprayPoolModifier,
-                state = sprayPickerPoolState,
-                onSprayClicked = { spray ->
+            BoxWithConstraints(sprayPoolModifier) {
+                SprayLoadoutPickerPool(
+                    modifier = Modifier
+                        .height(
+                            SprayLoadoutPickerPool
+                                .optimalHeight(4)
+                                .dp
+                                .coerceAtMost(minOf(maxHeight, maxWidth))
+                        ),
+                    state = sprayPickerPoolState,
+                    onSprayClicked = { spray ->
 
-                    screenHost.show("pickerpool") @Composable {
+                        screenHost.show("pickerpool") @Composable {
 
+                        }
                     }
-                }
-            )
+                )
+            }
         },
         screenHost =  { screenHostModifier ->
             screenHost.Content(screenHostModifier)

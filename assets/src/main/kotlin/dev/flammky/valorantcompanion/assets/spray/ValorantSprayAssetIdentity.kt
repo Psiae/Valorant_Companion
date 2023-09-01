@@ -14,16 +14,16 @@ data class ValorantSprayAssetIdentity(
     ) {
         object Contextual : Category("EAresSprayCategory::Contextual")
         // we define these
-        object None : Category("This::None")
+        object Unspecified : Category("This::Unspecified")
         object Other : Category("This::Other")
 
         companion object {
             fun parse(
                 string: String?
             ): Category {
-                return when(string ?: return None) {
+                return when(string ?: return Unspecified) {
                     Contextual.codeName -> Contextual
-                    "null" -> None
+                    "null" -> Unspecified
                     else -> Other
                 }
             }

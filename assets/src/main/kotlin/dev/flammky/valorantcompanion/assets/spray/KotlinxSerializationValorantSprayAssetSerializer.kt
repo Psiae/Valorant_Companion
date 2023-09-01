@@ -1,11 +1,6 @@
 package dev.flammky.valorantcompanion.assets.spray
 
-import dev.flammky.valorantcompanion.assets.fs.unexpectedFileIdentityException
 import dev.flammky.valorantcompanion.assets.kotlinx.serialization.json.*
-import dev.flammky.valorantcompanion.assets.kotlinx.serialization.json.expectJsonArray
-import dev.flammky.valorantcompanion.assets.kotlinx.serialization.json.expectJsonObject
-import dev.flammky.valorantcompanion.assets.kotlinx.serialization.json.expectJsonProperty
-import dev.flammky.valorantcompanion.assets.kotlinx.serialization.json.jsonNullable
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -52,7 +47,7 @@ class KotlinxSerializationValorantSprayAssetSerializer : ValorantSprayAssetSeria
                         .expectJsonPrimitive("uuid")
                         .expectNonBlankJsonString("uuid")
                         .content.also {
-                            if (it != uuid) unexpectedFileIdentityException("uuid mismatch")
+                            if (it != uuid) unexpectedJsonValueError("uuid", "uuid mismatch")
                         }
                 },
                 displayName = run {

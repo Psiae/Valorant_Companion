@@ -49,5 +49,7 @@ dependencies {
     api("com.google.accompanist:accompanist-systemuicontroller:0.30.1")
 
     implementation(libs.org.jetbrains.kotlinx.atomicfu.jvm)
+    // TODO: we don't have to use this library
     implementation(libs.com.github.instacart.truetime.android)
+    implementation(libs.org.jetbrains.kotlinx.kotlinx.datetime)
 }

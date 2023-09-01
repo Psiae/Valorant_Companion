@@ -8,6 +8,7 @@ import dev.flammky.valorantcompanion.auth.ext.jsonObjectOrNull
 import dev.flammky.valorantcompanion.auth.ext.jsonPrimitiveOrNull
 import dev.flammky.valorantcompanion.auth.riot.AuthHttpRequestResponse
 import dev.flammky.valorantcompanion.auth.riot.AuthRequestResponseData
+import dev.flammky.valorantcompanion.base.kt.substringAfterOrNull
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -97,11 +98,9 @@ internal suspend fun retrieveAccessToken(
         return
     }
 
-    val access_token = uriString.run {
-            indexOf("access_token=").takeIf { it >= 0 }?.let { i ->
-                drop(i + "access_token=".length).takeWhile { it != '&' }
-            }
-        }
+    val access_token = uriString
+        .substringAfterOrNull("access_token=")
+        ?.takeWhile { it != '&' }
 
     if (access_token == null || access_token.isBlank()) {
         session.onException(
@@ -110,11 +109,9 @@ internal suspend fun retrieveAccessToken(
         return
     }
 
-    val id_token = uriString.run {
-        indexOf("id_token=").takeIf { it >= 0 }?.let { i ->
-            drop(i + "id_token=".length).takeWhile { it != '&' }
-        }
-    }
+    val id_token = uriString
+        .substringAfterOrNull("id_token=")
+        ?.takeWhile { it != '&' }
 
     if (id_token == null || id_token.isBlank()) {
         session.onException(

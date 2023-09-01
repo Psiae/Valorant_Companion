@@ -1,6 +1,7 @@
 package dev.flammky.valorantcompanion.auth.riot.internal
 
 import android.util.Log
+import android.view.View
 import dev.flammky.valorantcompanion.auth.BuildConfig
 import dev.flammky.valorantcompanion.auth.ex.UnexpectedResponseException
 import dev.flammky.valorantcompanion.auth.riot.region.RiotRegion

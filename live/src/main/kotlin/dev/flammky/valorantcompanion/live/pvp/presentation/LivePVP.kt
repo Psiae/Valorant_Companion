@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import dev.flammky.valorantcompanion.base.compose.CompositionObserver
 import dev.flammky.valorantcompanion.base.theme.material3.localMaterial3Background
+import dev.flammky.valorantcompanion.base.theme.material3.localMaterial3Surface
 import dev.flammky.valorantcompanion.live.BuildConfig
 import dev.flammky.valorantcompanion.live.main.LiveMainScreenScope
 import dev.flammky.valorantcompanion.live.pvp.match.presentation.root.LiveMatchUI
@@ -184,8 +185,8 @@ private fun LiveMainPlacement(
     liveMatch: @Composable () -> Unit,
 ) = Column(
     modifier = modifier
-        .localMaterial3Background()
-        .pointerInput(Unit) {}
+        .fillMaxSize()
+        .localMaterial3Surface()
         .statusBarsPadding()
 ) {
     liveParty()

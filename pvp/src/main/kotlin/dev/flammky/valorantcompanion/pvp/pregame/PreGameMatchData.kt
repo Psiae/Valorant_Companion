@@ -1,6 +1,6 @@
 package dev.flammky.valorantcompanion.pvp.pregame
 
-import dev.flammky.valorantcompanion.pvp.date.ISO8601
+import dev.flammky.valorantcompanion.base.time.ISO8601
 import kotlinx.collections.immutable.ImmutableList
 
 // TODO: make so that UI do less calculations

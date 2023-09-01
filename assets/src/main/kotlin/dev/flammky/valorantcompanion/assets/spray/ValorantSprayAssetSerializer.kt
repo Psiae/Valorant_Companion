@@ -2,6 +2,7 @@ package dev.flammky.valorantcompanion.assets.spray
 
 import java.nio.charset.Charset
 
+// TODO: pipeline
 interface ValorantSprayAssetSerializer {
 
     fun deserializeIdentity(

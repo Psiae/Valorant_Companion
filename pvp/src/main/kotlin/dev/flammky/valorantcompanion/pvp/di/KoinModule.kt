@@ -17,6 +17,10 @@ import dev.flammky.valorantcompanion.pvp.player.ValorantNameService
 import dev.flammky.valorantcompanion.pvp.player.internal.RealValorantNameService
 import dev.flammky.valorantcompanion.pvp.pregame.PreGameService
 import dev.flammky.valorantcompanion.pvp.pregame.internal.RealPreGameService
+import dev.flammky.valorantcompanion.pvp.store.ValorantStoreService
+import dev.flammky.valorantcompanion.pvp.store.internal.*
+import dev.flammky.valorantcompanion.pvp.store.internal.RiotValorantStoreEndpoint
+import dev.flammky.valorantcompanion.pvp.store.internal.ValorantStoreServiceImpl
 import org.koin.dsl.module
 
 val KoinPvpModule = module {
@@ -59,6 +63,15 @@ val KoinPvpModule = module {
         RealValorantMMRService(
             authService = get(),
             geoRepository = get(),
+            httpClientFactory = { KtorWrappedHttpClient() }
+        )
+    }
+    single<ValorantStoreService> {
+        ValorantStoreServiceImpl(
+            auth = AuthProviderImpl(get()),
+            geo = GeoProviderImpl(get()),
+            endpoint = RiotValorantStoreEndpoint(),
+            responseHandler = RiotValorantStoreResponseHandler(),
             httpClientFactory = { KtorWrappedHttpClient() }
         )
     }

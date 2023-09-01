@@ -8,6 +8,7 @@ import androidx.compose.material.DropdownMenu
 import androidx.compose.material.Text
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,16 +16,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import dev.flammky.valorantcompanion.assets.R_ASSET_DRAWABLE
+import dev.flammky.valorantcompanion.assets.R_ASSET_RAW
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardArtType
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.base.theme.material3.LocalIsThemeDark
 import dev.flammky.valorantcompanion.base.theme.material3.Material3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.backgroundContentColorAsState
+import dev.flammky.valorantcompanion.base.theme.material3.surfaceContentColorAsState
 import dev.flammky.valorantcompanion.live.pingStrengthInRangeOf4
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
@@ -233,7 +238,7 @@ private fun PlayerCard(
                         )
                         Spacer(modifier = Modifier.width(2.dp))
                     }
-                    if (isLeader) {
+                    /*if (isLeader) {
                         Spacer(modifier = Modifier.width(5.dp))
                         Row(
                             modifier = Modifier
@@ -254,7 +259,7 @@ private fun PlayerCard(
                             )
                             Spacer(modifier = Modifier.width(2.dp))
                         }
-                    }
+                    }*/
                 }
                 Text(
                     text = if (isReady) "Ready" else "Not Ready",
@@ -262,6 +267,16 @@ private fun PlayerCard(
                     style = MaterialTheme.typography.labelMedium
                 )
             }
+        }
+
+        if (isLeader) {
+            // TODO: load from assetLoader
+            Icon(
+                modifier = Modifier.size(24.dp).align(Alignment.CenterVertically),
+                painter = painterResource(id = R_ASSET_DRAWABLE.tx_icon_social_leader_white),
+                contentDescription = "party leader",
+                tint = Material3Theme.surfaceContentColorAsState().value
+            )
         }
 
         val expandedState = remember { mutableStateOf(false) }

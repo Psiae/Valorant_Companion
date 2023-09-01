@@ -60,6 +60,7 @@ internal fun OpenWeaponScreenCard(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
+                modifier = Modifier.size(36.dp),
                 painter = painterResource(id = R_ASSET_DRAWABLE.gun_ios_glyph_100px_),
                 contentDescription = "open weapon screen",
                 tint = Color.White
@@ -77,5 +78,4 @@ internal fun OpenWeaponScreenCard(
             )
         }
     }
-
 }

@@ -104,8 +104,8 @@ internal suspend fun retrieveUserRegion(
 
     session.onParse(
         RegionInfoRequestResponseData(
-            pbe = pbe.toString(),
-            live = live.toString()
+            pbe = pbe.content,
+            live = live.content
         )
     )
 }

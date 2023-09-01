@@ -58,6 +58,7 @@ fun SprayLoadoutPicker(
     }.apply {
         value = onSlotClicked
     }
+    val state = upState.value
     if (state.activeSprays.size > 0) SprayLoadoutPicker(
         modifier = modifier,
         activeSpraySlotCount = state.activeSprays.size,
@@ -66,11 +67,11 @@ fun SprayLoadoutPicker(
                 state.activeSprays[index].sprayId
             }
         },
-        onCellClicked = remember(upOnSlotClicked.value, upState.value.activeSpraysKey) {
-            upOnSlotClicked.value?.let {
-                { index ->
-                    it(upState.value.activeSprays[index].equipSlotId)
-                }
+        onCellClicked = { index ->
+            upOnSlotClicked.value?.let { block ->
+                val equipSlotID = upState.value.activeSprays.getOrNull(index)?.equipSlotId
+                if (equipSlotID != null) block(equipSlotID)
+                // else notify
             }
         },
     ) else if (!state.isUNSET) {

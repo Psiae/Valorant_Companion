@@ -5,8 +5,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.AndroidUiDispatcher
 import dev.flammky.valorantcompanion.base.loop
 import dev.flammky.valorantcompanion.base.compose.composeWithKey
-import dev.flammky.valorantcompanion.time.truetime.LazyTimeKeeper
-import dev.flammky.valorantcompanion.time.truetime.TimeKeeperService
+import dev.flammky.valorantcompanion.base.time.truetime.LazyTimeKeeper
+import dev.flammky.valorantcompanion.base.time.truetime.TimeKeeperService
 import kotlinx.coroutines.*
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.time.Duration

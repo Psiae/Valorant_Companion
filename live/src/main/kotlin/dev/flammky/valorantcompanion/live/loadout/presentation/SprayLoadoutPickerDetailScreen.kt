@@ -14,13 +14,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,12 +36,11 @@ import dev.flammky.valorantcompanion.base.compose.rememberWithCompositionObserve
 import dev.flammky.valorantcompanion.base.compose.compose
 import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
 import dev.flammky.valorantcompanion.base.di.requireInject
+import dev.flammky.valorantcompanion.base.isUNSET
 import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
 import dev.flammky.valorantcompanion.base.strictResultingLoop
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.live.BuildConfig
-import dev.flammky.valorantcompanion.pvp.loadout.spray.PvpSpray
-import dev.flammky.valorantcompanion.pvp.loadout.spray.spraySlotUUID
 import kotlinx.coroutines.delay
 
 @Composable
@@ -62,7 +59,7 @@ fun SprayLoadoutPickerDetailScreen(
                 )
         },
         content = {
-            if (state !== state.UNSET) {
+            if (!state.isUNSET) {
                 SprayLoadoutPickerDetailScreenContent(
                     modifier = Modifier,
                     slotTotal = state.slotEquipIds.size,
@@ -298,7 +295,7 @@ private fun SprayLoadoutPickerDetailScreenContent(
                                 onClick = { seeInitialState.value = !seeInitialState.value })
                             .background(Color(0xFFF4444C))
                             .interactiveUiElementSizeEnforcement()
-                            .interactiveTextUiElementAlphaEnforcement(
+                            .interactiveUiElementTextAlphaEnforcement(
                                 isContent = false,
                                 enabled = canSeeSelected
                             )
@@ -307,7 +304,7 @@ private fun SprayLoadoutPickerDetailScreenContent(
                         BasicText(
                             modifier = Modifier
                                 .align(Alignment.Center)
-                                .interactiveTextUiElementAlphaEnforcement(
+                                .interactiveUiElementTextAlphaEnforcement(
                                     isContent = true,
                                     enabled = canSeeSelected
                                 ),
@@ -467,7 +464,7 @@ fun SprayLoadoutPickerDetailConfirmButton(
         BasicText(
             modifier = Modifier
                 .align(Alignment.Center)
-                .interactiveTextUiElementAlphaEnforcement(isContent = true, enabled = enabled),
+                .interactiveUiElementTextAlphaEnforcement(isContent = true, enabled = enabled),
             text = "REPLACE SPRAY",
             style = compose {
                 val color = Material3Theme.surfaceContentColorAsState().value

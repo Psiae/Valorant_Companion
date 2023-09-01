@@ -3,9 +3,6 @@ package dev.flammky.valorantcompanion.base.theme.material3
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -13,8 +10,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.input.pointer.PointerInputChange
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.base.compose.consumeDownGesture
@@ -105,6 +100,7 @@ fun Modifier.interactiveUiElementAlphaEnforcement(
     isContent: Boolean,
     enabled: Boolean
 ) = alpha(
+    // locals ?
     alpha = when {
         enabled -> 1f
         isContent -> MATERIAL3_INTERACTIVE_COMPONENT_SURFACE_CONTENT_DISABLED_ALPHA
@@ -112,7 +108,7 @@ fun Modifier.interactiveUiElementAlphaEnforcement(
     }
 )
 
-fun Modifier.interactiveTextUiElementAlphaEnforcement(
+fun Modifier.interactiveUiElementTextAlphaEnforcement(
     isContent: Boolean,
     enabled: Boolean
 ) = alpha(

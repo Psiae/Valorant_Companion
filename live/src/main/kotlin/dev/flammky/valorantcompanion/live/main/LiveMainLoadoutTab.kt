@@ -28,7 +28,7 @@ internal fun LiveMainLoadoutTab(
             .align(Alignment.Center)
         ,
         painter = painterResource(
-            id = R_ASSET_DRAWABLE.inventory_2_fill0_wght400_grad0_opsz48
+            id = R_ASSET_DRAWABLE.tx_icon_collection,
         ),
         contentDescription = "LOADOUT",
         tint = Material3Theme.surfaceContentColorAsState().value

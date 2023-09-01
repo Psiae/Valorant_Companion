@@ -319,7 +319,7 @@ class DebugValorantAssetService : ValorantAssetsService {
                     ValorantSprayAssetIdentity(
                         uuid = "<3",
                         displayName = "<3 Spray",
-                        category = ValorantSprayAssetIdentity.Category.None,
+                        category = ValorantSprayAssetIdentity.Category.Unspecified,
                         levels = persistentListOf(
                             ValorantSprayAssetIdentity.Level(
                                 uuid = "<3_lv1",
