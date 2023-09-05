@@ -30,7 +30,9 @@ private fun OpenSprayScreenCardPreview(
                     .padding(16.dp)
                     .fillMaxWidth(0.42f)
                     .aspectRatio(1f)
-                    .clickable {  }
+                    .clickable {  },
+                iconModifier = Modifier,
+                textModifier = Modifier
             )
         }
     }

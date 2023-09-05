@@ -73,3 +73,29 @@ fun Material3Theme.surfaceColorAsState(
 ): State<Color> {
     return rememberUpdatedState(newValue = transform(colorScheme.surface))
 }
+
+@Composable
+inline fun <T> Material3Theme.foldLightOrDarkTheme(
+    light: () -> T,
+    dark: () -> T
+): T = if (LocalIsThemeDark.current) dark() else light()
+
+inline fun <T> Material3Theme.foldLightOrDarkTheme(
+    isLight: Boolean,
+    light: () -> T,
+    dark: () -> T
+): T = if (isLight) light() else dark()
+
+@Composable
+inline fun Material3Theme.blackOrWhite(): Color = if (LocalIsThemeDark.current) {
+    Color.Black
+} else {
+    Color.White
+}
+
+@Composable
+inline fun Material3Theme.blackOrWhiteContent(): Color = if (LocalIsThemeDark.current) {
+    Color.White
+} else {
+    Color.Black
+}

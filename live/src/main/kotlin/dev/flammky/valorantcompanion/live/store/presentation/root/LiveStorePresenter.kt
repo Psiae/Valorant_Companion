@@ -150,12 +150,10 @@ internal class LiveStorePresenter(
                 BuildConfig.LIBRARY_PACKAGE_NAME,
                 "live.store.presentation.LiveStorePresenterKt: StateProducer_onFetchSuccess()"
             )
-            checkInMainLooper()
             mutateState("onFetchSuccess") { state ->
                 state.copy(
-                    dailyOfferEnabled = data.featuredBundle.open,
+                    dailyOfferEnabled = data.featuredBundle.open || data.skinsPanel.open || data.accessoryStore.open,
                     nightMarketEnabled = data.bonusStore.open,
-                    accessoriesEnabled = data.accessoryStore.open,
                     agentsEnabled = true
                 )
             }
@@ -174,7 +172,6 @@ internal class LiveStorePresenter(
                 state.copy(
                     dailyOfferEnabled = false,
                     nightMarketEnabled = false,
-                    accessoriesEnabled = false,
                     agentsEnabled = false
                 )
             }

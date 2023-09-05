@@ -22,5 +22,5 @@ internal fun FakeLiveInGameTopBar() = LiveInGameTopBar(
     gameModeName = "Spike Rush",
     gamePodName = "Singapore-1",
     pingMs = 31,
-    mapImage = LocalImage.Resource(R_ASSET.raw.ascent_listviewicon)
+    mapImage = LocalImage.Resource(R_ASSET.raw.debug_ascent_listviewicon)
 )

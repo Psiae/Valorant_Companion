@@ -273,7 +273,7 @@ class DebugValorantAssetService : ValorantAssetsService {
                         uuid = ValorantMapIdentity.ASCENT.map_id,
                         type = ValorantMapImageType.ListView
                     ),
-                    LocalImage.Resource(dev.flammky.valorantcompanion.assets.R.raw.ascent_listviewicon)
+                    LocalImage.Resource(dev.flammky.valorantcompanion.assets.R.raw.debug_ascent_listviewicon)
                 )
             }.build()
         }

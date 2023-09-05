@@ -36,7 +36,7 @@ fun Modifier.localMaterial3Surface(
     shape: Shape = RectangleShape,
     borderStroke: BorderStroke? = null,
 ) = composed {
-    localMaterial3Surface(
+    Modifier.localMaterial3Surface(
         color = Material3Theme.surfaceColorAsState(transform = color).value,
         applyInteractiveUxEnforcement = applyInteractiveUxEnforcement,
         tonalElevation = tonalElevation,
@@ -73,22 +73,20 @@ fun Modifier.localMaterial3Surface(
         else
             Modifier
     )
-    .then(
-        composed {
-            val specifiedColor = color.ifUnspecified { Material3Theme.surfaceColorAsState().value }
-            Modifier.background(
-                color = if (!tonalTint.isUnspecified)
-                    surfaceColorAtElevation(
-                        surface = specifiedColor,
-                        tint = tonalTint,
-                        elevation = tonalElevation
-                    )
-                else
-                    specifiedColor
-            )
-        }
-    )
     .clip(shape)
+    .composed {
+        val specifiedColor = color.ifUnspecified { Material3Theme.surfaceColorAsState().value }
+        Modifier.background(
+            color = if (!tonalTint.isUnspecified)
+                surfaceColorAtElevation(
+                    surface = specifiedColor,
+                    tint = tonalTint,
+                    elevation = tonalElevation
+                )
+            else
+                specifiedColor
+        )
+    }
     .consumeDownGesture()
 
 fun Modifier.interactiveUiElementSizeEnforcement() = sizeIn(

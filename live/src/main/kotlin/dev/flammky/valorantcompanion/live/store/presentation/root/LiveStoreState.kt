@@ -5,7 +5,6 @@ import dev.flammky.valorantcompanion.base.UNSET
 internal data class LiveStoreState(
     val dailyOfferEnabled: Boolean,
     val nightMarketEnabled: Boolean,
-    val accessoriesEnabled: Boolean,
     val agentsEnabled: Boolean
 ): UNSET<LiveStoreState> by Companion {
 
@@ -14,7 +13,6 @@ internal data class LiveStoreState(
         override val UNSET: LiveStoreState = LiveStoreState(
             dailyOfferEnabled = false,
             nightMarketEnabled = false,
-            accessoriesEnabled = false,
             agentsEnabled = false
         )
     }

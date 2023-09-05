@@ -20,6 +20,14 @@ internal fun LiveLoadout(
         surface = { LiveLoadoutSurface() },
         content = {
             LiveLoadoutContent(
+                // TODO: impl
+                weaponEnabled = false,
+                openWeaponScreen = {
+                    openScreen.invoke {
+                        BackHandler(onBack = ::dismiss)
+                    }
+                },
+                sprayEnabled = true,
                 openSprayScreen = {
                     openScreen.invoke {
                         BackHandler(onBack = ::dismiss)
@@ -35,11 +43,6 @@ internal fun LiveLoadout(
                         )
                     }
                 },
-                openWeaponScreen = {
-                    openScreen.invoke {
-                        BackHandler(onBack = ::dismiss)
-                    }
-                }
             )
         }
     )

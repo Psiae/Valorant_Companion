@@ -17,8 +17,10 @@ private fun LiveLoadoutContentPreview() {
     ) {
         Box(modifier = Modifier.fillMaxSize().localMaterial3Background()) {
             LiveLoadoutContent(
+                weaponEnabled = false,
                 openWeaponScreen = {},
-                openSprayScreen = {}
+                sprayEnabled = true,
+                openSprayScreen = {},
             )
         }
     }

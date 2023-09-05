@@ -15,12 +15,10 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,9 +28,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.live.pingStrengthInRangeOf4
-import dev.flammky.valorantcompanion.live.pregame.presentation.*
 import dev.flammky.valorantcompanion.assets.LocalImage
-import dev.flammky.valorantcompanion.assets.R_ASSET_DRAWABLE
 import dev.flammky.valorantcompanion.live.pvp.pregame.presentation.*
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgent
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
@@ -153,7 +149,7 @@ private fun TopBarPreview(
             Box(modifier = Modifier.fillMaxWidth()) {
                 AsyncImage(
                     modifier = Modifier.matchParentSize(),
-                    model = R_ASSET.raw.ascent_splash,
+                    model = R_ASSET.raw.debug_ascent_splash,
                     contentDescription = "Map Ascent",
                     contentScale = ContentScale.Crop,
                 )

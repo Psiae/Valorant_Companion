@@ -32,8 +32,6 @@ fun LiveStore(
                 openDailyOffer = {},
                 nightMarketOpen = state.nightMarketEnabled,
                 openNightMarket = {},
-                accessoriesEnabled = state.accessoriesEnabled,
-                openAccessories = {},
                 agentEnabled = state.agentsEnabled,
                 openAgent = {}
             )

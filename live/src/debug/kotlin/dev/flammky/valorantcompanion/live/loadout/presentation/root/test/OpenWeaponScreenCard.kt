@@ -48,7 +48,9 @@ private fun OpenWeaponScreenCardPreview(
                     .padding(16.dp)
                     .fillMaxWidth(0.42f)
                     .aspectRatio(1f)
-                    .clickable {  }
+                    .clickable {  },
+                Modifier,
+                Modifier
             )
         }
     }

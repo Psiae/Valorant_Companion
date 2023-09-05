@@ -17,8 +17,6 @@ internal fun LiveStoreContent(
     openDailyOffer: () -> Unit,
     nightMarketOpen: Boolean,
     openNightMarket: () -> Unit,
-    accessoriesEnabled: Boolean,
-    openAccessories: () -> Unit,
     agentEnabled: Boolean,
     openAgent: () -> Unit
 ) {
@@ -31,13 +29,21 @@ internal fun LiveStoreContent(
                         .size(maxWidth / 2 - 8.dp)
                         .padding(start = 16.dp, top = 16.dp)
                         .interactiveUiElementSizeEnforcement()
-                        .interactiveUiElementAlphaEnforcement(
+                        .interactiveUiElementTextAlphaEnforcement(
                             isContent = false,
-                            enabled = true
+                            enabled = dailyOfferEnabled
                         )
                         .clickable(enabled = dailyOfferEnabled, onClick = openDailyOffer),
-                    iconModifier = Modifier,
+                    iconModifier = Modifier
+                        .interactiveUiElementAlphaEnforcement(
+                            isContent = true,
+                            enabled = dailyOfferEnabled
+                        ),
                     textModifier = Modifier
+                        .interactiveUiElementTextAlphaEnforcement(
+                            isContent = true,
+                            enabled = dailyOfferEnabled
+                        )
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 OpenNightMarketOfferCard(
@@ -63,32 +69,26 @@ internal fun LiveStoreContent(
                 )
             }
             Row {
-                OpenAccessoriesOfferCard(
+                OpenAgentOfferCard(
                     modifier = Modifier
                         .size(maxWidth / 2 - 8.dp)
                         .padding(start = 16.dp, top = 16.dp)
                         .interactiveUiElementSizeEnforcement()
-                        .interactiveUiElementAlphaEnforcement(
+                        .interactiveUiElementTextAlphaEnforcement(
                             isContent = false,
-                            enabled = true
-                        )
-                        .clickable(enabled = accessoriesEnabled, onClick = openAccessories),
-                    iconModifier = Modifier,
-                    textModifier = Modifier
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                OpenAgentOfferCard(
-                    modifier = Modifier
-                        .size(maxWidth / 2 - 8.dp)
-                        .padding(end = 16.dp, top = 16.dp)
-                        .interactiveUiElementSizeEnforcement()
-                        .interactiveUiElementAlphaEnforcement(
-                            isContent = false,
-                            enabled = true
+                            enabled = agentEnabled
                         )
                         .clickable(agentEnabled, onClick = openAgent),
-                    iconModifier = Modifier,
+                    iconModifier = Modifier
+                        .interactiveUiElementAlphaEnforcement(
+                            isContent = true,
+                            enabled = agentEnabled
+                        ),
                     textModifier = Modifier
+                        .interactiveUiElementTextAlphaEnforcement(
+                            isContent = true,
+                            enabled = agentEnabled
+                        )
                 )
             }
         }

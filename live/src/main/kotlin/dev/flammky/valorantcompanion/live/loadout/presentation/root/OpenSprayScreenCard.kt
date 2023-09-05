@@ -27,6 +27,8 @@ import kotlin.math.ln
 @Composable
 internal fun OpenSprayScreenCard(
     modifier: Modifier,
+    iconModifier: Modifier,
+    textModifier: Modifier
 ) {
     val shape = remember {
         RoundedCornerShape(5)
@@ -60,14 +62,14 @@ internal fun OpenSprayScreenCard(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
-                modifier = Modifier.size(36.dp),
+                modifier = iconModifier.size(36.dp),
                 painter = painterResource(id = R_ASSET_DRAWABLE.spray_ios_glyph_100px),
                 contentDescription = "open spray screen",
                 tint = Color.White
             )
             Spacer(modifier = Modifier.height(14.dp))
             BasicText(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = textModifier.fillMaxWidth(),
                 text = "SPRAY",
                 style = MaterialTheme3.typography.labelLarge.copy(
                     textAlign = TextAlign.Center,
