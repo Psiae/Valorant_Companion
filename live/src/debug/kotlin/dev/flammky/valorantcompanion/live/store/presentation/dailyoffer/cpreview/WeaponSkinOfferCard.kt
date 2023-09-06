@@ -65,7 +65,7 @@ private fun WeaponSkinOfferCardPreview() {
                     .height(150.dp),
                 tier = WeaponSkinTier.PREMIUM,
                 displayImageKey = Any(),
-                displayImage = LocalImage.Resource(R_ASSET_RAW.debug_oni_shorty_displayicon),
+                displayImage = LocalImage.Resource(R_ASSET_RAW.debug_premium_oni_shorty_displayicon),
                 displayName = "Oni Shorty",
                 cost = StoreCost(ValorantPoint, 1_775),
                 canOpenDetail = true,

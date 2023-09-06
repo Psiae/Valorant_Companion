@@ -31,7 +31,6 @@ import dev.flammky.valorantcompanion.pvp.store.currency.*
 import dev.flammky.valorantcompanion.pvp.store.weapon.skin.WeaponSkinTier
 import kotlin.math.roundToInt
 
-// TODO: marquee display name
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun WeaponSkinOfferCard(
@@ -50,7 +49,6 @@ fun WeaponSkinOfferCard(
             localMaterial3Surface(
                 color = { color ->
                     Color(tier.highlightColor)
-                        .copy(0.6f)
                         .compositeOver(color.nearestBlackOrWhite())
                 },
                 tonalElevation = 2.dp,
@@ -111,6 +109,7 @@ fun WeaponSkinOfferCard(
             Icon(
                 modifier = Modifier
                     .size(24.dp)
+                    .interactiveUiElementAlphaEnforcement(true, canOpenDetail)
                 ,
                 painter = painterResource(id = R_ASSET_DRAWABLE.right_arrow_100),
                 contentDescription = null,

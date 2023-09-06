@@ -38,7 +38,7 @@ private fun FeaturedBundleDisplayPreview() {
                 durationLeft = 12.days + 10.hours + 35.minutes + 20.seconds,
                 imageKey = Any(),
                 image = LocalImage.Resource(R_ASSET_RAW.debug_bundle_neo_frontier),
-                shape = RoundedCornerShape(2)
+                shape = RoundedCornerShape(8.dp)
             )
         }
     }

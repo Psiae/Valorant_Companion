@@ -62,11 +62,11 @@ inline fun <T> rememberWithCompositionObserver(
 }
 
 @Composable
-fun <T> rememberWithCustomEquality(
+fun <T> rememberUpdatedStateWithCustomEquality(
     key: Any?,
     equality: (old: Any?, new: Any?) -> Boolean,
     calculation: @DisallowComposableCalls () -> T
-): T {
+): State<T> {
     return remember {
         object {
             var latestKey: Any? = RememberKtObj
@@ -77,7 +77,25 @@ fun <T> rememberWithCustomEquality(
             latestKey = key
             state.value = calculation()
         }
-    }.state.value as T
+    }.state as State<T>
+}
+
+@Composable
+fun <T> rememberUpdatedStateWithKey(
+    key: Any?,
+    value: T
+): State<T> {
+    return remember {
+        object {
+            var latestKey: Any? = RememberKtObj
+            val state = mutableStateOf<Any?>(RememberKtObj)
+        }
+    }.apply {
+        if (latestKey == RememberKtObj || latestKey != key) {
+            latestKey = key
+            state.value = value
+        }
+    }.state as State<T>
 }
 
 private object RememberKtObj
