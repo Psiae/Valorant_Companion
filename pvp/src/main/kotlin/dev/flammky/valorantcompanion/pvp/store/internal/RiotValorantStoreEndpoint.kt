@@ -23,4 +23,14 @@ internal class RiotValorantStoreEndpoint : ValorantStoreEndpoint {
             body = null
         )
     }
+
+    override fun buildGetFeaturedBundleDataRequest(bundleUUID: String): JsonHttpRequest {
+        return JsonHttpRequest(
+            method = "GET",
+            // TODO: dynamic URL
+            url = "https://valorant-api.com/v1/bundles/$bundleUUID",
+            headers = emptyList(),
+            body = null
+        )
+    }
 }

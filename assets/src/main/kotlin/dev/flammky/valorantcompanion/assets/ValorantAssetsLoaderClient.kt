@@ -1,12 +1,13 @@
 package dev.flammky.valorantcompanion.assets
 
+import dev.flammky.valorantcompanion.assets.bundle.LoadBundleImageRequest
 import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import kotlinx.coroutines.Deferred
-import java.io.File
 
 interface ValorantAssetsLoaderClient {
 
@@ -32,7 +33,7 @@ interface ValorantAssetsLoaderClient {
         agentId: String
     ): Deferred<Result<LocalImage<*>>>
 
-    fun loadUserPlayerCardAsync(
+    fun loadUserPlayerCardImageAsync(
         req: LoadPlayerCardRequest
     ): Deferred<Result<LocalImage<*>>>
 
@@ -51,6 +52,30 @@ interface ValorantAssetsLoaderClient {
     fun loadSprayIdentityAsync(
         id: String
     ): Deferred<Result<ValorantSprayAssetIdentity>>
+
+    fun loadBundleImageAsync(
+        req: LoadBundleImageRequest
+    ): Deferred<Result<LocalImage<*>>>
+
+    fun loadCurrencyImageAsync(
+        id: String
+    ): Deferred<Result<LocalImage<*>>>
+
+    fun loadWeaponSkinImageAsync(
+        id: String
+    ): Deferred<Result<LocalImage<*>>>
+
+    fun loadWeaponSkinTierImageAsync(
+        id: String
+    ): Deferred<Result<LocalImage<*>>>
+
+    fun loadWeaponSkinIdentityAsync(
+        id: String
+    ): Deferred<Result<WeaponSkinIdentity>>
+
+    fun loadGunBuddyImageAsync(
+        id: String
+    ): Deferred<Result<LocalImage<*>>>
 
     fun dispose()
 }

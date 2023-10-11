@@ -28,7 +28,7 @@ sealed class ItemType(
         id = "dd3bf334-87f3-40bd-b043-682a57a8dc3a"
     )
 
-    object Card : ItemType(
+    object PlayerCard : ItemType(
         name = "card",
         id = "3f296c07-64c3-494c-923b-fe692a4fa1bd"
     )

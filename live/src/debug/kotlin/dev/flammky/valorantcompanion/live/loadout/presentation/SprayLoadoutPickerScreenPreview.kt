@@ -59,19 +59,19 @@ internal fun SprayLoadoutScreenPreview() {
                                 persistentListOf(
                                     SprayLoadoutItem(
                                         PvpSprayConstants.SLOT_1_UUID,
-                                        "<3"
+                                        "dbg_acc_spray_0x3c_3"
                                     ),
                                     SprayLoadoutItem(
                                         PvpSprayConstants.SLOT_2_UUID,
-                                        "nice_to_zap_you"
+                                        "dbg_acc_spray_nice_to_zap_you"
                                     ),
                                     SprayLoadoutItem(
                                         PvpSprayConstants.SLOT_3_UUID,
-                                        "<3"
+                                        "dbg_acc_spray_0x3c_3"
                                     ),
                                     SprayLoadoutItem(
                                         PvpSprayConstants.SLOT_4_UUID,
-                                        "nice_to_zap_you"
+                                        "dbg_acc_spray_nice_to_zap_you"
                                     )
                                 ),
                                 IdentityLoadout(

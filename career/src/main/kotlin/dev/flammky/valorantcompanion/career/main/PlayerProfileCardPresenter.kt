@@ -127,7 +127,7 @@ class PlayerProfileCardPresenter(
                                 .onFailure { it.printStackTrace() }
                                 .getOrNull()?.identity?.playerCardId
                                 ?: return@launch
-                            assetLoader.loadUserPlayerCardAsync(
+                            assetLoader.loadUserPlayerCardImageAsync(
                                 LoadPlayerCardRequest(
                                     cardId,
                                     PlayerCardArtType.SMALL, PlayerCardArtType.TALL

@@ -4,6 +4,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
 import dev.flammky.valorantcompanion.assets.BuildConfig
+import dev.flammky.valorantcompanion.assets.LocalImage
+import dev.flammky.valorantcompanion.assets.bundle.BundleImageType
 import dev.flammky.valorantcompanion.assets.conflate.CacheWriteMutex
 import dev.flammky.valorantcompanion.assets.conflate.ConflatedCacheWriteMutex
 import dev.flammky.valorantcompanion.assets.filesystem.PlatformFileSystem
@@ -12,6 +14,9 @@ import dev.flammky.valorantcompanion.assets.player_card.PlayerCardArtType
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetSerializer
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
+import dev.flammky.valorantcompanion.assets.weapon.gunbuddy.GunBuddyImageType
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinAssetSerializer
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
 import dev.flammky.valorantcompanion.base.kt.sync
 import dev.flammky.valorantcompanion.base.storage.ByteUnit
 import io.ktor.util.cio.*
@@ -23,11 +28,13 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.*
 import java.io.FileOutputStream
+import java.nio.charset.Charset
 import java.io.File as jioFile
 
 class ValorantAssetRepository(
     private val platformFS: PlatformFileSystem,
-    private val sprayAssetSerializer: ValorantSprayAssetSerializer
+    private val sprayAssetSerializer: ValorantSprayAssetSerializer,
+    private val weaponSkinAssetSerializer: WeaponSkinAssetSerializer
 ) {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
@@ -76,6 +83,54 @@ class ValorantAssetRepository(
     private val valorantSprayIdentityFolderPath by lazy {
         with(platformFS) {
             valorantSprayFolderPath.appendFolder("identity")
+        }
+    }
+
+    private val valorantBundleFolderPath by lazy {
+        with(platformFS) {
+            buildStringWithDefaultInternalCacheFolder { cache ->
+                cache
+                    .appendFolder("assets")
+                    .appendFolder("bundles")
+            }
+        }
+    }
+
+    private val valorantBundleImageFolderPath by lazy {
+        with(platformFS) {
+            valorantBundleFolderPath.appendFolder("image")
+        }
+    }
+
+    private val valorantGunBuddyFolderPath by lazy {
+        with(platformFS) {
+            internalCacheFolder
+                .absolutePath
+                .appendFolder("assets")
+                .appendFolder("gunbuddy")
+        }
+    }
+
+    private val valorantGunBuddyImageFolderPath by lazy {
+        with(platformFS) {
+            valorantGunBuddyFolderPath.appendFolder("image")
+        }
+    }
+
+    private val valorantWeaponSkinFolderPath by lazy {
+        with(platformFS) {
+            internalCacheFolder
+                .absolutePath
+                .appendFolder("assets")
+                .appendFolder("weapon")
+                .appendFolder("skin")
+        }
+    }
+
+    private val valorantWeaponSkinIdentityFolderPath by lazy {
+        with(platformFS) {
+            valorantWeaponSkinFolderPath
+                .appendFolder("identity")
         }
     }
 
@@ -371,6 +426,75 @@ class ValorantAssetRepository(
         }
     }
 
+    suspend fun cacheBundleImage(
+        id: String,
+        type: BundleImageType,
+        data: ByteArray
+    ): Result<jioFile> = runCatching {
+        withContext(Dispatchers.IO) {
+            val fileName = id + "_" + type.name
+            val folder = jioFile(valorantBundleImageFolderPath)
+            val file = with(platformFS) { jioFile(folder.absolutePath.appendFile("v01_$fileName")) }
+            // use channel and single writer instead ?
+            val mutex = synchronized(cacheWriteMutexes) {
+                cacheWriteMutexes.getOrPut("bundle_image_$fileName") { ConflatedCacheWriteMutex() }
+            }
+            Log.d(
+                BuildConfig.LIBRARY_PACKAGE_NAME,
+                "cacheBundleImage($id), file=$file"
+            )
+            mutex.write { _ ->
+                if (file.isDirectory) file.delete()
+                folder.mkdirs()
+                val fileOutputStream = FileOutputStream(file)
+                try {
+                    fileOutputStream.use { fos ->
+                        val lock = fos.channel.lock()
+                            ?: error("Could not lock FileChannel")
+                        try {
+                            val bmp = BitmapFactory
+                                .decodeByteArray(data, 0 , data.size)
+                                ?: error("Could not decode ByteArray")
+                            val out = bmp.compress(Bitmap.CompressFormat.PNG, 100, fos)
+                            if (!out) error("Could not compress PNG from decoded Bitmap")
+                        } finally {
+                            lock.release()
+                        }
+                    }
+                } catch (e: Exception) {
+                    file.delete()
+                    throw e
+                }
+            }
+            // TODO: notify
+            file
+        }
+    }.apply {
+        if (BuildConfig.DEBUG) onFailure { it.printStackTrace() }
+    }
+
+    suspend fun loadCachedBundleImage(
+        id: String,
+        types: ImmutableSet<BundleImageType>,
+        awaitAnyWrite: Boolean
+    ): Result<jioFile?> = runCatching {
+        withContext(Dispatchers.IO) {
+            types.forEach { type ->
+                val fileName = id + "_" + type.name
+                val folderPath = valorantBundleImageFolderPath
+                with(platformFS) { jioFile(folderPath.appendFile("v01_fileName")) }
+                    .takeIf {
+                        if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
+                            cacheWriteMutexes["bundle_image_$fileName"]
+                        }?.awaitUnlock()
+                        Log.d("ValorantAssetRepository", "loadCachedBundleImage($id), resolving $it, exist=${it.exists()}")
+                        it.exists()
+                    }?.let { return@withContext it }
+            }
+            null
+        }
+    }
+
     fun registerProfileCardUpdateListener(
         id: String,
         type: PlayerCardArtType,
@@ -419,9 +543,158 @@ class ValorantAssetRepository(
             }
     }
 
+    suspend fun loadCachedGunBuddyImage(
+        id: String,
+        types: ImmutableSet<GunBuddyImageType>,
+        awaitAnyWrite: Boolean
+    ): Result<jioFile?> = runCatching {
+        withContext(Dispatchers.IO) {
+            types.forEach { type ->
+                val fileName = id + "_" + type.name
+                val folderPath = valorantGunBuddyImageFolderPath
+                with(platformFS) { jioFile(folderPath.appendFile("v01_fileName")) }
+                    .takeIf {
+                        if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
+                            cacheWriteMutexes["gunbuddy_image_$fileName"]
+                        }?.awaitUnlock()
+                        Log.d("ValorantAssetRepository", "loadCachedGunBuddyImage($id), resolving $it, exist=${it.exists()}")
+                        it.exists()
+                    }?.let { return@withContext it }
+            }
+            null
+        }
+    }
+
+    suspend fun cacheGunBuddyImage(
+        id: String,
+        type: GunBuddyImageType,
+        data: ByteArray
+    ): Result<jioFile> = runCatching {
+        withContext(Dispatchers.IO) {
+            val fileName = id + "_" + type.name
+            val folder = jioFile(valorantGunBuddyImageFolderPath)
+            val file = with(platformFS) { jioFile(folder.absolutePath.appendFile("v01_$fileName")) }
+            // use channel and single writer instead ?
+            val mutex = synchronized(cacheWriteMutexes) {
+                cacheWriteMutexes.getOrPut("gunbuddy_image_$fileName") { ConflatedCacheWriteMutex() }
+            }
+
+            if (BuildConfig.DEBUG) {
+                Log.d(
+                    BuildConfig.LIBRARY_PACKAGE_NAME,
+                    "cacheGunBuddyImage($id), file=$file"
+                )
+            }
+
+            mutex.write { _ ->
+                if (file.isDirectory) file.delete()
+                folder.mkdirs()
+                val fileOutputStream = FileOutputStream(file)
+                try {
+                    fileOutputStream.use { fos ->
+                        val lock = fos.channel.lock()
+                            ?: error("Could not lock FileChannel")
+                        try {
+                            val bmp = BitmapFactory
+                                .decodeByteArray(data, 0 , data.size)
+                                ?: error("Could not decode ByteArray")
+                            ensureActive()
+                            val out = bmp.compress(Bitmap.CompressFormat.PNG, 100, fos)
+                            if (!out) error("Could not compress PNG from decoded Bitmap")
+                        } finally {
+                            lock.release()
+                        }
+                    }
+                } catch (e: Exception) {
+                    file.delete()
+                    throw e
+                }
+            }
+            // TODO: notify
+            file
+        }
+    }.apply {
+        if (BuildConfig.DEBUG) onFailure { it.printStackTrace() }
+    }
+
+    suspend fun loadCachedWeaponSkinIdentity(
+        id: String,
+        awaitAnyWrite: Boolean
+    ): Result<WeaponSkinIdentity?> = runCatching {
+        withContext(Dispatchers.IO) {
+            val fileName = id
+            val folderPath = valorantWeaponSkinIdentityFolderPath
+            val file = with(platformFS) { jioFile(folderPath.appendFile("v01_fileName")) }
+                .takeIf {
+                    if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
+                        cacheWriteMutexes["weapon_skin_identity_$fileName"]
+                    }?.awaitUnlock()
+                    Log.d("ValorantAssetRepository", "loadCachedWeaponSkinIdentity($id), resolving $it, exist=${it.exists()}")
+                    it.exists()
+                }
+            file?.inputStream()?.use { inStream ->
+                if (inStream.available() <= 0 || inStream.available() > 20 * ByteUnit.KB) {
+                    //TODO: notify that the said file is unexpected and delete it
+                    error("Unexpected File")
+                }
+                weaponSkinAssetSerializer.deserializeIdentity(
+                    raw = inStream.readBytes(),
+                    charset = Charsets.UTF_8
+                ).getOrThrow()
+            }
+        }
+    }.apply {
+        if (BuildConfig.DEBUG) onFailure { it.printStackTrace() }
+    }
+
+    suspend fun cacheWeaponSkinIdentity(
+        id: String,
+        data: ByteArray
+    ): Result<jioFile> = runCatching {
+        withContext(Dispatchers.IO) {
+            val fileName = id
+            val folder = jioFile(valorantWeaponSkinIdentityFolderPath)
+            val file = with(platformFS) {
+                jioFile(folder.absolutePath.appendFile("v01_$fileName"))
+            }
+            // use channel and single writer instead ?
+            val mutex = synchronized(cacheWriteMutexes) {
+                cacheWriteMutexes.getOrPut("identity_v01_$fileName") { ConflatedCacheWriteMutex() }
+            }
+            Log.d(
+                BuildConfig.LIBRARY_PACKAGE_NAME,
+                "cacheWeaponSkinIdentity($id), file=$file"
+            )
+            mutex.write { _ ->
+                if (file.isDirectory) file.delete()
+                folder.mkdirs()
+                val fileOutputStream = FileOutputStream(file)
+                try {
+                    fileOutputStream.use { fos ->
+                        val lock = fos.channel.lock()
+                            ?: error("Could not lock FileChannel")
+                        try {
+                            weaponSkinAssetSerializer
+                                .deserializeIdentity(data, Charsets.UTF_8)
+                                .getOrThrow()
+                            fos.write(data)
+                        } finally {
+                            lock.release()
+                        }
+                    }
+                } catch (e: Exception) {
+                    file.delete()
+                    throw e
+                }
+            }
+            file
+            // TODO: notify
+        }
+    }
+
     private fun notifyUpdatedProfileCard(
         fileName: String,
-        path: String
+        path: String,
     ) {
         coroutineScope.launch(Dispatchers.IO) {
             synchronized(profileCardUpdateChannels) {

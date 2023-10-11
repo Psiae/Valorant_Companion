@@ -12,4 +12,8 @@ internal interface ValorantStoreEndpoint {
         entitlement: String,
         shard: RiotShard
     ): JsonHttpRequest
+
+    fun buildGetFeaturedBundleDataRequest(
+        bundleUUID: String,
+    ): JsonHttpRequest
 }

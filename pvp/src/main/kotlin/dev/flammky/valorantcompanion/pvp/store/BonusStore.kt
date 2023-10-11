@@ -1,15 +1,15 @@
 package dev.flammky.valorantcompanion.pvp.store
 
+import dev.flammky.valorantcompanion.base.UNSET
 import dev.flammky.valorantcompanion.base.time.ISO8601
 import dev.flammky.valorantcompanion.pvp.store.currency.StoreCost
-import dev.flammky.valorantcompanion.pvp.store.currency.StoreCurrency
 import kotlinx.collections.immutable.ImmutableList
 import kotlin.time.Duration
 
-data class BonusStoreData(
+data class BonusStore(
     val open: Boolean,
     val offer: Result<Offer?>
-) {
+): UNSET<BonusStore> by Companion {
 
     data class Offer(
         val offerID: String,
@@ -33,4 +33,12 @@ data class BonusStoreData(
         val itemID: String,
         val quantity: Long
     )
+
+    companion object : UNSET<BonusStore> {
+
+        override val UNSET: BonusStore = BonusStore(
+            open = false,
+            offer = Result.failure(Exception("UNSET"))
+        )
+    }
 }

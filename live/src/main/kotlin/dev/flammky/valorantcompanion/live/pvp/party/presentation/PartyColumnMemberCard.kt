@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import dev.flammky.valorantcompanion.assets.R_ASSET_DRAWABLE
-import dev.flammky.valorantcompanion.assets.R_ASSET_RAW
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardArtType
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
@@ -116,7 +115,7 @@ class PartyColumnMemberCardPresenter(
                 playerCardId?.let { id ->
                     runCatching {
                         assetClient
-                            .loadUserPlayerCardAsync(LoadPlayerCardRequest(id, PlayerCardArtType.SMALL))
+                            .loadUserPlayerCardImageAsync(LoadPlayerCardRequest(id, PlayerCardArtType.SMALL))
                             .await()
                             .getOrThrow()
                     }.onSuccess {

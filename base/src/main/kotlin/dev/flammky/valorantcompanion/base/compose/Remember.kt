@@ -2,6 +2,7 @@ package dev.flammky.valorantcompanion.base.compose
 
 import androidx.compose.runtime.*
 import androidx.compose.runtime.RememberObserver
+import dev.flammky.valorantcompanion.base.kt.cast
 
 @Composable
 fun CompositionObserver(
@@ -77,7 +78,7 @@ fun <T> rememberUpdatedStateWithCustomEquality(
             latestKey = key
             state.value = calculation()
         }
-    }.state as State<T>
+    }.state.cast()
 }
 
 @Composable
@@ -95,7 +96,7 @@ fun <T> rememberUpdatedStateWithKey(
             latestKey = key
             state.value = value
         }
-    }.state as State<T>
+    }.state.cast()
 }
 
 private object RememberKtObj

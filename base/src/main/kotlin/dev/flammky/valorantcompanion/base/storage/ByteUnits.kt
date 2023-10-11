@@ -1,8 +1,6 @@
 package dev.flammky.valorantcompanion.base.storage
 
-import java.util.*
-
-// TODO: DecimalByteUnit
+// TODO: Bits
 // TODO: we should probably put overflow flag, but currently we have no use case
 sealed class ByteUnit(
     private val amount: Long,
@@ -39,13 +37,14 @@ sealed class ByteUnit(
 
         return if (byteFactor > factor)
             // higher factor means this is higher unit, possible Long overflow
-            checkedUnderFactorOverflow(byteFactor / factor)
+            checkedUnderFactorOverflow(amount, byteFactor / factor)
         else
             // lower factor means this is lower unit, a division towards 0
             amount / (factor / byteFactor)
     }
 
     private fun checkedUnderFactorOverflow(
+        amount: Long,
         byteFactor: Long,
     ): Long {
         if (amount == 0L) return 0L
@@ -79,15 +78,20 @@ sealed class ByteUnit(
     operator fun compareTo(other: ByteUnit): Int {
         return when {
             this.byteFactor > other.byteFactor -> {
-                checkedUnderFactorOverflow(byteFactor / other.byteFactor)
+                val amountC = checkedUnderFactorOverflow(amount, byteFactor / other.byteFactor)
                     .compareTo(other.amount)
+                return amountC
             }
             this.byteFactor < other.byteFactor -> {
-                this.amount.compareTo(
-                    other.checkedUnderFactorOverflow(other.byteFactor / byteFactor)
-                )
+                val amountC = amount
+                    .compareTo(other.checkedUnderFactorOverflow(other.amount, other.byteFactor / byteFactor))
+                return amountC
             }
-            else -> this.amount.compareTo(other.amount)
+            else -> {
+                val amountC = amount
+                    .compareTo(other.amount)
+                return amountC
+            }
         }
     }
 
@@ -95,11 +99,15 @@ sealed class ByteUnit(
         if (other === this) return true
         if (other !is ByteUnit) return false
 
-        return other.amount == this.amount && other.byteFactor == this.byteFactor
+        return other.amount == this.amount &&
+                other.byteFactor == this.byteFactor
     }
 
     override fun hashCode(): Int {
-        return Objects.hash(amount, byteFactor)
+        var result = 0
+        result += amount.hashCode()
+        result *= 31 ; result += byteFactor.hashCode()
+        return result
     }
 
     override fun toString(): String {
@@ -126,6 +134,8 @@ sealed class ByteUnit(
         const val TB = 1000_000_000_000L
 
         // ..
+
+        fun fromBits(amount: Long) = Bytes(amount / 8)
     }
 }
 
@@ -139,6 +149,7 @@ fun Long.mbUnit() = megaByteUnit()
 fun Long.gbUnit() = gigaByteUnit()
 fun Long.tbUnit() = teraByteUnit()
 
+fun Int.bitByteUnit() = toLong().bitByteUnit()
 fun Int.byteUnit() = toLong().byteUnit()
 fun Int.kiloByteUnit() = toLong().kiloByteUnit()
 fun Int.megaByteUnit() = toLong().megaByteUnit()
@@ -147,6 +158,7 @@ fun Int.teraByteUnit() = toLong().teraByteUnit()
 
 fun Int.kiloByteInBytes(): Long = kiloByteUnit().byteToLong()
 
+fun Long.bitByteUnit() = ByteUnit.fromBits(this)
 fun Long.byteUnit() = ByteUnit.Bytes(this)
 fun Long.kiloByteUnit() = ByteUnit.KiloBytes(this)
 fun Long.megaByteUnit() = ByteUnit.MegaBytes(this)

@@ -27,6 +27,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.koin.core.context.GlobalContext
 import org.koin.dsl.module
+import java.net.URLConnection
 
 @Composable
 @Preview
@@ -96,8 +97,8 @@ fun SprayLoadoutPickerDetailScreenPreview(
                                         // TODO: NO_SPRAY
                                         PlayerAvailableSprayLoadout(
                                             persistentListOf(
-                                                "<3",
-                                                "nice_to_zap_you",
+                                                "dbg_acc_spray_0x3c_3",
+                                                "dbg_acc_spray_nice_to_zap_you",
                                             )
                                         )
                                     },

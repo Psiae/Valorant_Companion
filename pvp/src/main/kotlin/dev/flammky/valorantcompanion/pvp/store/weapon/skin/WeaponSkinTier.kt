@@ -5,8 +5,25 @@ sealed class WeaponSkinTier(
     val displayName: String,
     val codeName: String,
     val rank: Int,
+    // TODO: I don't think we should put it here
     val highlightColor: Long
 ) {
+
+    object UNSET : WeaponSkinTier(
+        uuid = "UNSET",
+        displayName = "UNSET",
+        codeName = "UNSET",
+        rank = -1,
+        highlightColor = 0x00000000
+    )
+
+    object UNKNOWN : WeaponSkinTier(
+        uuid = "UNKNOWN",
+        displayName = "UNKNOWN",
+        codeName = "UNKNOWN",
+        rank = -1,
+        0x00000000
+    )
 
     object SELECT : WeaponSkinTier(
         uuid = "12683d76-48d7-84a3-4e09-6985794f0445",

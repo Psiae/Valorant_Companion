@@ -13,6 +13,11 @@ import dev.flammky.valorantcompanion.assets.R_ASSET_RAW
 import dev.flammky.valorantcompanion.base.theme.material3.DefaultMaterial3Theme
 import dev.flammky.valorantcompanion.base.theme.material3.localMaterial3Surface
 import dev.flammky.valorantcompanion.live.store.presentation.dailyoffer.FeaturedBundleDisplay
+import dev.flammky.valorantcompanion.pvp.store.currency.StoreCost
+import dev.flammky.valorantcompanion.pvp.store.currency.ValorantPoint
+import dev.flammky.valorantcompanion.pvp.store.weapon.skin.WeaponSkinTier
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -36,6 +41,9 @@ private fun FeaturedBundleDisplayPreview() {
                     .padding(16.dp),
                 bundleName = "Neo Frontier".uppercase(),
                 durationLeft = 12.days + 10.hours + 35.minutes + 20.seconds,
+                tiersKey = Any(),
+                tiers = persistentSetOf(WeaponSkinTier.EXCLUSIVE),
+                cost = StoreCost(ValorantPoint, 6100),
                 imageKey = Any(),
                 image = LocalImage.Resource(R_ASSET_RAW.debug_bundle_neo_frontier),
                 shape = RoundedCornerShape(8.dp)

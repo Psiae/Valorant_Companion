@@ -1,12 +1,10 @@
 package dev.flammky.valorantcompanion.pvp.http.ktor
 
-import android.os.SystemClock
 import android.util.Log
 import dev.flammky.valorantcompanion.auth.BuildConfig
 import dev.flammky.valorantcompanion.pvp.http.*
 import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import io.ktor.client.call.*
-import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.cookies.*
 import io.ktor.client.plugins.logging.*
@@ -38,10 +36,10 @@ internal class KtorWrappedHttpClient(
             install(Logging) {
                 logger = object : Logger {
                     override fun log(message: String) {
-                        val message = message
+                        val chunked = message
                             .chunked(4000)
                             .joinToString(separator = "\n")
-                        Log.i("KtorHttpClient", message)
+                        Log.i("KtorHttpClient", chunked)
                     }
                 }
                 level = LogLevel.ALL

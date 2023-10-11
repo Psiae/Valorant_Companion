@@ -29,7 +29,26 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                 }
                 // 429, retry once
             }
-            unexpectedResponseError("UNABLE TO PARSE STOREFRONT RESPONSE BODY, UNHANDLED HTTP STATUS CODE (${response.statusCode})")
+            unexpectedResponseError(
+                "UNABLE TO PARSE STOREFRONT RESPONSE BODY," +
+                        " UNHANDLED HTTP STATUS CODE (${response.statusCode})"
+            )
+        }
+    }
+
+    override fun featuredBundleData(response: JsonHttpResponse): Result<FeaturedBundleDisplayData> {
+        return runCatching {
+            when (response.statusCode) {
+                in 200..299 -> {
+                    return@runCatching parseFeaturedBundleDataResponseBody(response).getOrElse {
+                        unexpectedResponseError("UNABLE TO PARSE STOREFRONT RESPONSE BODY", it)
+                    }
+                }
+            }
+            unexpectedResponseError(
+                "UNABLE TO PARSE STOREFRONT RESPONSE BODY," +
+                        " UNHANDLED HTTP STATUS CODE (${response.statusCode})"
+            )
         }
     }
 
@@ -41,7 +60,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
             val obj = body.expectJsonObject("StoreFrontResponseBody")
 
             StoreFrontData(
-                featuredBundle = parseFeaturedBundle(obj),
+                featuredBundleStore = parseFeaturedBundle(obj),
                 skinsPanel = parseSkinsPanelData(obj),
                 upgradeCurrencyStore = parseUpgradeCurrencyStore(obj),
                 bonusStore = parseBonusStore(obj),
@@ -50,17 +69,60 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
         }
     }
 
+    private fun parseFeaturedBundleDataResponseBody(
+        response: JsonHttpResponse
+    ): Result<FeaturedBundleDisplayData> {
+        return runCatching {
+            val body = response.body.getOrThrow()
+            val obj = body.expectJsonObject("data")
+
+            FeaturedBundleDisplayData(
+                uuid = obj
+                    .expectJsonProperty("uuid")
+                    .expectJsonPrimitive("uuid")
+                    .expectNonBlankJsonString("uuid")
+                    .content,
+                displayName = obj
+                    .expectJsonProperty("displayName")
+                    .expectJsonPrimitive("displayName")
+                    .expectNonBlankJsonString("displayName")
+                    .content,
+                displayNameSubText = obj
+                    .expectJsonProperty("displayNameSubText")
+                    .expectJsonPrimitive("displayNameSubText")
+                    .jsonNullable()
+                    ?.expectNonBlankJsonString("displayNameSubText")
+                    ?.content,
+                description = obj
+                    .expectJsonProperty("description")
+                    .expectJsonPrimitive("description")
+                    .expectNonBlankJsonString("description")
+                    .content,
+                extraDescription = obj
+                    .expectJsonProperty("extraDescription")
+                    .expectJsonPrimitive("extraDescription")
+                    .jsonNullable()
+                    ?.expectNonBlankJsonString("extraDescription")
+                    ?.content,
+                useAdditionalContext = obj
+                    .expectJsonProperty("useAdditionalContext")
+                    .expectJsonPrimitive("useAdditionalContext")
+                    .expectJsonBooleanParseBoolean("useAdditionalContext")
+            )
+        }
+    }
+
     private fun parseFeaturedBundle(
         obj: JsonObject
-    ): FeaturedBundle {
+    ): FeaturedBundleStore {
 
         val offer = obj["FeaturedBundle"]
 
-        return FeaturedBundle(
+        return FeaturedBundleStore(
             open = offer != null,
             offer = runCatching {
                 offer?.let {
-                    FeaturedBundle.Offer(
+                    FeaturedBundleStore.Offer(
                         bundle = run {
                             val bundleObj = offer.expectJsonObject("Bundle")
                             parseFeaturedBundleBundle(bundleObj)
@@ -68,7 +130,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                         bundles = run {
                             val bundlesArray = offer.expectJsonArray("Bundles")
                             bundlesArray
-                                .mapTo(persistentListOf<FeaturedBundle.Bundle>().builder()) { element ->
+                                .mapTo(persistentListOf<FeaturedBundleStore.Bundle>().builder()) { element ->
                                     val bundleObj = element
                                         .expectJsonObjectAsJsonArrayElement("Bundles")
                                     parseFeaturedBundleBundle(bundleObj)
@@ -89,8 +151,8 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
 
     private fun parseFeaturedBundleBundle(
         bundleObj: JsonObject
-    ): FeaturedBundle.Bundle {
-        return FeaturedBundle.Bundle(
+    ): FeaturedBundleStore.Bundle {
+        return FeaturedBundleStore.Bundle(
             id = bundleObj
                 .expectJsonProperty("ID")
                 .expectJsonPrimitive("ID")
@@ -108,13 +170,13 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                 .content,
             itemOffers = bundleObj
                 .expectJsonArray("Items")
-                .mapTo(persistentListOf<FeaturedBundle.ItemBaseOffer>().builder()) { item ->
+                .mapTo(persistentListOf<FeaturedBundleStore.ItemBaseOffer>().builder()) { item ->
                     val itemObj = item
                         .expectJsonObjectAsJsonArrayElement("Items")
                     val itemOfferObj = itemObj
                         .expectJsonProperty("Item")
                         .expectJsonObject("Item")
-                    FeaturedBundle.ItemBaseOffer(
+                    FeaturedBundleStore.ItemBaseOffer(
                         baseCost = run {
                             StoreCost(
                                 currency = StoreCurrency.ofID(
@@ -150,7 +212,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                                 .expectJsonBooleanParseBoolean("IsPromoItem")
                         },
                         reward = run {
-                            FeaturedBundle.Reward(
+                            FeaturedBundleStore.Reward(
                                 itemType = run {
                                     val itemTypeID = itemOfferObj
                                         .expectJsonProperty("ItemTypeID")
@@ -181,13 +243,13 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                 .build(),
             itemDiscountedOffers = bundleObj["ItemOffers"]
                 ?.expectJsonArray("ItemOffers")
-                ?.mapTo(persistentListOf<FeaturedBundle.ItemDiscountedOffer>().builder()) { element ->
+                ?.mapTo(persistentListOf<FeaturedBundleStore.ItemDiscountedOffer>().builder()) { element ->
                     val itemObj = element
                         .expectJsonObjectAsJsonArrayElement("ItemOffers")
                     val offerObj = itemObj
                         .expectJsonProperty("Offer")
                         .expectJsonObject("Offer")
-                    FeaturedBundle.ItemDiscountedOffer(
+                    FeaturedBundleStore.ItemDiscountedOffer(
                         offerID = run {
                             itemObj
                                 .expectJsonProperty("BundleItemOfferID")
@@ -267,7 +329,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                             val itemRewardsObj = offerObj
                                 .expectJsonProperty("Rewards")
                                 .expectJsonObject("Rewards")
-                            FeaturedBundle.Reward(
+                            FeaturedBundleStore.Reward(
                                 itemType = run {
                                     val itemTypeID = itemRewardsObj
                                         .expectJsonProperty("ItemTypeID")
@@ -368,14 +430,14 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
 
     private fun parseSkinsPanelData(
         obj: JsonObject
-    ): SkinsPanelData {
+    ): SkinsPanelStore {
         val skinPanelObj = obj["SkinPanelLayout"]
             ?.expectJsonObject("SkinPanelLayout")
-            ?: return SkinsPanelData(
+            ?: return SkinsPanelStore(
                 false,
                 Result.success(null)
             )
-        return SkinsPanelData(
+        return SkinsPanelStore(
             open = true,
             offer = runCatching { parseSkinsPanelOffer(skinPanelObj) }
         )
@@ -383,9 +445,9 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
 
     private fun parseSkinsPanelOffer(
         obj: JsonObject
-    ): SkinsPanelData.Offer {
+    ): SkinsPanelStore.Offer {
 
-        return SkinsPanelData.Offer(
+        return SkinsPanelStore.Offer(
             offeredItemIds = run {
                 obj
                     .expectJsonProperty("SingleItemOffers")
@@ -402,7 +464,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                 obj
                     .expectJsonProperty("SingleItemStoreOffers")
                     .expectJsonArray("SingleItemStoreOffers")
-                    .associateTo(persistentMapOf<String, SkinsPanelData.ItemOffer>().builder()) { element ->
+                    .associateTo(persistentMapOf<String, SkinsPanelStore.ItemOffer>().builder()) { element ->
                         val elementObj = element
                             .expectJsonObjectAsJsonArrayElement("SingleItemStoreOffers[]")
                         val offerID = elementObj
@@ -410,7 +472,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                             .expectJsonPrimitive("SingleItemStoreOffers[];OfferID")
                             .expectNonBlankJsonString("SingleItemStoreOffers[];OfferID")
                             .content
-                        offerID to SkinsPanelData.ItemOffer(
+                        offerID to SkinsPanelStore.ItemOffer(
                             offerId = offerID,
                             isDirectPurchase = run {
                                 elementObj
@@ -455,7 +517,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                                 val itemRewardsObj = elementObj
                                     .expectJsonProperty("Rewards")
                                     .expectJsonObject("SkinsPanelOffer;SingleItemStoreOffers;Rewards")
-                                SkinsPanelData.Reward(
+                                SkinsPanelStore.Reward(
                                     itemType = run {
                                         val itemTypeID = itemRewardsObj
                                             .expectJsonProperty("ItemTypeID")
@@ -496,14 +558,14 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
 
     private fun parseUpgradeCurrencyStore(
         obj: JsonObject
-    ): UpgradeCurrencyStoreData {
+    ): UpgradeCurrencyStore {
         val upgradeCurrencyStoreObj = obj["UpgradeCurrencyStore"]
             ?.expectJsonObject("UpgradeCurrencyStore")
-            ?: return UpgradeCurrencyStoreData(
+            ?: return UpgradeCurrencyStore(
                 open = false,
                 offers = Result.success(null)
             )
-        return UpgradeCurrencyStoreData(
+        return UpgradeCurrencyStore(
             open = true,
             offers = runCatching { parseUpgradeCurrencyStoreOffer(upgradeCurrencyStoreObj) }
         )
@@ -511,14 +573,14 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
 
     private fun parseUpgradeCurrencyStoreOffer(
         obj: JsonObject
-    ): UpgradeCurrencyStoreData.Offer {
+    ): UpgradeCurrencyStore.Offer {
 
-        return UpgradeCurrencyStoreData.Offer(
+        return UpgradeCurrencyStore.Offer(
             offers = run {
                 obj
                     .expectJsonProperty("UpgradeCurrencyOffers")
                     .expectJsonArray("UpgradeCurrencyStore;UpgradeCurrencyOffers")
-                    .mapTo(persistentListOf<UpgradeCurrencyStoreData.ItemOffer>().builder()) { element ->
+                    .mapTo(persistentListOf<UpgradeCurrencyStore.ItemOffer>().builder()) { element ->
 
                         val offerObj = element
                             .expectJsonObjectAsJsonArrayElement("UpgradeCurrencyStore;UpgradeCurrencyOffers[]")
@@ -527,7 +589,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                             .expectJsonProperty("Offer")
                             .expectJsonObject("UpgradeCurrencyStore;UpgradeCurrencyOffers;Offer")
 
-                        UpgradeCurrencyStoreData.ItemOffer(
+                        UpgradeCurrencyStore.ItemOffer(
                             id = run {
                                 offerObj
                                     .expectJsonProperty("OfferID")
@@ -585,7 +647,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                                 val itemRewardsObj = itemOfferObj
                                     .expectJsonProperty("Rewards")
                                     .expectJsonObject("UpgradeCurrencyStore;UpgradeCurrencyOffers;Offer;Rewards")
-                                UpgradeCurrencyStoreData.Reward(
+                                UpgradeCurrencyStore.Reward(
                                     itemType = run {
                                         val itemTypeID = itemRewardsObj
                                             .expectJsonProperty("ItemTypeID")
@@ -619,14 +681,14 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
 
     private fun parseAccessoryStore(
         obj: JsonObject
-    ): AccessoryStoreData {
+    ): AccessoryStore {
         val accessoryStoreObj = obj["AccessoryStore"]
             ?.expectJsonObject("AccessoryStore")
-            ?: return AccessoryStoreData(
+            ?: return AccessoryStore(
                 open = false,
                 offer = Result.success(null)
             )
-        return AccessoryStoreData(
+        return AccessoryStore(
             open = true,
             offer = runCatching { parseAccessoryStoreOffer(accessoryStoreObj) }
         )
@@ -634,9 +696,9 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
 
     private fun parseAccessoryStoreOffer(
         obj: JsonObject
-    ): AccessoryStoreData.Offer {
+    ): AccessoryStore.Offer {
 
-        return AccessoryStoreData.Offer(
+        return AccessoryStore.Offer(
             storeFrontId = run {
                 obj
                     .expectJsonProperty("StoreFrontID")
@@ -648,7 +710,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                 obj
                     .expectJsonProperty("AccessoryStoreOffers")
                     .expectJsonArray("AccessoryStore;AccessoryStoreOffers")
-                    .mapTo(persistentListOf<AccessoryStoreData.ItemOffer>().builder()) { element ->
+                    .mapTo(persistentListOf<AccessoryStore.ItemOffer>().builder()) { element ->
 
                         val offerObj = element
                             .expectJsonObjectAsJsonArrayElement("AccessoryStoreOffers[]")
@@ -657,7 +719,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                             .expectJsonProperty("Offer")
                             .expectJsonObject("AccessoryStore;AccessoryStoreOffers[];Offer")
 
-                        AccessoryStoreData.ItemOffer(
+                        AccessoryStore.ItemOffer(
                             id = run {
                                 offerObj
                                     .expectJsonProperty("OfferID")
@@ -708,7 +770,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                                 val itemRewardsObj = itemOfferObj
                                     .expectJsonProperty("Rewards")
                                     .expectJsonObject("UpgradeCurrencyStore;UpgradeCurrencyOffers;Offer;Rewards")
-                                AccessoryStoreData.Reward(
+                                AccessoryStore.Reward(
                                     itemType = run {
                                         val itemTypeID = itemRewardsObj
                                             .expectJsonProperty("ItemTypeID")
@@ -742,6 +804,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                             }
                         )
                     }
+                    .associateByTo(persistentMapOf<String, AccessoryStore.ItemOffer>().builder()) { it.id }
                     .build()
             },
             remainingDuration = run {
@@ -756,14 +819,14 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
 
     private fun parseBonusStore(
         obj: JsonObject
-    ): BonusStoreData {
+    ): BonusStore {
         val bonusStoreObj = obj["BonusStore"]
             ?.expectJsonObject("BonusStore")
-            ?: return BonusStoreData(
+            ?: return BonusStore(
                 open = false,
                 offer = Result.success(null)
             )
-        return BonusStoreData(
+        return BonusStore(
             open = true,
             offer = runCatching { parseBonusStoreOffer(bonusStoreObj) }
         )
@@ -771,9 +834,9 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
 
     private fun parseBonusStoreOffer(
         obj: JsonObject
-    ): BonusStoreData.Offer {
+    ): BonusStore.Offer {
 
-        return BonusStoreData.Offer(
+        return BonusStore.Offer(
             offerID = run {
                 obj
                     .expectJsonProperty("BonusOfferID")
@@ -785,10 +848,10 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                 obj
                     .expectJsonProperty("BonusStoreOffers")
                     .expectJsonArray("BonusStore;BonusStoreOffers")
-                    .mapTo(persistentListOf<BonusStoreData.ItemOffer>().builder()) { element ->
+                    .mapTo(persistentListOf<BonusStore.ItemOffer>().builder()) { element ->
                         val elementObj = element
                             .expectJsonObjectAsJsonArrayElement("BonusStore;BonusStoreOffers[]")
-                        BonusStoreData.ItemOffer(
+                        BonusStore.ItemOffer(
                             offerID = run {
                                 elementObj
                                     .expectJsonProperty("OfferID")
@@ -839,7 +902,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                                 val itemRewardsObj = elementObj
                                     .expectJsonProperty("Rewards")
                                     .expectJsonObject("BonusStore;BonusStoreOffers[];Rewards")
-                                BonusStoreData.ItemOfferReward(
+                                BonusStore.ItemOfferReward(
                                     itemType = run {
                                         val itemTypeID = itemRewardsObj
                                             .expectJsonProperty("ItemTypeID")

@@ -31,14 +31,12 @@ import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
 import dev.flammky.valorantcompanion.base.commonkt.geometry.*
 import dev.flammky.valorantcompanion.base.compose.geometry.plus
 import dev.flammky.valorantcompanion.base.compose.geometry.roundToIntOffset
-import dev.flammky.valorantcompanion.base.compose.rememberUpdatedState
 import dev.flammky.valorantcompanion.base.compose.rememberWithCompositionObserver
 import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
 import dev.flammky.valorantcompanion.base.di.requireInject
 import dev.flammky.valorantcompanion.base.isUNSET
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.base.util.mutableValueContainerOf
-import dev.flammky.valorantcompanion.pvp.PvpConstants
 import kotlin.math.PI
 import kotlin.math.roundToInt
 
@@ -606,7 +604,7 @@ private fun SprayPickerCellDivider(
                     x = width / 2,
                     y = thickness.toPx() / 2
                 )
-                val offset = center + vector2D(angle + angleOffset, length) - cellAlignment
+                val offset = center + Vector2D(angle + angleOffset, length) - cellAlignment
                 offset.roundToIntOffset()
             }
             .graphicsLayer {
@@ -694,7 +692,7 @@ private fun Modifier.sprayPickerCellContentLayoutModifiers(
                     x = cellSize / 2,
                     y = cellSize / 2
                 )
-                val offset = center + vector2D(angle, length) - cellAlignment
+                val offset = center + Vector2D(angle, length) - cellAlignment
                 offset.roundToIntOffset()
             }
     }

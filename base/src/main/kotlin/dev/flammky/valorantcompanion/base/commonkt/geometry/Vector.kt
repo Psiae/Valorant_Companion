@@ -47,7 +47,7 @@ data class Vector2D(
 }
 
 @Suppress("FunctionName")
-fun vector2D(angle: Angle, length: Float): Vector2D {
+fun Vector2D(angle: Angle, length: Float): Vector2D {
     val radians = angle.radians
     return Vector2D(
         x = length * cos(radians),

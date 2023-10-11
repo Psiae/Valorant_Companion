@@ -1,28 +1,29 @@
 package dev.flammky.valorantcompanion.pvp.store
 
+import dev.flammky.valorantcompanion.base.UNSET
 import dev.flammky.valorantcompanion.base.time.ISO8601
 import dev.flammky.valorantcompanion.pvp.store.currency.StoreCost
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
 import kotlin.time.Duration
 
-data class AccessoryStoreData(
+data class SkinsPanelStore(
     val open: Boolean,
-    val offer: Result<Offer?>,
-) {
+    val offer: Result<Offer?>
+): UNSET<SkinsPanelStore> by Companion {
 
     data class Offer(
-        val storeFrontId: String,
-        val offers: ImmutableList<ItemOffer>,
+        val offeredItemIds: ImmutableList<String>,
+        val itemOffers: ImmutableMap<String, ItemOffer>,
         val remainingDuration: Duration
     )
 
     data class ItemOffer(
-        val id: String,
+        val offerId: String,
         val isDirectPurchase: Boolean,
         val startDate: ISO8601,
         val cost: StoreCost,
-        val reward: Reward,
-        val contractID: String
+        val reward: Reward
     )
 
     data class Reward(
@@ -30,4 +31,12 @@ data class AccessoryStoreData(
         val itemID: String,
         val quantity: Long
     )
+
+    companion object : UNSET<SkinsPanelStore> {
+
+        override val UNSET: SkinsPanelStore = SkinsPanelStore(
+            open = false,
+            offer = Result.failure(Exception("UNSET"))
+        )
+    }
 }

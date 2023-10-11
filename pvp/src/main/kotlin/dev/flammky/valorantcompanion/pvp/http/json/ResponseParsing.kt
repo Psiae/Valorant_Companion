@@ -86,6 +86,14 @@ internal fun JsonObject.expectJsonProperty(
         ?: missingJsonPropertyError(propertyName)
 }
 
+internal fun JsonObject.expectJsonPropertyBothLetterCase(
+    propertyName: String
+): JsonElement {
+    return get(propertyName.lowercase())
+        ?: get(propertyName.uppercase())
+        ?: missingJsonPropertyError(propertyName)
+}
+
 internal fun JsonObject.expectJsonProperty(
     vararg propertyName: String
 ): JsonElement {
@@ -127,6 +135,7 @@ internal fun JsonPrimitive.expectNonBlankJsonString(
     expectNonBlankJsonString(propertyName, content)
     return this
 }
+
 
 internal fun JsonPrimitive.expectJsonNumber(
     propertyName: String

@@ -2,6 +2,8 @@ package dev.flammky.valorantcompanion.assets.debug
 
 import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
+import dev.flammky.valorantcompanion.assets.bundle.BundleImageIdentifier
+import dev.flammky.valorantcompanion.assets.bundle.LoadBundleImageRequest
 import dev.flammky.valorantcompanion.assets.ex.AssetNotFoundException
 import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.map.MapImageIdentifier
@@ -11,6 +13,10 @@ import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
 import dev.flammky.valorantcompanion.assets.spray.SprayImageIdentifier
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageIdentifier
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageType
+import dev.flammky.valorantcompanion.pvp.store.weapon.skin.WeaponSkinTier
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
@@ -22,7 +28,13 @@ class DebugValorantAssetsLoaderClient(
     private val playerCardMapping: Map<PlayerCardIdentifier, LocalImage<*>>,
     private val mapImageMapping: Map<MapImageIdentifier, LocalImage<*>>,
     private val sprayImageMapping: Map<SprayImageIdentifier, LocalImage<*>>,
-    private val sprayIdentityMapping: Map<String, ValorantSprayAssetIdentity>
+    private val sprayIdentityMapping: Map<String, ValorantSprayAssetIdentity>,
+    private val bundleImageMapping: Map<BundleImageIdentifier, LocalImage<*>>,
+    private val currencyImageMapping: Map<String, LocalImage<*>>,
+    private val weaponSkinIdentityMapping: Map<String, WeaponSkinIdentity>,
+    private val weaponSkinImageMapping: Map<WeaponSkinImageIdentifier, LocalImage<*>>,
+    private val weaponSkinTierImageMapping: Map<String, LocalImage<*>>,
+    private val gunBuddyImageMapping: Map<String, LocalImage<*>>
 ): ValorantAssetsLoaderClient {
 
     override fun loadMemoryCachedAgentIcon(agentId: String): LocalImage<*>? {
@@ -53,7 +65,7 @@ class DebugValorantAssetsLoaderClient(
         )
     }
 
-    override fun loadUserPlayerCardAsync(req: LoadPlayerCardRequest): Deferred<Result<LocalImage<*>>> {
+    override fun loadUserPlayerCardImageAsync(req: LoadPlayerCardRequest): Deferred<Result<LocalImage<*>>> {
         req.acceptableTypes.forEach { type ->
             playerCardMapping[PlayerCardIdentifier(req.uuid, type)]
                 ?.let {
@@ -109,6 +121,69 @@ class DebugValorantAssetsLoaderClient(
         )
     }
 
+    override fun loadBundleImageAsync(req: LoadBundleImageRequest): Deferred<Result<LocalImage<*>>> {
+        req.acceptableTypes.forEach { type ->
+            bundleImageMapping[BundleImageIdentifier(req.uuid, type)]
+                ?.let {
+                    return CompletableDeferred(Result.success(it))
+                }
+        }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
+    }
+
+    override fun loadCurrencyImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
+        currencyImageMapping[id]
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
+    }
+
+    override fun loadWeaponSkinImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
+        weaponSkinImageMapping[WeaponSkinImageIdentifier(id, WeaponSkinImageType.DISPLAY_SMALL)]
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
+    }
+
+    override fun loadWeaponSkinTierImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
+        weaponSkinTierImageMapping[id]
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
+    }
+
+    override fun loadWeaponSkinIdentityAsync(id: String): Deferred<Result<WeaponSkinIdentity>> {
+        weaponSkinIdentityMapping[id]
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
+    }
+
+    override fun loadGunBuddyImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
+        gunBuddyImageMapping[id]
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
+    }
+
     override fun dispose() {
+
     }
 }

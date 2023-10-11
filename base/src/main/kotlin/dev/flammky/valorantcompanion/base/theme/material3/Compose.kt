@@ -75,10 +75,15 @@ fun Material3Theme.surfaceColorAsState(
 }
 
 @Composable
+fun Material3Theme.outlineVariantColorAsState(): State<Color> {
+    return rememberUpdatedState(newValue = colorScheme.outlineVariant)
+}
+
+@Composable
 inline fun <T> Material3Theme.foldLightOrDarkTheme(
     light: () -> T,
     dark: () -> T
-): T = if (LocalIsThemeDark.current) dark() else light()
+): T = foldLightOrDarkTheme(!LocalIsThemeDark.current, light, dark)
 
 inline fun <T> Material3Theme.foldLightOrDarkTheme(
     isLight: Boolean,

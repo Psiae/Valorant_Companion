@@ -36,7 +36,7 @@ sealed class StoreCurrency(
 fun StoreCurrency.Companion.ofID(
     id: String
 ): StoreCurrency {
-    return OBJECTS.find { it.uuid == id }
+    return OBJECTS.find { it.uuid == id || it.uuid.lowercase() == id || it.uuid.uppercase() == id }
         ?: OtherStoreCurrency(id, "UNKNOWN Points", "UNKNOWN Point")
 }
 
@@ -45,3 +45,12 @@ fun StoreCurrency.Companion.ofIDOrNull(
 ): StoreCurrency? {
     return OBJECTS.find { it.uuid == id }
 }
+
+val StoreCurrency.Companion.ValorantPoint: ValorantPoint
+    get() = dev.flammky.valorantcompanion.pvp.store.currency.ValorantPoint
+
+val StoreCurrency.Companion.KingdomCredit: KingdomCredit
+    get() = dev.flammky.valorantcompanion.pvp.store.currency.KingdomCredit
+
+val StoreCurrency.Companion.RadianitePoint: RadianitePoint
+    get() = dev.flammky.valorantcompanion.pvp.store.currency.RadianitePoint

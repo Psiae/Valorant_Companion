@@ -77,11 +77,10 @@ class ResultingLoop internal constructor() {
     }
 
     fun AtomicRef<Any>.loopClose(result: Any?) {
-        val close = LOOP_CLOSE(result)
         fuLoop { state ->
             when (state) {
                 LOOP_OPEN -> error("Cannot close un-started Loop")
-                LOOP_LOOPING -> if (compareAndSet(state, close)) return
+                LOOP_LOOPING -> if (compareAndSet(state, LOOP_CLOSE(result))) return
                 is LOOP_CLOSE<*> -> error("Cannot close an already closed Loop ")
                 else -> error("Invalid State")
             }

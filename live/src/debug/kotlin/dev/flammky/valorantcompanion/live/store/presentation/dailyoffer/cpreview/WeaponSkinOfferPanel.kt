@@ -7,9 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -18,17 +16,25 @@ import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.R_ASSET_DRAWABLE
 import dev.flammky.valorantcompanion.assets.R_ASSET_RAW
+import dev.flammky.valorantcompanion.assets.ValorantAssetsService
+import dev.flammky.valorantcompanion.assets.debug.DebugValorantAssetService
 import dev.flammky.valorantcompanion.base.MaterialTheme3
 import dev.flammky.valorantcompanion.base.compose.compose
 import dev.flammky.valorantcompanion.base.compose.rememberUpdatedStateWithKey
+import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
+import dev.flammky.valorantcompanion.base.di.koin.compose.KoinDependencyInjector
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.live.store.presentation.dailyoffer.WeaponSkinOfferCard
+import dev.flammky.valorantcompanion.live.store.presentation.dailyoffer.rememberWeaponSkinOfferCardPresenter
+import dev.flammky.valorantcompanion.pvp.store.ValorantStoreService
 import dev.flammky.valorantcompanion.pvp.store.currency.StoreCost
 import dev.flammky.valorantcompanion.pvp.store.currency.ValorantPoint
+import dev.flammky.valorantcompanion.pvp.store.debug.StubValorantStoreService
 import dev.flammky.valorantcompanion.pvp.store.weapon.skin.WeaponSkinTier
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
-import java.util.Objects
+import org.koin.core.context.GlobalContext
+import org.koin.dsl.module
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -37,6 +43,31 @@ import kotlin.time.Duration.Companion.seconds
 @Composable
 @Preview
 private fun WeaponSkinOfferPanelPreview() {
+
+    val provisionedState = remember {
+        mutableStateOf<Boolean>(false)
+    }
+
+    LaunchedEffect(Unit) {
+        GlobalContext.stopKoin()
+        GlobalContext.startKoin {
+            modules(
+                module {
+                    single<ValorantAssetsService> {
+                        DebugValorantAssetService()
+                    }
+                    single<ValorantStoreService> {
+                        // TODO
+                        StubValorantStoreService(
+                            { null },
+                            { null }
+                        )
+                    }
+                }
+            )
+        }
+        provisionedState.value = true
+    }
 
     DefaultMaterial3Theme(dark = isSystemInDarkTheme()) {
 
@@ -51,55 +82,41 @@ private fun WeaponSkinOfferPanelPreview() {
                 )
         ) {
 
-            WeaponSkinOfferPanel(
-                modifier = Modifier,
-                durationLeft = 15.hours + 10.minutes + 20.seconds,
-                itemKey = Any(),
-                items = persistentListOf(
-                    WeaponSkinOfferPanelItem(
-                        uuid = "dbg_wpn_skn_exc_neofrontier_melee",
-                        tier = WeaponSkinTier.EXCLUSIVE,
-                        cost = StoreCost(ValorantPoint, 4_350),
-                        displayName = "Neo Frontier Axe",
-                        displayImageKey = Any(),
-                        displayImage = LocalImage.Resource(R_ASSET_RAW.debug_exclusive_neofrontier_melee_displayicon)
+            if (!provisionedState.value) return@Box
+
+            CompositionLocalProvider(
+                LocalDependencyInjector provides remember { KoinDependencyInjector(GlobalContext) }
+            ) {
+                WeaponSkinOfferPanel(
+                    modifier = Modifier,
+                    durationLeft = 15.hours + 10.minutes + 20.seconds,
+                    itemKey = Any(),
+                    items = persistentListOf(
+                        WeaponSkinOfferPanelItem(
+                            uuid = "dbg_wpn_skn_exc_neofrontier_melee",
+                            cost = StoreCost(ValorantPoint, 4_350),
+                        ),
+                        WeaponSkinOfferPanelItem(
+                            uuid = "dbg_wpn_skn_ult_spectrum_phantom",
+                            cost = StoreCost(ValorantPoint, 2_675),
+                        ),
+                        WeaponSkinOfferPanelItem(
+                            uuid = "dbg_wpn_skn_prmm_oni_shorty",
+                            cost = StoreCost(ValorantPoint, 1_775),
+                        ),
+                        WeaponSkinOfferPanelItem(
+                            uuid = "dbg_wpn_skn_dlx_sakura_stinger",
+                            cost = StoreCost(ValorantPoint, 1_275),
+                        ),
+                        WeaponSkinOfferPanelItem(
+                            uuid = "dbg_wpn_skn_slct_endeavour_bulldog",
+                            cost = StoreCost(ValorantPoint, 875),
+                        )
                     ),
-                    WeaponSkinOfferPanelItem(
-                        uuid = "dbg_wpn_skn_ult_spectrum_phantom",
-                        tier = WeaponSkinTier.ULTRA,
-                        cost = StoreCost(ValorantPoint, 2_675),
-                        displayName = "Spectrum Phantom",
-                        displayImageKey = Any(),
-                        displayImage = LocalImage.Resource(R_ASSET_RAW.debug_ultra_spectrum_phantom_displayicon)
-                    ),
-                    WeaponSkinOfferPanelItem(
-                        uuid = "dbg_wpn_skn_prmm_oni_shorty",
-                        tier = WeaponSkinTier.PREMIUM,
-                        cost = StoreCost(ValorantPoint, 1_775),
-                        displayName = "Oni Shorty",
-                        displayImageKey = Any(),
-                        displayImage = LocalImage.Resource(R_ASSET_RAW.debug_premium_oni_shorty_displayicon)
-                    ),
-                    WeaponSkinOfferPanelItem(
-                        uuid = "dbg_wpn_skn_dlx_sakura_stinger",
-                        tier = WeaponSkinTier.DELUXE,
-                        cost = StoreCost(ValorantPoint, 1_275),
-                        displayName = "Sakura Stinger",
-                        displayImageKey = Any(),
-                        displayImage = LocalImage.Resource(R_ASSET_RAW.debug_deluxe_sakura_stringer_displayicon)
-                    ),
-                    WeaponSkinOfferPanelItem(
-                        uuid = "dbg_wpn_skn_slct_endeavour_bulldog",
-                        tier = WeaponSkinTier.SELECT,
-                        cost = StoreCost(ValorantPoint, 875),
-                        displayName = "Endeavour Bulldog",
-                        displayImageKey = Any(),
-                        displayImage = LocalImage.Resource(R_ASSET_RAW.debug_select_endeavour_bulldog_displayicon)
-                    )
-                ),
-                canOpenDetail = { true },
-                openDetail = {  }
-            )
+                    canOpenDetail = { true },
+                    openDetail = {  }
+                )
+            }
         }
     }
 }
@@ -107,26 +124,24 @@ private fun WeaponSkinOfferPanelPreview() {
 @Immutable
 class WeaponSkinOfferPanelItem(
     val uuid: String,
-    val tier: WeaponSkinTier,
     val cost: StoreCost,
-    val displayName: String,
-    val displayImageKey: Any,
-    val displayImage: LocalImage<*>
 ) {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is WeaponSkinOfferPanelItem) return false
 
+        other as WeaponSkinOfferPanelItem
+
         return uuid == other.uuid &&
-                tier == other.tier &&
-                cost == other.cost &&
-                displayName == other.displayName &&
-                displayImageKey == other.displayImageKey
+                cost == other.cost
     }
 
     override fun hashCode(): Int {
-        return Objects.hash(uuid, tier, cost, displayName, displayImageKey)
+        var result = 0
+        result += uuid.hashCode()
+        result *= 31 ; result += cost.hashCode()
+        return result
     }
 }
 
@@ -140,6 +155,8 @@ fun WeaponSkinOfferPanel(
     openDetail: (WeaponSkinOfferPanelItem) -> Unit
 ) {
 
+    val upOpenDetail = rememberUpdatedState(newValue = openDetail)
+
     Column(modifier = modifier) {
 
         DailyOfferHeader(
@@ -147,27 +164,30 @@ fun WeaponSkinOfferPanel(
             durationLeft = durationLeft
         )
 
-        Spacer(modifier = Modifier.height(Material3Theme.dpPaddingIncrementsOf(5)))
+        Spacer(modifier = Modifier.height(Material3Theme.dpPaddingIncrementsOf(3)))
 
         compose(rememberUpdatedStateWithKey(key = itemKey, value = items)) { itemsState ->
 
-            itemsState.value.forEach { item ->
+            itemsState.value.forEachIndexed { i, item ->
 
                 WeaponSkinOfferCard(
                     modifier = Modifier
                         .height(150.dp)
                         .fillMaxWidth(),
-                    tier = item.tier,
-                    displayImageKey = item.displayImageKey,
-                    displayImage = item.displayImage,
-                    displayName = item.displayName,
-                    cost = item.cost,
+                    state = rememberWeaponSkinOfferCardPresenter(
+                        LocalDependencyInjector.current
+                    ).present(
+                        id = item.uuid,
+                        cost = item.cost
+                    ),
                     canOpenDetail = canOpenDetail(item),
-                    openDetail = { openDetail(item) },
+                    openDetail = { upOpenDetail.value.invoke(item) },
                     shape = RoundedCornerShape(12.dp)
                 )
 
-                Spacer(modifier = Modifier.height(Material3Theme.dpPaddingIncrementsOf(3)))
+                if (i != itemsState.value.lastIndex) {
+                    Spacer(modifier = Modifier.height(Material3Theme.dpPaddingIncrementsOf(3)))
+                }
             }
         }
     }

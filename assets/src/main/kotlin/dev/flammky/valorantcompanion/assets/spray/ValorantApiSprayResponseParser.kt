@@ -6,7 +6,7 @@ import kotlinx.serialization.json.Json
 import java.nio.charset.Charset
 
 class ValorantApiSprayResponseParser(
-    private val serializer: KotlinxSerializationValorantSprayAssetSerializer
+    private val serializer: KtxValorantSprayAssetSerializer
 ) : ValorantSprayAssetResponseParser {
 
     override fun parseIdentity(

@@ -6,3 +6,6 @@ fun String.substringAfterOrNull(
     val index = indexOf(delimiter)
     return if (index == -1) null else substring(index + delimiter.length, length)
 }
+
+fun String.suffix(str: String, ignoreCase: Boolean) = if (!endsWith(str, ignoreCase)) this + str else this
+fun String.prefix(str: String, ignoreCase: Boolean) = if (!startsWith(str, ignoreCase)) this + str else this

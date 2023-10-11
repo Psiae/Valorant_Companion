@@ -14,6 +14,9 @@ val EmptyModifier: Modifier
     get() = Modifier.Companion
 
 @OptIn(ExperimentalContracts::class)
+inline fun Modifier.thenIf(condition: Boolean, other: Modifier.() -> Modifier) = combineIf(condition, other)
+
+@OptIn(ExperimentalContracts::class)
 inline fun Modifier.combineIf(
     condition: Boolean,
     other: Modifier.() -> Modifier

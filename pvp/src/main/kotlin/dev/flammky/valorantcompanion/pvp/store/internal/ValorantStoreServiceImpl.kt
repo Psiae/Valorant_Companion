@@ -18,15 +18,16 @@ internal class ValorantStoreServiceImpl(
     private val httpClientFactory: () -> HttpClient
 ) : ValorantStoreService{
 
+    private val httpClient by lazy { httpClientFactory() }
+
     override fun createClient(user: String): ValorantStoreClient {
         return DisposableValorantStoreClient(
             user = user,
-            httpClient = httpClientFactory(),
+            httpClientFactory = ::httpClient::get,
             auth = auth,
             geo = geo,
             endpoint = endpoint,
             responseHandler = responseHandler
         )
     }
-
 }

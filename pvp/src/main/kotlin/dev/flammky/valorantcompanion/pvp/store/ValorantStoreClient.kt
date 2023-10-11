@@ -4,7 +4,9 @@ import kotlinx.coroutines.Deferred
 
 interface ValorantStoreClient {
 
-    fun fetchDataAsync(): Deferred<Result<StoreFrontData>>
+    fun fetchStoreFrontAsync(): Deferred<Result<StoreFrontData>>
+
+    fun fetchBundleDataAsync(uuid: String): Deferred<Result<FeaturedBundleDisplayData>>
 
     fun dispose()
 }

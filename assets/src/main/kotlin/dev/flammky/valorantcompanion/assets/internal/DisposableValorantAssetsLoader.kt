@@ -5,7 +5,10 @@ import dev.flammky.valorantcompanion.assets.BuildConfig
 import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
+import dev.flammky.valorantcompanion.assets.bundle.LoadBundleImageRequest
+import dev.flammky.valorantcompanion.assets.bundle.ValorantBundleAssetDownloader
 import dev.flammky.valorantcompanion.assets.debug.DebugValorantAssetService
+import dev.flammky.valorantcompanion.assets.ex.AssetNotFoundException
 import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.map.ValorantMapAssetDownloader
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardAssetDownloader
@@ -13,6 +16,11 @@ import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetDownloader
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
+import dev.flammky.valorantcompanion.assets.weapon.gunbuddy.GunBuddyImageType
+import dev.flammky.valorantcompanion.assets.weapon.gunbuddy.ValorantGunBuddyAssetLoader
+import dev.flammky.valorantcompanion.assets.weapon.skin.ValorantWeaponSkinAssetLoader
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
+import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
 import dev.flammky.valorantcompanion.base.kt.coroutines.initAsParentCompleter
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import kotlinx.collections.immutable.persistentSetOf
@@ -24,7 +32,10 @@ internal class DisposableValorantAssetsLoaderClient(
     private val repository: ValorantAssetRepository,
     private val player_card_downloader: PlayerCardAssetDownloader,
     private val map_asset_downloader: ValorantMapAssetDownloader,
-    private val spray_asset_downloader: ValorantSprayAssetDownloader
+    private val spray_asset_downloader: ValorantSprayAssetDownloader,
+    private val bundle_asset_downloader: ValorantBundleAssetDownloader,
+    private val gunBuddyAssetLoader: ValorantGunBuddyAssetLoader,
+    private val weaponSkinAssetLoader: ValorantWeaponSkinAssetLoader
 ) : ValorantAssetsLoaderClient {
 
     private val lifetime = SupervisorJob()
@@ -46,14 +57,23 @@ internal class DisposableValorantAssetsLoaderClient(
     }
 
     override fun loadAgentIconAsync(agentId: String): Deferred<Result<LocalImage<*>>> {
-        TODO("Not yet implemented")
+        // TODO: impl
+        loadMemoryCachedAgentIcon(agentId)
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
+        return CompletableDeferred(Result.failure(AssetNotFoundException()))
     }
 
     override fun loadCompetitiveRankIconAsync(rank: CompetitiveRank): Deferred<Result<LocalImage<*>>> {
-        TODO("Not yet implemented")
+        loadMemoryCachedCompetitiveRankIcon(rank)
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
+        return CompletableDeferred(Result.failure(AssetNotFoundException()))
     }
 
-    override fun loadUserPlayerCardAsync(req: LoadPlayerCardRequest): Deferred<Result<LocalImage<*>>> {
+    override fun loadUserPlayerCardImageAsync(req: LoadPlayerCardRequest): Deferred<Result<LocalImage<*>>> {
         val def = CompletableDeferred<Result<LocalImage<*>>>(coroutineScope.coroutineContext.job)
         loadUserPlayerCard(req, def)
         return def
@@ -81,6 +101,32 @@ internal class DisposableValorantAssetsLoaderClient(
         val def = CompletableDeferred<Result<ValorantSprayAssetIdentity>>(coroutineScope.coroutineContext.job)
         loadSprayIdentity(id, def)
         return def
+    }
+
+    override fun loadBundleImageAsync(req: LoadBundleImageRequest): Deferred<Result<LocalImage<*>>> {
+        val def = CompletableDeferred<Result<LocalImage<*>>>(coroutineScope.coroutineContext.job)
+        loadBundleImage(req, def)
+        return def
+    }
+
+    override fun loadCurrencyImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
+        TODO("Not yet implemented")
+    }
+
+    override fun loadWeaponSkinImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
+        TODO("Not yet implemented")
+    }
+
+    override fun loadWeaponSkinTierImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
+        TODO("Not yet implemented")
+    }
+
+    override fun loadWeaponSkinIdentityAsync(id: String): Deferred<Result<WeaponSkinIdentity>> {
+        return weaponSkinAssetLoader.loadIdentityAsync(id)
+    }
+
+    override fun loadGunBuddyImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
+        return gunBuddyAssetLoader.loadImageAsync(id, persistentSetOf(GunBuddyImageType.DISPLAY_ICON))
     }
 
     override fun dispose() {
@@ -343,6 +389,60 @@ internal class DisposableValorantAssetsLoaderClient(
                 onFailure = {
                     it.printStackTrace()
                     Result.failure(it)
+                }
+            )
+            def.complete(result)
+        }.apply {
+            initAsParentCompleter(def)
+        }
+    }
+
+    private fun loadBundleImage(
+        req: LoadBundleImageRequest,
+        def: CompletableDeferred<Result<LocalImage<*>>>
+    ) {
+        coroutineScope.launch(Dispatchers.IO) {
+            val result = runCatching {
+                val types = req.acceptableTypes
+
+                if (types.isEmpty()) {
+                    def.complete(Result.success(LocalImage.Resource(0)))
+                    return@launch
+                }
+
+                repository
+                    .loadCachedBundleImage(
+                        id = req.uuid,
+                        types = req.acceptableTypes,
+                        awaitAnyWrite = true
+                    )
+                    .getOrNull()?.let { file ->
+                        return@runCatching file
+                    }
+
+                val image = bundle_asset_downloader
+                    .downloadBundleImage(
+                        id = req.uuid,
+                        acceptableTypes = req.acceptableTypes
+                    )
+                    .asDeferred()
+                    .awaitOrCancelOnException()
+
+                repository
+                    .cacheBundleImage(
+                        id = req.uuid,
+                        type = image.type,
+                        data = image.data
+                    )
+                    .getOrThrow()
+
+            }.fold(
+                onSuccess = {
+                    Result.success(LocalImage.File(it))
+                },
+                onFailure = { ex ->
+                    if (BuildConfig.DEBUG) ex.printStackTrace()
+                    Result.failure(ex)
                 }
             )
             def.complete(result)

@@ -1,18 +1,27 @@
 package dev.flammky.valorantcompanion.assets.debug
 
-import dev.flammky.valorantcompanion.assets.LocalImage
-import dev.flammky.valorantcompanion.assets.R_ASSET_RAW
-import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
-import dev.flammky.valorantcompanion.assets.ValorantAssetsService
+import dev.flammky.valorantcompanion.assets.*
+import dev.flammky.valorantcompanion.assets.bundle.BundleImageIdentifier
+import dev.flammky.valorantcompanion.assets.bundle.BundleImageType
 import dev.flammky.valorantcompanion.assets.map.MapImageIdentifier
 import dev.flammky.valorantcompanion.assets.map.ValorantMapImageType
+import dev.flammky.valorantcompanion.assets.player_card.PlayerCardArtType
+import dev.flammky.valorantcompanion.assets.player_card.PlayerCardIdentifier
 import dev.flammky.valorantcompanion.assets.spray.SprayImageIdentifier
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageIdentifier
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageType
 import dev.flammky.valorantcompanion.base.debug.debugBlock
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentRole
 import dev.flammky.valorantcompanion.pvp.map.ValorantMapIdentity
+import dev.flammky.valorantcompanion.pvp.store.currency.KingdomCredit
+import dev.flammky.valorantcompanion.pvp.store.currency.RadianitePoint
+import dev.flammky.valorantcompanion.pvp.store.currency.StoreCurrency
+import dev.flammky.valorantcompanion.pvp.store.currency.ValorantPoint
+import dev.flammky.valorantcompanion.pvp.store.weapon.skin.WeaponSkinTier
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
@@ -26,10 +35,16 @@ class DebugValorantAssetService : ValorantAssetsService {
             roleIconMapping = ROLE_ICON_MAPPING,
             competitiveRankIconMapping = COMPETITIVE_RANK_MAPPING,
             // TODO
-            playerCardMapping = emptyMap(),
+            playerCardMapping = ACC_PLAYERCARD_MAPPING,
             mapImageMapping = MAP_MAPPING,
             sprayImageMapping = SPRAY_MAPPING,
-            sprayIdentityMapping = SPRAY_IDENTITY_MAPPING
+            sprayIdentityMapping = SPRAY_IDENTITY_MAPPING,
+            bundleImageMapping = BUNDLE_IMAGE_MAPPING,
+            currencyImageMapping = CURRENCY_IMAGE_MAPPING,
+            weaponSkinIdentityMapping = WEAPON_SKIN_IDENTITY_MAPPING,
+            weaponSkinImageMapping = WEAPON_SKIN_IMAGE_MAPPING,
+            weaponSkinTierImageMapping = WEAPON_SKIN_TIER_IMAGE_MAPPING,
+            gunBuddyImageMapping = WEAPON_GUNBUDDY_IMAGE_MAPPING
         )
     }
 
@@ -266,6 +281,18 @@ class DebugValorantAssetService : ValorantAssetsService {
             }.build()
         }
 
+        val ACC_PLAYERCARD_MAPPING = debugBlock {
+            persistentMapOf<PlayerCardIdentifier, LocalImage<*>>().builder().apply {
+                put(
+                    PlayerCardIdentifier(
+                        "dbg_acc_playercard_yearone",
+                        PlayerCardArtType.SMALL
+                    ),
+                    LocalImage.Resource(R_ASSET_RAW.debug_acc_playercard_yearone_displayicon)
+                )
+            }
+        }
+
         val MAP_MAPPING = debugBlock {
             persistentMapOf<MapImageIdentifier, LocalImage<*>>().builder().apply {
                 put(
@@ -282,54 +309,218 @@ class DebugValorantAssetService : ValorantAssetsService {
             persistentMapOf<SprayImageIdentifier, LocalImage<*>>().builder().apply {
                 put(
                     SprayImageIdentifier(
-                        uuid = "nice_to_zap_you",
+                        uuid = "dbg_acc_spray_nice_to_zap_you",
                         type = ValorantSprayImageType.FULL_ICON(transparentBackground = true)
                     ),
                     LocalImage.Resource(R_ASSET_RAW.debug_spray_nice_to_zap_you_transparent)
                 )
                 put(
                     SprayImageIdentifier(
-                        uuid = "<3",
+                        uuid = "dbg_acc_spray_0x3d_3",
                         type = ValorantSprayImageType.FULL_ICON(transparentBackground = true)
                     ),
-                    LocalImage.Resource(R_ASSET_RAW.debug_0x3c_3_transparent)
+                    LocalImage.Resource(R_ASSET_RAW.debug_spray_0x3c_3_transparent)
                 )
             }.build()
         }
 
         val SPRAY_IDENTITY_MAPPING = debugBlock {
-            persistentMapOf<String, ValorantSprayAssetIdentity>().builder().apply {
-                put(
-                    "nice_to_zap_you",
-                    ValorantSprayAssetIdentity(
-                        uuid = "nice_to_zap_you",
-                        displayName = "Nice to Zap You Spray",
-                        category = ValorantSprayAssetIdentity.Category.Contextual,
-                        levels = persistentListOf(
-                            ValorantSprayAssetIdentity.Level(
-                                uuid = "nice_to_zap_you_lv1",
-                                sprayLevel = 1,
-                                displayName = "SprinterShock"
+            persistentMapOf<String, ValorantSprayAssetIdentity>()
+                .builder()
+                .apply {
+                    put(
+                        "dbg_acc_nice_to_zap_you",
+                        ValorantSprayAssetIdentity(
+                            uuid = "dbg_acc_nice_to_zap_you",
+                            displayName = "Nice to Zap You Spray",
+                            category = ValorantSprayAssetIdentity.Category.Contextual,
+                            levels = persistentListOf(
+                                ValorantSprayAssetIdentity.Level(
+                                    uuid = "dbg_acc_nice_to_zap_you_lv1",
+                                    sprayLevel = 1,
+                                    displayName = "SprinterShock"
+                                )
                             )
                         )
                     )
-                )
-                put(
-                    "<3",
-                    ValorantSprayAssetIdentity(
-                        uuid = "<3",
-                        displayName = "<3 Spray",
-                        category = ValorantSprayAssetIdentity.Category.Unspecified,
-                        levels = persistentListOf(
-                            ValorantSprayAssetIdentity.Level(
-                                uuid = "<3_lv1",
-                                sprayLevel = 1,
-                                displayName = "<3 Spray"
+                    put(
+                        "dbg_acc_spray_0x3c_3",
+                        ValorantSprayAssetIdentity(
+                            uuid = "dbg_acc_spray_0x3c_3",
+                            displayName = "<3 Spray",
+                            category = ValorantSprayAssetIdentity.Category.Unspecified,
+                            levels = persistentListOf(
+                                ValorantSprayAssetIdentity.Level(
+                                    uuid = "dbg_acc_spray_0x3c_3_lv1",
+                                    sprayLevel = 1,
+                                    displayName = "<3 Spray"
+                                )
                             )
                         )
                     )
-                )
-            }
+                }
+                .build()
+        }
+
+        val BUNDLE_IMAGE_MAPPING = debugBlock {
+            persistentMapOf<BundleImageIdentifier, LocalImage<*>>()
+                .builder()
+                .apply {
+                    put(
+                        BundleImageIdentifier(
+                            "neofrontier",
+                            BundleImageType.DISPLAY
+                        ),
+                        LocalImage.Resource(R_ASSET_RAW.debug_bundle_neo_frontier)
+                    )
+                }
+                .build()
+        }
+
+        val CURRENCY_IMAGE_MAPPING = debugBlock {
+            persistentMapOf<String, LocalImage<*>>()
+                .builder()
+                .apply {
+                    put(
+                        StoreCurrency.ValorantPoint.uuid,
+                        LocalImage.Resource(R_ASSET_RAW.currency_vp_displayicon)
+                    )
+                    put(
+                        StoreCurrency.KingdomCredit.uuid,
+                        LocalImage.Resource(R_ASSET_RAW.currency_kc_displayicon)
+                    )
+                    put(
+                        StoreCurrency.RadianitePoint.uuid,
+                        LocalImage.Resource(R_ASSET_RAW.currency_rp_displayicon)
+                    )
+                }
+                .build()
+        }
+
+        val WEAPON_SKIN_IDENTITY_MAPPING = debugBlock {
+            persistentMapOf<String, WeaponSkinIdentity>()
+                .builder()
+                .apply {
+                    put(
+                        "dbg_wpn_skn_exc_neofrontier_melee",
+                        WeaponSkinIdentity(
+                            uuid = "dbg_wpn_skn_exc_neofrontier_melee",
+                            displayName = ":debug: Neo Frontier Axe",
+                            tier = WeaponSkinTier.EXCLUSIVE
+                        )
+                    )
+                    put(
+                        "dbg_wpn_skn_ult_spectrum_phantom",
+                        WeaponSkinIdentity(
+                            uuid = "dbg_wpn_skn_ult_spectrum_phantom",
+                            displayName = ":debug: Spectrum Phantom",
+                            tier = WeaponSkinTier.ULTRA
+                        )
+                    )
+                    put(
+                        "dbg_wpn_skn_prmm_oni_shorty",
+                        WeaponSkinIdentity(
+                            uuid = "dbg_wpn_skn_prmm_oni_shorty",
+                            displayName = ":debug: Oni Shorty",
+                            tier = WeaponSkinTier.PREMIUM
+                        )
+                    )
+                    put(
+                        "dbg_wpn_skn_dlx_sakura_stinger",
+                        WeaponSkinIdentity(
+                            uuid = "dbg_wpn_skn_dlx_sakura_stinger",
+                            displayName = ":debug: Sakura Stinger",
+                            tier = WeaponSkinTier.DELUXE
+                        )
+                    )
+                    put(
+                        "dbg_wpn_skn_slct_endeavour_bulldog",
+                        WeaponSkinIdentity(
+                            uuid = "dbg_wpn_skn_slct_endeavour_bulldog",
+                            displayName = ":debug: Endeavour Bulldog",
+                            tier = WeaponSkinTier.SELECT
+                        )
+                    )
+                }.build()
+        }
+
+        val WEAPON_SKIN_IMAGE_MAPPING = debugBlock {
+            persistentMapOf<WeaponSkinImageIdentifier, LocalImage<*>>()
+                .builder()
+                .apply {
+                    put(
+                        WeaponSkinImageIdentifier(
+                            uuid = "dbg_wpn_skn_exc_neofrontier_melee",
+                            type = WeaponSkinImageType.DISPLAY_SMALL
+                        ),
+                        LocalImage.Resource(R_ASSET_RAW.debug_wpn_skn_exclusive_neofrontier_melee_displayicon)
+                    )
+                    put(
+                        WeaponSkinImageIdentifier(
+                            uuid = "dbg_wpn_skn_ult_spectrum_phantom",
+                            type = WeaponSkinImageType.DISPLAY_SMALL
+                        ),
+                        LocalImage.Resource(R_ASSET_RAW.debug_wpn_skn_ultra_spectrum_phantom_displayicon)
+                    )
+                    put(
+                        WeaponSkinImageIdentifier(
+                            uuid = "dbg_wpn_skn_prmm_oni_shorty",
+                            type = WeaponSkinImageType.DISPLAY_SMALL
+                        ),
+                        LocalImage.Resource(R_ASSET_RAW.debug_wpn_skn_premium_oni_shorty_displayicon)
+                    )
+                    put(
+                        WeaponSkinImageIdentifier(
+                            uuid = "dbg_wpn_skn_dlx_sakura_stinger",
+                            type = WeaponSkinImageType.DISPLAY_SMALL
+                        ),
+                        LocalImage.Resource(R_ASSET_RAW.debug_wpn_skn_deluxe_sakura_stringer_displayicon)
+                    )
+                    put(
+                        WeaponSkinImageIdentifier(
+                            uuid = "dbg_wpn_skn_slct_endeavour_bulldog",
+                            type = WeaponSkinImageType.DISPLAY_SMALL
+                        ),
+                        LocalImage.Resource(R_ASSET_RAW.debug_select_endeavour_bulldog_displayicon)
+                    )
+                }
+                .build()
+        }
+
+        val WEAPON_SKIN_TIER_IMAGE_MAPPING = debugBlock {
+            persistentMapOf<String, LocalImage<*>>()
+                .builder()
+                .apply {
+                    put(
+                        WeaponSkinTier.EXCLUSIVE.uuid,
+                        LocalImage.Resource(R_ASSET_RAW.contenttier_exclusive_displayicon)
+                    )
+                    put(
+                        WeaponSkinTier.ULTRA.uuid,
+                        LocalImage.Resource(R_ASSET_RAW.contenttier_ultra_displayicon)
+                    )
+                    put(
+                        WeaponSkinTier.PREMIUM.uuid,
+                        LocalImage.Resource(R_ASSET_RAW.contenttier_premium_displayicon)
+                    )
+                    put(
+                        WeaponSkinTier.DELUXE.uuid,
+                        LocalImage.Resource(R_ASSET_RAW.contenttier_deluxe_displayicon)
+                    )
+                    put(
+                        WeaponSkinTier.SELECT.uuid,
+                        LocalImage.Resource(R_ASSET_RAW.contenttier_select_displayicon)
+                    )
+                }
+                .build()
+        }
+
+        val WEAPON_GUNBUDDY_IMAGE_MAPPING = debugBlock {
+            persistentMapOf<String, LocalImage<*>>()
+                .builder()
+                .apply {
+                }
+                .build()
         }
     }
 }

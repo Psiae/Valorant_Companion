@@ -6,7 +6,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import java.nio.charset.Charset
 
-class KotlinxSerializationValorantSprayAssetSerializer : ValorantSprayAssetSerializer {
+class KtxValorantSprayAssetSerializer : ValorantSprayAssetSerializer {
 
     override fun deserializeIdentity(
         uuid: String,

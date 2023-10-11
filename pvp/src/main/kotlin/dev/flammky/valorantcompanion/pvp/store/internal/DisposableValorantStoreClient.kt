@@ -1,16 +1,18 @@
 package dev.flammky.valorantcompanion.pvp.store.internal
 
 import dev.flammky.valorantcompanion.base.kt.coroutines.initAsParentCompleter
+import dev.flammky.valorantcompanion.pvp.BuildConfig
 import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.internal.AuthProvider
 import dev.flammky.valorantcompanion.pvp.internal.GeoProvider
+import dev.flammky.valorantcompanion.pvp.store.FeaturedBundleDisplayData
 import dev.flammky.valorantcompanion.pvp.store.StoreFrontData
 import dev.flammky.valorantcompanion.pvp.store.ValorantStoreClient
 import kotlinx.coroutines.*
 
 internal class DisposableValorantStoreClient(
     val user: String,
-    private val httpClient: HttpClient,
+    private val httpClientFactory: () -> HttpClient,
     private val auth: AuthProvider,
     private val geo: GeoProvider,
     private val endpoint: ValorantStoreEndpoint,
@@ -19,20 +21,39 @@ internal class DisposableValorantStoreClient(
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
-    override fun fetchDataAsync(): Deferred<Result<StoreFrontData>> {
+    private val httpClient by lazy { httpClientFactory() }
+
+    override fun fetchStoreFrontAsync(): Deferred<Result<StoreFrontData>> {
         val def = CompletableDeferred<Result<StoreFrontData>>()
 
         coroutineScope.launch(Dispatchers.IO) {
             def.complete(
                 fetchData().onFailure {
-                    // logger
-                    it.printStackTrace()
+                    // TODO: Logger
+                    if (BuildConfig.DEBUG) it.printStackTrace()
                 }
             )
         }.apply {
             initAsParentCompleter(parent = def)
         }
 
+
+        return def
+    }
+
+    override fun fetchBundleDataAsync(uuid: String): Deferred<Result<FeaturedBundleDisplayData>> {
+        val def = CompletableDeferred<Result<FeaturedBundleDisplayData>>()
+
+        coroutineScope.launch(Dispatchers.IO) {
+            def.complete(
+                fetchFeaturedBundleData(uuid).onFailure {
+                    // TODO: Logger
+                    if (BuildConfig.DEBUG) it.printStackTrace()
+                }
+            )
+        }.apply {
+            initAsParentCompleter(parent = def)
+        }
 
         return def
     }
@@ -54,6 +75,18 @@ internal class DisposableValorantStoreClient(
                 .jsonRequest(endpoint.buildGetStoreFrontDataRequest(user, authToken, entitlement, shard))
 
             responseHandler.storeFront(response).getOrElse { ex ->
+                throw IllegalStateException("Cannot Parse StoreFrontData response", ex)
+            }
+        }
+    }
+
+    private suspend fun fetchFeaturedBundleData(uuid: String): Result<FeaturedBundleDisplayData> {
+        return runCatching {
+
+            val response = httpClient
+                .jsonRequest(endpoint.buildGetFeaturedBundleDataRequest(uuid))
+
+            responseHandler.featuredBundleData(response).getOrElse { ex ->
                 throw IllegalStateException("Cannot Parse StoreFrontData response", ex)
             }
         }

@@ -53,22 +53,28 @@ class KtorWrappedHttpClient(
                     if (!consumed.compareAndSet(expect = false, update = true)) {
                         error("AssetHttpSession is already consumed")
                     }
-                    if (!closed.compareAndSet(false, update = true)) {
-                        error("AssetHttpSession is already closed")
-                    }
                     try {
                         loop { if (channel.readAvailable(byteBuffer) <= 0) LOOP_BREAK() }
                     } finally {
-                        channel.cancel()
+                        tryClose()
                     }
                 }
 
                 override fun reject() {
-                    channel.cancel()
+                    tryClose()
                 }
+
+                fun tryClose(): Boolean {
+                    if (!closed.compareAndSet(expect = false, update = true)) {
+                        return false
+                    }
+                    channel.cancel()
+                    return true
+                }
+
             }.apply {
                 sessionHandler()
-                channel.cancel()
+                tryClose()
             }
         }
     }

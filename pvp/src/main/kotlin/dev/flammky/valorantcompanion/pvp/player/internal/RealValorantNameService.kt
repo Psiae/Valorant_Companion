@@ -4,6 +4,7 @@ import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.auth.riot.RiotGeoRepository
 import dev.flammky.valorantcompanion.pvp.BuildConfig
 import dev.flammky.valorantcompanion.pvp.ex.UnexpectedResponseException
+import dev.flammky.valorantcompanion.pvp.http.HttpClient
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpRequest
 import dev.flammky.valorantcompanion.pvp.http.ktor.KtorWrappedHttpClient
 import dev.flammky.valorantcompanion.pvp.player.GetPlayerNameRequest
@@ -16,12 +17,13 @@ import kotlinx.serialization.json.*
 
 internal class RealValorantNameService(
     // TODO: should provide builder
-    private val httpClient: KtorWrappedHttpClient,
+    private val httpClientFactory: () -> HttpClient,
     private val authService: RiotAuthService,
     private val geoRepository: RiotGeoRepository
 ) : ValorantNameService {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
+    private val httpClient by lazy { httpClientFactory() }
 
     override fun getPlayerNameAsync(
         request: GetPlayerNameRequest

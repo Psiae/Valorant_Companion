@@ -2,6 +2,8 @@ package dev.flammky.valorantcompanion.assets.kotlinx.serialization.json
 
 import dev.flammky.valorantcompanion.assets.ex.JsonParsingException
 import kotlinx.serialization.json.*
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import kotlin.reflect.KClass
 
 internal fun unexpectedJsonElementError(
@@ -48,9 +50,13 @@ internal fun JsonElement.expectJsonPrimitive(
         ?: unexpectedJsonElementError(propertyName, JsonPrimitive::class, this)
 }
 
+@OptIn(ExperimentalContracts::class)
 internal fun JsonElement.expectJsonObject(
     propertyName: String
 ): JsonObject {
+    contract {
+        returns() implies (this@expectJsonObject is JsonObject)
+    }
     return this as? JsonObject
         ?: unexpectedJsonElementError(propertyName, JsonObject::class, this)
 }

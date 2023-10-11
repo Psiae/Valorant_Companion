@@ -13,7 +13,6 @@ import dev.flammky.valorantcompanion.base.di.DependencyInjector
 import dev.flammky.valorantcompanion.base.di.requireInject
 import dev.flammky.valorantcompanion.base.loop
 import dev.flammky.valorantcompanion.live.BuildConfig
-import dev.flammky.valorantcompanion.live.pvp.match.presentation.root.UserMatchInfoUIState
 import dev.flammky.valorantcompanion.pvp.store.StoreFrontData
 import dev.flammky.valorantcompanion.pvp.store.ValorantStoreClient
 import dev.flammky.valorantcompanion.pvp.store.ValorantStoreService
@@ -96,6 +95,10 @@ internal class LiveStorePresenter(
                 "StateProducer must not be forgotten before calling produce" +
                         "expected for compose runtime to not invoke side-effects when forgotten"
             }
+            if (initialProduce) {
+                initialProduce = false
+                onInitialProduce()
+            }
             invalidateParams(
                 isVisibleToUser
             )
@@ -104,22 +107,18 @@ internal class LiveStorePresenter(
         private fun invalidateParams(
             isVisibleToUser: Boolean
         ) {
-            if (initialProduce) {
-                initialProduce = false
-                onInitialProduce()
-            }
             this.isVisibleToUser.value = isVisibleToUser
         }
 
         private fun onInitialProduce() {
+            mutateState("onInitialProduce") { state ->
+                state.UNSET
+            }
             producer = produceState()
         }
 
         private fun produceState(): Job {
             return coroutineScope.launch {
-                mutateState("produceState") { state ->
-                    state.UNSET
-                }
                 loop {
                     snapshotFlow { isVisibleToUser.value }.first { it }
                     fetchData()
@@ -130,7 +129,7 @@ internal class LiveStorePresenter(
 
         private suspend fun fetchData() {
             coroutineContext.ensureActive()
-            val def = storeClient.fetchDataAsync()
+            val def = storeClient.fetchStoreFrontAsync()
             val result = runCatching { def.await() }
                 .onFailure { def.cancel() }
                 .getOrThrow()
@@ -152,7 +151,7 @@ internal class LiveStorePresenter(
             )
             mutateState("onFetchSuccess") { state ->
                 state.copy(
-                    dailyOfferEnabled = data.featuredBundle.open || data.skinsPanel.open || data.accessoryStore.open,
+                    dailyOfferEnabled = data.featuredBundleStore.open || data.skinsPanel.open || data.accessoryStore.open,
                     nightMarketEnabled = data.bonusStore.open,
                     agentsEnabled = true
                 )

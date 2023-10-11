@@ -44,4 +44,5 @@ dependencies {
     implementation(libs.org.jetbrains.kotlinx.kotlinx.collections.immutable)
     implementation(kotlin("reflect"))
     implementation(libs.org.jetbrains.kotlinx.kotlinx.datetime)
+    implementation(libs.org.jetbrains.kotlinx.atomicfu.jvm)
 }
