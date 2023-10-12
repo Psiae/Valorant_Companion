@@ -1,10 +1,12 @@
 package dev.flammky.valorantcompanion.assets.valorantapi.weapon.skin
 
+import dev.flammky.valorantcompanion.assets.BuildConfig
 import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
 import dev.flammky.valorantcompanion.assets.kotlinx.serialization.json.expectJsonObject
 import dev.flammky.valorantcompanion.assets.kotlinx.serialization.json.expectJsonPrimitive
 import dev.flammky.valorantcompanion.assets.kotlinx.serialization.json.expectJsonProperty
-import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinAssetEndpoint
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinEndpoint
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageType
 import dev.flammky.valorantcompanion.base.storage.kiloByteUnit
 import io.ktor.util.*
 import kotlinx.serialization.decodeFromString
@@ -14,21 +16,33 @@ import java.nio.ByteBuffer
 
 class ValorantApiWeaponSkinAssetEndpoint(
     private val httpClientFactory: () -> AssetHttpClient
-) : WeaponSkinAssetEndpoint {
+) : WeaponSkinEndpoint {
 
     private val httpClient by lazy(httpClientFactory)
 
-    override fun buildUrl(id: String): String {
+    override val ID: String
+        get() = Companion.ID
+
+    override fun buildIdentityUrl(id: String): String {
         return "$SKINS_URL/$id"
+    }
+
+    override fun buildImageUrl(id: String, type: WeaponSkinImageType): String {
+        val typeName = when(type) {
+            WeaponSkinImageType.DISPLAY_SMALL -> "displayicon"
+            WeaponSkinImageType.RENDER_FULL -> "fullrender"
+            WeaponSkinImageType.NONE -> RuntimeException("NONE WeaponSkinImageType")
+        }
+        val ext = "png"
+        return "$SKINS_IMAGE_URL/$id/$typeName.$ext"
     }
 
     suspend fun active(): Boolean {
         var active = false
         httpClient.get(
             ENDPOINT_STATUS_URL,
-            sessionHandler = {
-                if (httpStatusCode == 404) {
-                    val bb = ByteBuffer.allocate(1.kiloByteUnit().toInt())
+            sessionHandler = {if (httpStatusCode == 404) {
+                    val bb = ByteBuffer.allocate(1.kiloByteUnit().bytes().toInt())
                     consume(bb)
                     if (bb.position() < 1) return@get
                     runCatching {
@@ -52,6 +66,8 @@ class ValorantApiWeaponSkinAssetEndpoint(
                                 if (str != "the requested uuid was not found") return@get
                             }
                         active = true
+                    }.onFailure {
+                        if (BuildConfig.DEBUG) it.printStackTrace()
                     }
                 }
             }
@@ -61,9 +77,13 @@ class ValorantApiWeaponSkinAssetEndpoint(
 
     companion object {
         val BASE_URL = "https://valorant-api.com"
+        val BASE_MEDIA_URL = "https://media.valorant-api.com"
 
-        val SKINS_URL = "$BASE_URL/v1/weapons/skins"
+        val SKINS_URL = "$BASE_URL/v1/weapons/skinlevels"
+        val SKINS_IMAGE_URL = "$BASE_MEDIA_URL/weaponskinlevels"
 
         val ENDPOINT_STATUS_URL = "$SKINS_URL/%7BweaponSkinUuid%7D"
+
+        val ID = "valorant-api"
     }
 }

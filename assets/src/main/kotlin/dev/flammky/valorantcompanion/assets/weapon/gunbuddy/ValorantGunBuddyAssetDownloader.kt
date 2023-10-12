@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.assets.weapon.gunbuddy
 
+import android.util.Log
 import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
 import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
 import dev.flammky.valorantcompanion.base.kt.coroutines.initAsParentCompleter
@@ -13,6 +14,7 @@ import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.coroutines.*
 import java.nio.ByteBuffer
 import kotlin.coroutines.Continuation
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.coroutines.resume
 
 internal interface ValorantGunBuddyAssetDownloader {
@@ -53,7 +55,7 @@ internal class ValorantGunBuddyAssetDownloaderImpl(
         @Volatile
         private var downloadCompletion: CompletableDeferred<Result<ValorantGunBuddyRawImage>>? = null
 
-        private var offerIndex = atomic(0)
+        private var offerIndex = atomic(-1)
 
         private var initiated = atomic(false)
 
@@ -81,9 +83,11 @@ internal class ValorantGunBuddyAssetDownloaderImpl(
             if (!initiated.compareAndSet(expect = false, update = true)) {
                 return
             }
+            prepare()
             coroutineScope.launch(Dispatchers.IO) {
-                prepare()
+                Log.d("DEBUG", "GunBuddyAssetDownloader, init_prepare")
                 awaitDoNextContinuation()
+                Log.d("DEBUG", "GunBuddyAssetDownloader, init_awaitDoNextContinuation")
 
                 if (acceptableTypes.isEmpty()) {
                     downloadStart()
@@ -100,15 +104,20 @@ internal class ValorantGunBuddyAssetDownloaderImpl(
                 acceptableTypes.forEach { type ->
                     downloadStart()
                     downloadImage(id, type)
-                    awaitDoNextContinuation()
-                    prepareNext()
+                    if (hasNext()) {
+                        awaitDoNextContinuation()
+                        prepareNext()
+                    }
                 }
+
+                finish()
             }.apply {
                 initAsParentCompleter(asDeferred())
             }
         }
 
         fun downloadEnd(data: ValorantGunBuddyRawImage) {
+            Log.d("DEBUG", "GunBuddyAssetDownloader, downloadEnd($data)")
             downloadCompletion
                 ?.run {
                     downloading = false
@@ -118,6 +127,7 @@ internal class ValorantGunBuddyAssetDownloaderImpl(
         }
 
         fun downloadEnd(ex: Exception) {
+            Log.d("DEBUG", "GunBuddyAssetDownloader, downloadEnd($ex)")
             downloadCompletion
                 ?.run {
                     uncaughtException = ex
@@ -144,12 +154,21 @@ internal class ValorantGunBuddyAssetDownloaderImpl(
             downloading = true
         }
 
-        suspend fun awaitDoNextContinuation() = sync(lock) {
-            if (doNext) {
-                doNext = false
-                return
+        suspend fun awaitDoNextContinuation() {
+            val j = Job()
+            sync(lock) {
+                if (doNext) {
+                    doNext = false
+                    return
+                }
+                offerCont = Continuation(EmptyCoroutineContext) { result ->
+                    result.fold(
+                        onSuccess = { j.complete() },
+                        onFailure = { j.completeExceptionally(it) }
+                    )
+                }
             }
-            suspendCancellableCoroutine { cont -> offerCont = cont }
+            j.join()
         }
 
         override fun hasNext(): Boolean {
@@ -183,6 +202,7 @@ internal class ValorantGunBuddyAssetDownloaderImpl(
             uuid: String,
             type: GunBuddyImageType,
         ) {
+            Log.d("DEBUG", "GunBuddyAssetDownloader, downloadImage($uuid, $type)")
             runCatching {
                 val url = endpoint
                     .resolveImageUrlAsync(uuid)
@@ -195,6 +215,8 @@ internal class ValorantGunBuddyAssetDownloaderImpl(
                         }
                     )
 
+                Log.d("DEBUG", "GunBuddyAssetDownloader, downloadImage($uuid, $type)_url=$url")
+
                 val contentSizeLimit = Companion.IMAGE_DISPLAY_ICON_SIZE_LIMIT
                     .bytes().toIntCheckNoOverflow()
 
@@ -203,6 +225,7 @@ internal class ValorantGunBuddyAssetDownloaderImpl(
                 assetHttpClient.get(
                     url = url,
                     sessionHandler = handler@ {
+                        Log.d("DEBUG", "GunBuddyAssetDownloader, downloadImage($uuid, $type)_sessionHandler")
                         if (
                             contentType != "image"
                         ) return@handler reject()

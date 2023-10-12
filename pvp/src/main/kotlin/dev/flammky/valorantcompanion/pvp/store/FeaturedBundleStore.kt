@@ -29,6 +29,8 @@ data class FeaturedBundleStore(
         val durationRemaining: Duration,
         val wholesaleOnly: Boolean
     )
+    
+    // TODO: we should make reward a list
 
     data class ItemBaseOffer(
         val baseCost: StoreCost,
@@ -45,8 +47,7 @@ data class FeaturedBundleStore(
         val baseCost: StoreCost,
         val discountPercent: Float,
         val discountedCost: StoreCost,
-        val reward: Reward,
-
+        val rewards: ImmutableList<Reward>,
     )
 
     data class Reward(

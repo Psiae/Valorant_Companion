@@ -9,6 +9,7 @@ import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
 import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
 import dev.flammky.valorantcompanion.base.di.requireInject
 import dev.flammky.valorantcompanion.live.main.LiveMainScreenScope
+import dev.flammky.valorantcompanion.live.store.presentation.dailyoffer.DailyOffer
 
 @Composable
 fun LiveStore(
@@ -29,7 +30,9 @@ fun LiveStore(
             LiveStoreContent(
                 modifier = Modifier,
                 dailyOfferEnabled = state.dailyOfferEnabled,
-                openDailyOffer = {},
+                openDailyOffer = {
+                    openScreen.invoke { DailyOffer(isVisibleToUser = hasFocus) }
+                },
                 nightMarketOpen = state.nightMarketEnabled,
                 openNightMarket = {},
                 agentEnabled = state.agentsEnabled,

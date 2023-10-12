@@ -258,8 +258,8 @@ private fun rememberWeaponSkinTierIconResId(tier: WeaponSkinTier): Int {
             WeaponSkinTier.PREMIUM -> R_ASSET_RAW.contenttier_premium_displayicon
             WeaponSkinTier.EXCLUSIVE -> R_ASSET_RAW.contenttier_exclusive_displayicon
             WeaponSkinTier.ULTRA -> R_ASSET_RAW.contenttier_ultra_displayicon
-            WeaponSkinTier.OTHER -> 0
             WeaponSkinTier.UNSET -> 0
+            WeaponSkinTier.UNKNOWN -> 0
         }
     }
 }

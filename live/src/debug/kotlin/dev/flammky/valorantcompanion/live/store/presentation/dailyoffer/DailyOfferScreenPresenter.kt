@@ -2,6 +2,10 @@ package dev.flammky.valorantcompanion.live.store.presentation.dailyoffer
 
 import android.util.Log
 import androidx.compose.runtime.*
+import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
+import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
+import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
+import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.base.checkInMainLooper
 import dev.flammky.valorantcompanion.base.compose.RememberObserver
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
@@ -11,6 +15,7 @@ import dev.flammky.valorantcompanion.base.kt.cast
 import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
 import dev.flammky.valorantcompanion.base.loop
 import dev.flammky.valorantcompanion.live.BuildConfig
+import dev.flammky.valorantcompanion.live.store.presentation.root.LiveStoreState
 import dev.flammky.valorantcompanion.pvp.store.StoreFrontData
 import dev.flammky.valorantcompanion.pvp.store.ValorantStoreClient
 import dev.flammky.valorantcompanion.pvp.store.ValorantStoreService
@@ -34,13 +39,17 @@ fun rememberDailyOfferScreenPresenter(
 fun rememberDailyOfferScreenPresenter(
     storeService: ValorantStoreService
 ): DailyOfferScreenPresenter {
-    return remember(storeService) { DailyOfferScreenPresenterImpl(storeService) }
+    return remember(storeService) {
+        DailyOfferScreenPresenterImpl(
+            storeService
+        )
+    }
 }
 
 
 
 private class DailyOfferScreenPresenterImpl(
-    private val storeService: ValorantStoreService
+    private val storeService: ValorantStoreService,
 ) : DailyOfferScreenPresenter {
 
 
@@ -245,9 +254,43 @@ private class DailyOfferScreenPresenterImpl(
             val new = mutate(current)
             Log.d(
                 BuildConfig.LIBRARY_PACKAGE_NAME,
-                "live.store.presentation.dailyoffer.DailyOfferScreenPresenter: StateProducer_mutateState($action), result=$new"
+                "live.store.presentation.dailyoffer.DailyOfferScreenPresenter: StateProducer_mutateState($action), result=$new".chunked(4000).joinToString("\n")
             )
             _state.value = new
         }
     }
+}
+
+@Composable
+fun DailyOfferScreenPresenter.present(
+    authRepository: RiotAuthRepository,
+    isVisibleToUser: Boolean
+): DailyOfferScreenState {
+    val activeAccountState = remember(authRepository) {
+        mutableStateOf<AuthenticatedAccount?>(null)
+    }
+    val initialized = remember(authRepository) {
+        mutableStateOf(false)
+    }
+    DisposableEffect(
+        authRepository,
+    ) {
+        val listener = ActiveAccountListener { old, new ->
+            activeAccountState.value = new
+            initialized.value = true
+        }
+        authRepository.registerActiveAccountChangeListener(
+            listener
+        )
+        onDispose {
+            authRepository.unRegisterActiveAccountListener(listener)
+        }
+    }
+    if (!initialized.value) {
+        return DailyOfferScreenState.UNSET
+    }
+    return present(
+        user = activeAccountState.value?.model?.id ?: "",
+        isVisibleToUser = isVisibleToUser
+    )
 }

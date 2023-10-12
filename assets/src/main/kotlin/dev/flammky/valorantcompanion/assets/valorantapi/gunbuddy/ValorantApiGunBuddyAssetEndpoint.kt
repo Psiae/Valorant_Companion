@@ -21,6 +21,6 @@ class ValorantApiGunBuddyAssetEndpoint(
         val BASE_MEDIA_URL = "https://media.valorant-api.com"
 
         val BUDDY_URL = "$BASE_URL/v1/buddies"
-        val BUDDY_MEDIA_URL = "$BASE_MEDIA_URL/buddies/"
+        val BUDDY_MEDIA_URL = "$BASE_MEDIA_URL/buddylevels"
     }
 }

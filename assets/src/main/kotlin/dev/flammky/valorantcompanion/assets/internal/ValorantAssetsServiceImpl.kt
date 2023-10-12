@@ -16,6 +16,13 @@ import dev.flammky.valorantcompanion.assets.spray.ValorantApiSprayResponseParser
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetDownloader
 import dev.flammky.valorantcompanion.assets.valorantapi.bundle.ValorantApiBundleAssetEndpoint
 import dev.flammky.valorantcompanion.assets.valorantapi.bundle.ValorantApiBundleAssetParser
+import dev.flammky.valorantcompanion.assets.valorantapi.gunbuddy.ValorantApiGunBuddyAssetEndpoint
+import dev.flammky.valorantcompanion.assets.weapon.gunbuddy.ValorantGunBuddyAssetDownloaderImpl
+import dev.flammky.valorantcompanion.assets.weapon.gunbuddy.ValorantGunBuddyAssetLoaderImpl
+import dev.flammky.valorantcompanion.assets.weapon.skin.ValorantWeaponSkinAssetDownloaderImpl
+import dev.flammky.valorantcompanion.assets.weapon.skin.ValorantWeaponSkinAssetLoaderImpl
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinAssetEndpointResolver
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinAssetEndpointResolverImpl
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.logging.*
@@ -61,6 +68,22 @@ class ValorantAssetsServiceImpl(
                 httpClient,
                 ValorantApiBundleAssetEndpoint(),
                 ValorantApiBundleAssetParser()
+            ),
+            gunBuddyAssetLoader = ValorantGunBuddyAssetLoaderImpl(
+                repository = repo,
+                downloader = ValorantGunBuddyAssetDownloaderImpl(
+                    assetHttpClient = httpClient,
+                    endpoint = ValorantApiGunBuddyAssetEndpoint()
+                )
+            ),
+            weaponSkinAssetLoader = ValorantWeaponSkinAssetLoaderImpl(
+                repository = repo,
+                downloader = ValorantWeaponSkinAssetDownloaderImpl(
+                    endpointResolver = WeaponSkinAssetEndpointResolverImpl(
+                        httpClientFactory = { httpClient }
+                    ),
+                    httpClientFactory = { httpClient }
+                )
             )
         )
     }

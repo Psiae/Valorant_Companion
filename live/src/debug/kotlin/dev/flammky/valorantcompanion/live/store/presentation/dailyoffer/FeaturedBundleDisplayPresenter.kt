@@ -66,7 +66,7 @@ private class FeaturedBundleDisplayPresenterImpl(
         isVisibleToUser: Boolean
     ): FeaturedBundleDisplayState {
         val producer = remember(this, offer.id) {
-            StateProducer(offer.id)
+            StateProducer(offer.id, offer.dataAssetID)
         }.apply {
             SideEffect {
                 produce(isVisibleToUser, offerKey, offer)
@@ -76,7 +76,8 @@ private class FeaturedBundleDisplayPresenterImpl(
     }
 
     private inner class StateProducer(
-        private val uuid: String
+        private val uuid: String,
+        private val dataAssetID: String
     ) : RememberObserver {
 
         // TODO: define pipeline ?
@@ -234,7 +235,7 @@ private class FeaturedBundleDisplayPresenterImpl(
             if (isDisplayDataLoaded) return true
 
             storeClient
-                .fetchBundleDataAsync(uuid)
+                .fetchBundleDataAsync(dataAssetID)
                 .awaitOrCancelOnException()
                 .onFailure { ex ->
                     onFetchFailure(ex.cast())
@@ -257,7 +258,7 @@ private class FeaturedBundleDisplayPresenterImpl(
             }
 
             assetClient
-                .loadBundleImageAsync(LoadBundleImageRequest(uuid, BundleImageType.DISPLAY))
+                .loadBundleImageAsync(LoadBundleImageRequest(dataAssetID, BundleImageType.DISPLAY))
                 .awaitOrCancelOnException()
                 .onFailure { ex ->
                     onFetchFailure(ex.cast())
@@ -313,7 +314,7 @@ private class FeaturedBundleDisplayPresenterImpl(
                 BuildConfig.LIBRARY_PACKAGE_NAME,
                 "live.store.presentation.dailyoffer.FeaturedBundleDisplayPresenter::StateProducer_onFetchFailure($ex)"
             )
-            mutateState("onFetchFailure") { state -> state.UNSET }
+            /*mutateState("onFetchFailure") { state -> state.UNSET }*/
         }
 
         @SnapshotRead

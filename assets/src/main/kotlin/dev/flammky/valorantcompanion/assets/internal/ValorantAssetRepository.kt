@@ -17,6 +17,7 @@ import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
 import dev.flammky.valorantcompanion.assets.weapon.gunbuddy.GunBuddyImageType
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinAssetSerializer
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageType
 import dev.flammky.valorantcompanion.base.kt.sync
 import dev.flammky.valorantcompanion.base.storage.ByteUnit
 import io.ktor.util.cio.*
@@ -131,6 +132,13 @@ class ValorantAssetRepository(
         with(platformFS) {
             valorantWeaponSkinFolderPath
                 .appendFolder("identity")
+        }
+    }
+
+    private val valorantWeaponSkinImageFolderPath by lazy {
+        with(platformFS) {
+            valorantWeaponSkinFolderPath
+                .appendFolder("image")
         }
     }
 
@@ -482,7 +490,7 @@ class ValorantAssetRepository(
             types.forEach { type ->
                 val fileName = id + "_" + type.name
                 val folderPath = valorantBundleImageFolderPath
-                with(platformFS) { jioFile(folderPath.appendFile("v01_fileName")) }
+                with(platformFS) { jioFile(folderPath.appendFile("v01_$fileName")) }
                     .takeIf {
                         if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
                             cacheWriteMutexes["bundle_image_$fileName"]
@@ -552,7 +560,7 @@ class ValorantAssetRepository(
             types.forEach { type ->
                 val fileName = id + "_" + type.name
                 val folderPath = valorantGunBuddyImageFolderPath
-                with(platformFS) { jioFile(folderPath.appendFile("v01_fileName")) }
+                with(platformFS) { jioFile(folderPath.appendFile("v01_$fileName")) }
                     .takeIf {
                         if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
                             cacheWriteMutexes["gunbuddy_image_$fileName"]
@@ -624,7 +632,7 @@ class ValorantAssetRepository(
         withContext(Dispatchers.IO) {
             val fileName = id
             val folderPath = valorantWeaponSkinIdentityFolderPath
-            val file = with(platformFS) { jioFile(folderPath.appendFile("v01_fileName")) }
+            val file = with(platformFS) { jioFile(folderPath.appendFile("v01_$fileName")) }
                 .takeIf {
                     if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
                         cacheWriteMutexes["weapon_skin_identity_$fileName"]
@@ -690,6 +698,80 @@ class ValorantAssetRepository(
             file
             // TODO: notify
         }
+    }
+
+    suspend fun loadCachedWeaponSkinImage(
+        id: String,
+        types: PersistentSet<WeaponSkinImageType>,
+        awaitAnyWrite: Boolean
+    ): Result<jioFile?> = runCatching {
+        withContext(Dispatchers.IO) {
+            types.forEach { type ->
+                val fileName = id + "_" + type.name
+                val folderPath = valorantWeaponSkinImageFolderPath
+                with(platformFS) { jioFile(folderPath.appendFile("v01_$fileName")) }
+                    .takeIf {
+                        if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
+                            cacheWriteMutexes["weaponskin_image_$fileName"]
+                        }?.awaitUnlock()
+                        Log.d("ValorantAssetRepository", "loadCachedWeaponSkinImage($id), resolving $it, exist=${it.exists()}")
+                        it.exists()
+                    }?.let { return@withContext it }
+            }
+            null
+        }
+    }
+
+    suspend fun cacheWeaponSkinImage(
+        id: String,
+        type: WeaponSkinImageType,
+        data: ByteArray
+    ) = runCatching {
+        withContext(Dispatchers.IO) {
+            val fileName = id + "_" + type.name
+            val folder = jioFile(valorantWeaponSkinFolderPath)
+            val file = with(platformFS) { jioFile(folder.absolutePath.appendFile("v01_$fileName")) }
+            // use channel and single writer instead ?
+            val mutex = synchronized(cacheWriteMutexes) {
+                cacheWriteMutexes.getOrPut("weaponskin_image_$fileName") { ConflatedCacheWriteMutex() }
+            }
+
+            if (BuildConfig.DEBUG) {
+                Log.d(
+                    BuildConfig.LIBRARY_PACKAGE_NAME,
+                    "cacheWeaponSkinImage($id), file=$file"
+                )
+            }
+
+            mutex.write { _ ->
+                if (file.isDirectory) file.delete()
+                folder.mkdirs()
+                val fileOutputStream = FileOutputStream(file)
+                try {
+                    fileOutputStream.use { fos ->
+                        val lock = fos.channel.lock()
+                            ?: error("Could not lock FileChannel")
+                        try {
+                            val bmp = BitmapFactory
+                                .decodeByteArray(data, 0 , data.size)
+                                ?: error("Could not decode ByteArray")
+                            ensureActive()
+                            val out = bmp.compress(Bitmap.CompressFormat.PNG, 100, fos)
+                            if (!out) error("Could not compress PNG from decoded Bitmap")
+                        } finally {
+                            lock.release()
+                        }
+                    }
+                } catch (e: Exception) {
+                    file.delete()
+                    throw e
+                }
+            }
+            // TODO: notify
+            file
+        }
+    }.apply {
+        if (BuildConfig.DEBUG) onFailure { it.printStackTrace() }
     }
 
     private fun notifyUpdatedProfileCard(

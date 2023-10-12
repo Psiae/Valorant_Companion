@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.assets.weapon.gunbuddy
 
+import dev.flammky.valorantcompanion.assets.BuildConfig
 import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.internal.ValorantAssetRepository
 import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
@@ -66,7 +67,10 @@ internal class ValorantGunBuddyAssetLoaderImpl(
                             doNext()
                         }
                         .awaitOffer()
-                        .getOrElse { LOOP_CONTINUE() }
+                        .getOrElse { ex ->
+                            if (BuildConfig.DEBUG) ex.printStackTrace()
+                            LOOP_CONTINUE()
+                        }
                     repository
                         .cacheGunBuddyImage(
                             id = id,

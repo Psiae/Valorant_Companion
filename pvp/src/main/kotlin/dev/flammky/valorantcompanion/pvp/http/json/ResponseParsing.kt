@@ -4,6 +4,8 @@ import dev.flammky.valorantcompanion.pvp.http.json.uselibsinternal.ScreenFloatVa
 import dev.flammky.valorantcompanion.pvp.http.missingJsonObjectPropertyError
 import dev.flammky.valorantcompanion.pvp.http.unexpectedResponseError
 import kotlinx.serialization.json.*
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 import kotlin.reflect.KClass
 
 internal fun unexpectedJsonElementError(
@@ -57,9 +59,13 @@ internal fun JsonElement.expectJsonPrimitiveAsArrayElement(
         ?: unexpectedJsonArrayElementError(propertyName, JsonPrimitive::class, this)
 }
 
+@OptIn(ExperimentalContracts::class)
 internal fun JsonElement.expectJsonObject(
     propertyName: String
 ): JsonObject {
+    contract {
+        returns() implies (this@expectJsonObject is JsonObject)
+    }
     return this as? JsonObject
         ?: unexpectedJsonElementError(propertyName, JsonObject::class, this)
 }

@@ -20,6 +20,7 @@ import dev.flammky.valorantcompanion.assets.weapon.gunbuddy.GunBuddyImageType
 import dev.flammky.valorantcompanion.assets.weapon.gunbuddy.ValorantGunBuddyAssetLoader
 import dev.flammky.valorantcompanion.assets.weapon.skin.ValorantWeaponSkinAssetLoader
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageType
 import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
 import dev.flammky.valorantcompanion.base.kt.coroutines.initAsParentCompleter
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
@@ -110,15 +111,27 @@ internal class DisposableValorantAssetsLoaderClient(
     }
 
     override fun loadCurrencyImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
-        TODO("Not yet implemented")
+        DebugValorantAssetService.CURRENCY_IMAGE_MAPPING[id]
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
     }
 
     override fun loadWeaponSkinImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
-        TODO("Not yet implemented")
+        return weaponSkinAssetLoader.loadImageAsync(id, persistentSetOf(WeaponSkinImageType.DISPLAY_SMALL))
     }
 
     override fun loadWeaponSkinTierImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
-        TODO("Not yet implemented")
+        DebugValorantAssetService.WEAPON_SKIN_TIER_IMAGE_MAPPING[id]
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
     }
 
     override fun loadWeaponSkinIdentityAsync(id: String): Deferred<Result<WeaponSkinIdentity>> {

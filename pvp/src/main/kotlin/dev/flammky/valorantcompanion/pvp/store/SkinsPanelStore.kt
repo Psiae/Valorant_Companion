@@ -23,7 +23,7 @@ data class SkinsPanelStore(
         val isDirectPurchase: Boolean,
         val startDate: ISO8601,
         val cost: StoreCost,
-        val reward: Reward
+        val rewards: ImmutableList<Reward>
     )
 
     data class Reward(

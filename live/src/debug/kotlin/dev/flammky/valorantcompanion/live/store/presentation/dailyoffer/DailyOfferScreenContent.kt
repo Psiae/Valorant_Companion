@@ -107,13 +107,17 @@ fun DailyOfferScreenContent(
                         keyEquality = referentialEqualityFun()
                     ) {
                         skinOffer.itemOffers
-                            .mapTo(
+                            .mapNotNullTo(
                                 destination = persistentListOf<WeaponSkinOfferPanelItem>().builder(),
                                 transform = { entry ->
-                                    WeaponSkinOfferPanelItem(
-                                        uuid = entry.value.reward.itemID,
-                                        cost = entry.value.cost
-                                    )
+                                    entry.value.rewards.firstOrNull()
+                                        ?.let { reward ->
+                                            WeaponSkinOfferPanelItem(
+                                                uuid = reward.itemID,
+                                                cost = entry.value.cost
+                                            )
+                                        }
+
                                 }
                             )
                             .build()

@@ -18,7 +18,6 @@ import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
 import dev.flammky.valorantcompanion.live.BuildConfig
 import dev.flammky.valorantcompanion.pvp.store.AccessoryStore
 import dev.flammky.valorantcompanion.pvp.store.ItemType
-import dev.flammky.valorantcompanion.pvp.store.SkinsPanelStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.coroutines.Continuation
@@ -210,7 +209,7 @@ private class AccessoryOfferPanelPresenterImpl(
                 )
             }
             val (offerRewardChanged, offerReward) = run {
-                val offerReward = offer.offers.map { it.value.reward.itemID }
+                val offerReward = offer.offers.mapNotNull { it.value.rewards.firstOrNull()?.itemID }
                 Pair(
                     offerReward != _offerRewards,
                     offerReward
@@ -225,7 +224,13 @@ private class AccessoryOfferPanelPresenterImpl(
             if (offerRewardChanged) {
                 onNewOfferRewards(
                     offerReward,
-                    offer.offers.entries.associate { it.value.reward.itemID to it.value.reward.itemType }
+                    offer.offers.entries
+                        .mapNotNull {
+                            it.value.rewards.firstOrNull()?.let { reward ->
+                                reward.itemID to reward.itemType
+                            }
+                        }
+                        .toMap()
                 )
             }
         }
@@ -403,6 +408,7 @@ private class AccessoryOfferPanelPresenterImpl(
                 snapshotFlow { _rewardItemTypeSnapshots[rewardID]!!.value }
                     .distinctUntilChanged()
                     .collect { type ->
+                        Log.d("DEBUG", "rewardImageWorker, rewardID=$rewardID, type=$type")
                         task?.cancel()
                         task = launch {
                             // TODO

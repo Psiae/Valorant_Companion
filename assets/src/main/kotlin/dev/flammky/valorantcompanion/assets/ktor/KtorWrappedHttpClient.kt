@@ -54,6 +54,7 @@ class KtorWrappedHttpClient(
                         error("AssetHttpSession is already consumed")
                     }
                     try {
+                        channel.isClosedForRead
                         loop { if (channel.readAvailable(byteBuffer) <= 0) LOOP_BREAK() }
                     } finally {
                         tryClose()

@@ -1,12 +1,20 @@
 package dev.flammky.valorantcompanion.assets.weapon.skin
 
+import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.internal.ValorantAssetRepository
 import dev.flammky.valorantcompanion.base.kt.coroutines.initAsParentCompleter
+import dev.flammky.valorantcompanion.base.resultingLoop
+import kotlinx.collections.immutable.PersistentSet
 import kotlinx.coroutines.*
 
 internal interface ValorantWeaponSkinAssetLoader {
 
     fun loadIdentityAsync(id: String): Deferred<Result<WeaponSkinIdentity>>
+
+    fun loadImageAsync(
+        id: String,
+        acceptableTypes: PersistentSet<WeaponSkinImageType>
+    ): Deferred<Result<LocalImage<*>>>
 }
 
 internal class ValorantWeaponSkinAssetLoaderImpl(
@@ -29,7 +37,7 @@ internal class ValorantWeaponSkinAssetLoaderImpl(
                         awaitAnyWrite = true
                     )
                     .getOrNull()
-                    ?.let { file -> return@runCatching file }
+                    ?.let { identity -> return@runCatching identity }
 
                 val identity = downloader
                     .createIdentityDownloadInstance(
@@ -61,6 +69,64 @@ internal class ValorantWeaponSkinAssetLoaderImpl(
 
         }.initAsParentCompleter(def)
 
+
+        return def
+    }
+
+    override fun loadImageAsync(
+        id: String,
+        acceptableTypes: PersistentSet<WeaponSkinImageType>
+    ): Deferred<Result<LocalImage<*>>> {
+        val def = CompletableDeferred<Result<LocalImage<*>>>()
+
+        coroutineScope.launch(Dispatchers.IO) {
+
+            val result = runCatching {
+
+                if (acceptableTypes.isEmpty()) {
+                    return@runCatching LocalImage.None
+                }
+
+                repository
+                    .loadCachedWeaponSkinImage(
+                        id = id,
+                        types = acceptableTypes,
+                        awaitAnyWrite = true
+                    )
+                    .getOrNull()
+                    ?.let { file -> return@runCatching LocalImage.File(file)  }
+
+                val downloadInstance = downloader
+                    .createImageDownloadInstance(
+                        id = id,
+                        acceptableTypes = acceptableTypes
+                    )
+                    .apply {
+                        init()
+                    }
+
+                resultingLoop<LocalImage<*>>() {
+                    if (!downloadInstance.hasNext()) {
+                        LOOP_BREAK(LocalImage.None)
+                    }
+                    val offer = downloadInstance
+                        .apply {
+                            doNext()
+                        }
+                        .awaitOffer()
+                        .getOrElse { LOOP_CONTINUE() }
+                    repository
+                        .cacheWeaponSkinImage(
+                            id = id,
+                            type = offer.type,
+                            data = offer.data
+                        )
+                        .onSuccess { file -> LOOP_BREAK(LocalImage.File(file)) }
+                }
+            }
+
+            def.complete(result)
+        }
 
         return def
     }

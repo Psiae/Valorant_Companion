@@ -1,32 +1,15 @@
 package dev.flammky.valorantcompanion.live.store.presentation.dailyoffer.cpreview
 
-import androidx.activity.ComponentActivity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.lifecycleScope
-import dev.flammky.valorantcompanion.assets.LocalImage
-import dev.flammky.valorantcompanion.assets.R_ASSET_RAW
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.debug.DebugValorantAssetService
-import dev.flammky.valorantcompanion.base.MaterialTheme3
-import dev.flammky.valorantcompanion.base.compose.compose
 import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
 import dev.flammky.valorantcompanion.base.di.koin.compose.KoinDependencyInjector
-import dev.flammky.valorantcompanion.base.referentialEqualityFun
-import dev.flammky.valorantcompanion.base.rememberWithEquality
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.base.time.ISO8601
 import dev.flammky.valorantcompanion.live.store.presentation.dailyoffer.DailyOfferScreenContent
-import dev.flammky.valorantcompanion.live.store.presentation.dailyoffer.FeaturedBundleDisplayPager
 import dev.flammky.valorantcompanion.live.store.presentation.dailyoffer.rememberDailyOfferScreenPresenter
 import dev.flammky.valorantcompanion.pvp.store.*
 import dev.flammky.valorantcompanion.pvp.store.currency.*
@@ -136,10 +119,12 @@ private fun DailyOfferScreenContentPreview() {
                                                                             ValorantPoint,
                                                                             4350
                                                                         ),
-                                                                        reward = SkinsPanelStore.Reward(
-                                                                            ItemType.Skin,
-                                                                            itemID = "dbg_wpn_skn_exc_neofrontier_melee",
-                                                                            quantity = 1
+                                                                        rewards = persistentListOf(
+                                                                            SkinsPanelStore.Reward(
+                                                                                ItemType.Skin,
+                                                                                itemID = "dbg_wpn_skn_exc_neofrontier_melee",
+                                                                                quantity = 1
+                                                                            )
                                                                         )
                                                                     )
                                                                 )
@@ -153,10 +138,12 @@ private fun DailyOfferScreenContentPreview() {
                                                                             ValorantPoint,
                                                                             2675
                                                                         ),
-                                                                        reward = SkinsPanelStore.Reward(
-                                                                            ItemType.Skin,
-                                                                            itemID = "dbg_wpn_skn_ult_spectrum_phantom",
-                                                                            quantity = 1
+                                                                        rewards = persistentListOf(
+                                                                            SkinsPanelStore.Reward(
+                                                                                ItemType.Skin,
+                                                                                itemID = "dbg_wpn_skn_ult_spectrum_phantom",
+                                                                                quantity = 1
+                                                                            )
                                                                         )
                                                                     )
                                                                 )
@@ -170,10 +157,12 @@ private fun DailyOfferScreenContentPreview() {
                                                                             ValorantPoint,
                                                                             1775
                                                                         ),
-                                                                        reward = SkinsPanelStore.Reward(
-                                                                            ItemType.Skin,
-                                                                            itemID = "dbg_wpn_skn_prmm_oni_shorty",
-                                                                            quantity = 1
+                                                                        rewards = persistentListOf(
+                                                                            SkinsPanelStore.Reward(
+                                                                                ItemType.Skin,
+                                                                                itemID = "dbg_wpn_skn_prmm_oni_shorty",
+                                                                                quantity = 1
+                                                                            )
                                                                         )
                                                                     )
                                                                 )
@@ -201,10 +190,12 @@ private fun DailyOfferScreenContentPreview() {
                                                                             currency = ValorantPoint,
                                                                             amount = 3000
                                                                         ),
-                                                                        reward = AccessoryStore.Reward(
-                                                                            itemType = ItemType.Spray,
-                                                                            itemID  = "dbg_acc_spray_0x3d_3",
-                                                                            quantity = 1
+                                                                        rewards = persistentListOf(
+                                                                            AccessoryStore.Reward(
+                                                                                itemType = ItemType.Spray,
+                                                                                itemID  = "dbg_acc_spray_0x3d_3",
+                                                                                quantity = 1
+                                                                            )
                                                                         ),
                                                                         contractID = "1"
                                                                     )
@@ -218,10 +209,12 @@ private fun DailyOfferScreenContentPreview() {
                                                                             currency = RadianitePoint,
                                                                             amount = 3000
                                                                         ),
-                                                                        reward = AccessoryStore.Reward(
-                                                                            itemType = ItemType.Spray,
-                                                                            itemID  = "dbg_acc_spray_0x3d_3",
-                                                                            quantity = 1
+                                                                        rewards = persistentListOf(
+                                                                            AccessoryStore.Reward(
+                                                                                itemType = ItemType.Spray,
+                                                                                itemID  = "dbg_acc_spray_0x3d_3",
+                                                                                quantity = 1
+                                                                            )
                                                                         ),
                                                                         contractID = "1_v2"
                                                                     )
@@ -235,10 +228,12 @@ private fun DailyOfferScreenContentPreview() {
                                                                             currency = KingdomCredit,
                                                                             amount = 3000
                                                                         ),
-                                                                        reward = AccessoryStore.Reward(
-                                                                            itemType = ItemType.PlayerCard,
-                                                                            itemID  = "dbg_acc_playercard_yearone",
-                                                                            quantity = 1
+                                                                        rewards = persistentListOf(
+                                                                            AccessoryStore.Reward(
+                                                                                itemType = ItemType.PlayerCard,
+                                                                                itemID  = "dbg_acc_playercard_yearone",
+                                                                                quantity = 1
+                                                                            )
                                                                         ),
                                                                         contractID = "2"
                                                                     )
@@ -252,10 +247,12 @@ private fun DailyOfferScreenContentPreview() {
                                                                             currency = KingdomCredit,
                                                                             amount = 3000
                                                                         ),
-                                                                        reward = AccessoryStore.Reward(
-                                                                            itemType = ItemType.PlayerCard,
-                                                                            itemID  = "dbg_acc_playercard_yearone",
-                                                                            quantity = 1
+                                                                        rewards = persistentListOf(
+                                                                            AccessoryStore.Reward(
+                                                                                itemType = ItemType.PlayerCard,
+                                                                                itemID  = "dbg_acc_playercard_yearone",
+                                                                                quantity = 1
+                                                                            )
                                                                         ),
                                                                         contractID = "2_v2"
                                                                     )
