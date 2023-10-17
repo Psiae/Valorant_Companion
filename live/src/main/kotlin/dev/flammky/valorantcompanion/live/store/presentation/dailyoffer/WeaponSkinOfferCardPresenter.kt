@@ -328,6 +328,7 @@ private class WeaponSkinOfferCardPresenterImpl(
                             LOOP_BREAK()
                         },
                         onFailure = {
+                            Log.d("DEBUG", "produceWeaponSkinTierImage_failure=$it")
                             stamp = SystemClock.elapsedRealtime()
                             onProduceWeaponSkinTierFailure(it as Exception)
                             val elapsed = SystemClock.elapsedRealtime() - stamp

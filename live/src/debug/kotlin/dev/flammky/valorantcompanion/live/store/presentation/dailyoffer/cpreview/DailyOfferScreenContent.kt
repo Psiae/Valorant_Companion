@@ -2,6 +2,7 @@ package dev.flammky.valorantcompanion.live.store.presentation.dailyoffer.cprevie
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.debug.DebugValorantAssetService
@@ -298,7 +299,10 @@ private fun DailyOfferScreenContentPreview() {
                     di = LocalDependencyInjector.current
                 ).present(user = "dokka", isVisibleToUser = true)
 
-                DailyOfferScreenContent(dailyOfferState = dailyOfferState)
+                DailyOfferScreenContent(
+                    modifier = Modifier,
+                    dailyOfferState = dailyOfferState
+                )
             }
         }
     }

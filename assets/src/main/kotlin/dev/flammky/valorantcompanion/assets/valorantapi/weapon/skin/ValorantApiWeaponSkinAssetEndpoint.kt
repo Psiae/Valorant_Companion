@@ -34,14 +34,15 @@ class ValorantApiWeaponSkinAssetEndpoint(
             WeaponSkinImageType.NONE -> RuntimeException("NONE WeaponSkinImageType")
         }
         val ext = "png"
-        return "$SKINS_IMAGE_URL/$id/$typeName.$ext"
+        return "$SKINLEVELS_IMAGE_URL/$id/$typeName.$ext"
     }
 
     suspend fun active(): Boolean {
         var active = false
         httpClient.get(
             ENDPOINT_STATUS_URL,
-            sessionHandler = {if (httpStatusCode == 404) {
+            sessionHandler = {
+                if (httpStatusCode == 404) {
                     val bb = ByteBuffer.allocate(1.kiloByteUnit().bytes().toInt())
                     consume(bb)
                     if (bb.position() < 1) return@get
@@ -75,14 +76,20 @@ class ValorantApiWeaponSkinAssetEndpoint(
         return active
     }
 
+    override fun buildAllSkinsUrl(): String {
+        return SKINS_URL
+    }
+
     companion object {
         val BASE_URL = "https://valorant-api.com"
         val BASE_MEDIA_URL = "https://media.valorant-api.com"
 
-        val SKINS_URL = "$BASE_URL/v1/weapons/skinlevels"
-        val SKINS_IMAGE_URL = "$BASE_MEDIA_URL/weaponskinlevels"
+        val SKINS_URL = "$BASE_URL/v1/weapons/skins"
 
-        val ENDPOINT_STATUS_URL = "$SKINS_URL/%7BweaponSkinUuid%7D"
+        val SKINLEVELS_URL = "$BASE_URL/v1/weapons/skinlevels"
+        val SKINLEVELS_IMAGE_URL = "$BASE_MEDIA_URL/weaponskinlevels"
+
+        val ENDPOINT_STATUS_URL = "$SKINLEVELS_URL/%7BweaponSkinUuid%7D"
 
         val ID = "valorant-api"
     }

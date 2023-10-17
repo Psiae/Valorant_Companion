@@ -82,9 +82,13 @@ internal fun JsonObject.expectJsonProperty(
     missingJsonPropertyError(*propertyName)
 }
 
+@OptIn(ExperimentalContracts::class)
 internal fun JsonElement.expectJsonObjectAsJsonArrayElement(
     arrayName: String
 ): JsonObject {
+    contract {
+        returns() implies (this@expectJsonObjectAsJsonArrayElement is JsonObject)
+    }
     return this as? JsonObject
         ?: unexpectedJsonArrayElementError(arrayName, JsonObject::class, this)
 }

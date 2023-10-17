@@ -12,4 +12,8 @@ interface WeaponSkinAssetSerializer {
     fun deserializeIdentity(
         raw: String
     ): Result<WeaponSkinIdentity>
+
+    fun deserializeSkinsAssets(
+        raw: String
+    ): Result<WeaponSkinsAssets>
 }

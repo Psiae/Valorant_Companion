@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
 import dev.flammky.valorantcompanion.assets.BuildConfig
-import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.bundle.BundleImageType
 import dev.flammky.valorantcompanion.assets.conflate.CacheWriteMutex
 import dev.flammky.valorantcompanion.assets.conflate.ConflatedCacheWriteMutex
@@ -18,6 +17,7 @@ import dev.flammky.valorantcompanion.assets.weapon.gunbuddy.GunBuddyImageType
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinAssetSerializer
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageType
+import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinsAssets
 import dev.flammky.valorantcompanion.base.kt.sync
 import dev.flammky.valorantcompanion.base.storage.ByteUnit
 import io.ktor.util.cio.*
@@ -29,7 +29,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.*
 import java.io.FileOutputStream
-import java.nio.charset.Charset
 import java.io.File as jioFile
 
 class ValorantAssetRepository(
@@ -635,7 +634,7 @@ class ValorantAssetRepository(
             val file = with(platformFS) { jioFile(folderPath.appendFile("v01_$fileName")) }
                 .takeIf {
                     if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
-                        cacheWriteMutexes["weapon_skin_identity_$fileName"]
+                        cacheWriteMutexes["weapon_skin_identity_v01_$fileName"]
                     }?.awaitUnlock()
                     Log.d("ValorantAssetRepository", "loadCachedWeaponSkinIdentity($id), resolving $it, exist=${it.exists()}")
                     it.exists()
@@ -667,7 +666,7 @@ class ValorantAssetRepository(
             }
             // use channel and single writer instead ?
             val mutex = synchronized(cacheWriteMutexes) {
-                cacheWriteMutexes.getOrPut("identity_v01_$fileName") { ConflatedCacheWriteMutex() }
+                cacheWriteMutexes.getOrPut("weapon_skin_identity_v01_$fileName") { ConflatedCacheWriteMutex() }
             }
             Log.d(
                 BuildConfig.LIBRARY_PACKAGE_NAME,
@@ -729,7 +728,7 @@ class ValorantAssetRepository(
     ) = runCatching {
         withContext(Dispatchers.IO) {
             val fileName = id + "_" + type.name
-            val folder = jioFile(valorantWeaponSkinFolderPath)
+            val folder = jioFile(valorantWeaponSkinImageFolderPath)
             val file = with(platformFS) { jioFile(folder.absolutePath.appendFile("v01_$fileName")) }
             // use channel and single writer instead ?
             val mutex = synchronized(cacheWriteMutexes) {
@@ -770,6 +769,80 @@ class ValorantAssetRepository(
             // TODO: notify
             file
         }
+    }.apply {
+        if (BuildConfig.DEBUG) onFailure { it.printStackTrace() }
+    }
+
+    suspend fun loadCachedWeaponSkinsAssets(
+        awaitAnyWrite: Boolean
+    ): Result<WeaponSkinsAssets?> = runCatching {
+        withContext(Dispatchers.IO) {
+            val fileName = "ASSETS"
+            val folderPath = valorantWeaponSkinFolderPath
+            val file = with(platformFS) { jioFile(folderPath.appendFile("v01_$fileName")) }
+                .takeIf {
+                    if (awaitAnyWrite) synchronized(cacheWriteMutexes) {
+                        cacheWriteMutexes["weapon_skin_v01_$fileName"]
+                    }?.awaitUnlock()
+                    Log.d("ValorantAssetRepository", "loadCachedWeaponSkinsAssets, resolving $it, exist=${it.exists()}")
+                    it.exists()
+                }
+            file?.inputStream()?.use { inStream ->
+                if (inStream.available() <= 0 || inStream.available() > 5 * ByteUnit.MB) {
+                    //TODO: notify that the said file is unexpected and delete it
+                    error("Unexpected File")
+                }
+                weaponSkinAssetSerializer
+                    .deserializeSkinsAssets(
+                        raw = String(inStream.readBytes())
+                    )
+                    .getOrThrow()
+            }
+        }
+    }.apply {
+        if (BuildConfig.DEBUG) onFailure { it.printStackTrace() }
+    }
+
+    suspend fun cacheWeaponSkinsAssets(
+        data: String
+    ): Result<jioFile> = runCatching {
+        val fileName = "ASSETS"
+        val folder = jioFile(valorantWeaponSkinFolderPath)
+        val file = with(platformFS) {
+            jioFile(folder.absolutePath.appendFile("v01_$fileName"))
+        }
+        // use channel and single writer instead ?
+        val mutex = synchronized(cacheWriteMutexes) {
+            cacheWriteMutexes.getOrPut("weapon_skin_v01_$fileName") { ConflatedCacheWriteMutex() }
+        }
+        Log.d(
+            BuildConfig.LIBRARY_PACKAGE_NAME,
+            "cacheWeaponSkinsAssets, file=$file"
+        )
+        mutex.write { _ ->
+            if (file.isDirectory) file.delete()
+            folder.mkdirs()
+            val fileOutputStream = FileOutputStream(file)
+            try {
+                fileOutputStream.use { fos ->
+                    val lock = fos.channel.lock()
+                        ?: error("Could not lock FileChannel")
+                    try {
+                        weaponSkinAssetSerializer
+                            .deserializeSkinsAssets(data)
+                            .getOrThrow()
+                        fos.write(data.encodeToByteArray())
+                    } finally {
+                        lock.release()
+                    }
+                }
+            } catch (e: Exception) {
+                file.delete()
+                throw e
+            }
+        }
+        file
+        // TODO: notify
     }.apply {
         if (BuildConfig.DEBUG) onFailure { it.printStackTrace() }
     }

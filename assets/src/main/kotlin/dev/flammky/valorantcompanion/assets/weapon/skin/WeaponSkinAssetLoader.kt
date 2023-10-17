@@ -1,11 +1,14 @@
 package dev.flammky.valorantcompanion.assets.weapon.skin
 
+import android.util.Log
 import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.internal.ValorantAssetRepository
 import dev.flammky.valorantcompanion.base.kt.coroutines.initAsParentCompleter
 import dev.flammky.valorantcompanion.base.resultingLoop
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 internal interface ValorantWeaponSkinAssetLoader {
 
@@ -31,9 +34,14 @@ internal class ValorantWeaponSkinAssetLoaderImpl(
         coroutineScope.launch(Dispatchers.IO) {
 
             val result = runCatching {
+
+                val actualID = findActualIdentityAsync(id = id)
+                    .await()
+                    .getOrThrow()
+
                 repository
                     .loadCachedWeaponSkinIdentity(
-                        id = id,
+                        id = actualID,
                         awaitAnyWrite = true
                     )
                     .getOrNull()
@@ -41,7 +49,7 @@ internal class ValorantWeaponSkinAssetLoaderImpl(
 
                 val identity = downloader
                     .createIdentityDownloadInstance(
-                        id = id
+                        id = actualID
                     )
                     .apply {
                         init()
@@ -51,14 +59,14 @@ internal class ValorantWeaponSkinAssetLoaderImpl(
 
                 repository
                     .cacheWeaponSkinIdentity(
-                        id = id,
+                        id = actualID,
                         data = identity
                     )
                     .getOrThrow()
 
                 repository
                     .loadCachedWeaponSkinIdentity(
-                        id = id,
+                        id = actualID,
                         awaitAnyWrite = true
                     )
                     .getOrThrow()
@@ -129,5 +137,60 @@ internal class ValorantWeaponSkinAssetLoaderImpl(
         }
 
         return def
+    }
+
+    private val mtx = Mutex()
+    private fun findActualIdentityAsync(
+        id: String
+    ): Deferred<Result<String>> {
+        return coroutineScope.async(Dispatchers.IO) {
+            runCatching {
+
+                repository
+                    .loadCachedWeaponSkinsAssets(awaitAnyWrite = true)
+                    .getOrNull()
+                    ?.let { data ->
+                        data.items.values.forEach { item ->
+                            if (item.uuid == id || item.chromas.containsKey(id) || item.levels.containsKey(id)) {
+                                return@runCatching item.uuid
+                            }
+                        }
+                    }
+
+                if (mtx.tryLock()) {
+                    val result = runCatching {
+                        val download = downloader
+                            .createAssetsDownloadInstance()
+                            .apply {
+                                init()
+                            }
+                            .awaitResult()
+                            .getOrThrow()
+
+                        repository
+                            .cacheWeaponSkinsAssets(String(download))
+                            .getOrThrow()
+                    }
+                    mtx.unlock()
+                    result.getOrThrow()
+                } else {
+                    mtx.withLock {  }
+                }
+
+                repository
+                    .loadCachedWeaponSkinsAssets(awaitAnyWrite = true)
+                    .getOrNull()
+                    ?.let { data ->
+                        data.items.values.forEach { item ->
+                            if (item.uuid == id || item.chromas.containsKey(id) || item.levels.containsKey(id)) {
+                                return@runCatching item.uuid
+                            }
+                        }
+                    }
+                    ?: throw RuntimeException("Repository Returned Null")
+
+                throw RuntimeException("No Actual WeaponSkin Identity ID")
+            }
+        }
     }
 }

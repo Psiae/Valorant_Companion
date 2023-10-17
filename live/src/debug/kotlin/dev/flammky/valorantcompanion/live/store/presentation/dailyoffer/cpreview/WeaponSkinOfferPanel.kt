@@ -214,7 +214,12 @@ private fun DailyOfferHeader(
                 modifier = Modifier.align(Alignment.CenterVertically),
                 text = remember(durationLeft) {
                     durationLeft.toComponents { _, hours, minutes, seconds, _ ->
-                        "${hours}h ${minutes}:${seconds}"
+                        val hoursStr = "${hours}h"
+                        val minutesStr =
+                            if (minutes >= 10) minutes.toString() else "0$minutes"
+                        val secondsStr =
+                            if (seconds >= 10) seconds.toString() else "0$seconds"
+                        "$hoursStr ${minutesStr}:$secondsStr"
                     }
                 },
                 style = MaterialTheme3.typography.labelLarge.copy(

@@ -25,6 +25,14 @@ sealed class WeaponSkinTier(
         0x00000000
     )
 
+    object NONE : WeaponSkinTier(
+        uuid = "UNKNOWN",
+        displayName = "UNKNOWN",
+        codeName = "UNKNOWN",
+        rank = -1,
+        0x00000000
+    )
+
     object SELECT : WeaponSkinTier(
         uuid = "12683d76-48d7-84a3-4e09-6985794f0445",
         displayName = "Select Edition",

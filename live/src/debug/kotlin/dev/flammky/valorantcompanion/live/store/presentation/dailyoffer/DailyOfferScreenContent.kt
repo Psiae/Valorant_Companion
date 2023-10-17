@@ -24,9 +24,10 @@ import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun DailyOfferScreenContent(
+    modifier: Modifier,
     dailyOfferState: DailyOfferScreenState
 ) {
-    BoxWithConstraints {
+    BoxWithConstraints(modifier) {
         val maxWidth = maxWidth
         val maxHeight = maxHeight
 
@@ -38,18 +39,12 @@ fun DailyOfferScreenContent(
                     vertical = Material3Theme.dpMarginIncrementsOf(1, maxWidth),
                     horizontal = Material3Theme.dpMarginIncrementsOf(1, maxWidth)
                 )
-                .verticalScroll(rememberScrollState())
         ) {
 
             compose {
                 val bundleOffer = dailyOfferState.featuredBundle.offer
                     .getOrNull() ?: return@compose
-                val bundleCount = run {
-                    if (bundleOffer.bundles.isNotEmpty())
-                        bundleOffer.bundles.size
-                    else
-                        1
-                }
+                val bundleCount = bundleOffer.bundles.size
                 Column {
                     BasicText(
                         modifier = Modifier
@@ -94,7 +89,7 @@ fun DailyOfferScreenContent(
 
                 WeaponSkinOfferPanel(
                     modifier = Modifier,
-                    durationLeft = 15.hours + 10.minutes + 20.seconds,
+                    durationLeft = skinOffer.remainingDuration,
                     itemKey = rememberWithEquality(
                         key = skinOffer,
                         keyEquality = referentialEqualityFun()

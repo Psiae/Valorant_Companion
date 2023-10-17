@@ -31,6 +31,7 @@ import dev.flammky.valorantcompanion.base.MaterialTheme3
 import dev.flammky.valorantcompanion.base.compose.compose
 import dev.flammky.valorantcompanion.base.compose.nearestBlackOrWhite
 import dev.flammky.valorantcompanion.base.compose.rememberUpdatedStateWithKey
+import dev.flammky.valorantcompanion.base.compose.tintElevatedSurface
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.base.util.mutableValueContainerOf
 import dev.flammky.valorantcompanion.pvp.store.currency.*
@@ -81,10 +82,26 @@ fun WeaponSkinOfferCard(
 ) = BoxWithConstraints(
     modifier
         .run {
+            val isThemeDark = LocalIsThemeDark.current
             localMaterial3Surface(
                 color = { color ->
-                    Color(tier.highlightColor)
-                        .compositeOver(color.nearestBlackOrWhite())
+                    if (
+                        tier is WeaponSkinTier.UNSET ||
+                        tier is WeaponSkinTier.NONE ||
+                        tier is WeaponSkinTier.UNKNOWN
+                    ) {
+                        color.tintElevatedSurface(
+                            tint = if (isThemeDark) {
+                                Color.White
+                            } else {
+                                Color.Gray
+                            },
+                            elevation = 3.dp
+                        )
+                    } else {
+                        Color(tier.highlightColor)
+                            .compositeOver(color.nearestBlackOrWhite())
+                    }
                 },
                 tonalElevation = 2.dp,
                 tonalTint = Color(tier.highlightColor),

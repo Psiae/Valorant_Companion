@@ -62,10 +62,10 @@ fun FeaturedBundleDisplayPager(
             // TODO: figure out why it has padding at the last page
             pageSpacing = Material3Theme.dpPaddingIncrementsOf(3)
         ) { i ->
-            val bundle = remember(i) {
+            val bundle = remember(i, getBundle) {
                 derivedStateOf(neverEqualPolicy()) { getBundle(i) }
             }
-            val bundleKey = remember {
+            val bundleKey = remember(i, getBundle) {
                 derivedStateOf(neverEqualPolicy()) { bundle.value ; Any() }
             }
             FeaturedBundleDisplay(
