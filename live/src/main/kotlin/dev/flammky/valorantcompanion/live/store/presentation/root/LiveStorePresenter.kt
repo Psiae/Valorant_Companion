@@ -56,7 +56,7 @@ internal class LiveStorePresenter(
         private val user: String
     ) : RememberObserver {
 
-        private var _state = mutableStateOf<LiveStoreState?>(null)
+        private var _state = mutableStateOf<LiveStoreState?>(null, neverEqualPolicy())
 
         private var remembered = false
         private var forgotten = false
@@ -153,7 +153,11 @@ internal class LiveStorePresenter(
                 state.copy(
                     dailyOfferEnabled = data.featuredBundleStore.open || data.skinsPanel.open || data.accessoryStore.open,
                     nightMarketEnabled = data.bonusStore.open,
-                    agentsEnabled = true
+                    agentsEnabled = true,
+                    featuredBundleStore = data.featuredBundleStore,
+                    skinsPanelStore = data.skinsPanel,
+                    bonusStore = data.bonusStore,
+                    accessoryStore = data.accessoryStore
                 )
             }
         }

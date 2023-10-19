@@ -1,9 +1,10 @@
 package dev.flammky.valorantcompanion.live.store.presentation.nightmarket
 
 import dev.flammky.valorantcompanion.assets.LocalImage
+import dev.flammky.valorantcompanion.base.UNSET
 import dev.flammky.valorantcompanion.pvp.store.weapon.skin.WeaponSkinTier
 
-class NightMarketOfferCardState(
+data class NightMarketOfferCardState(
     val tier: WeaponSkinTier,
     val tierImageKey: Any,
     val tierImage: LocalImage<*>,
@@ -18,7 +19,7 @@ class NightMarketOfferCardState(
     val showLoading: Boolean,
     val requireRefresh: Boolean,
     val refresh: () -> Unit
-) {
+): UNSET<NightMarketOfferCardState> by Companion {
 
     override fun equals(other: Any?): Boolean {
         if (other === this) return true
@@ -47,5 +48,40 @@ class NightMarketOfferCardState(
         result *= 31 ; result += requireRefresh.hashCode()
         result *= 31 ; result += refresh.hashCode()
         return result
+    }
+
+    override fun toString(): String {
+        return "NightMarketOfferCardState(" +
+                "tier=$tier," +
+                "tierImageKey=$tierImageKey," +
+                "displayImageKey=$displayImageKey," +
+                "displayName=$displayName," +
+                "discountPercentageText=$discountPercentageText," +
+                "costText=$costText," +
+                "costImageKey=$costImageKey," +
+                "showLoading=$showLoading," +
+                "requireRefresh=$requireRefresh," +
+                "refresh=$refresh" +
+                ")"
+    }
+
+    companion object : UNSET<NightMarketOfferCardState> {
+
+        override val UNSET: NightMarketOfferCardState = NightMarketOfferCardState(
+            tier = WeaponSkinTier.UNSET,
+            tierImageKey = this,
+            tierImage = LocalImage.None,
+            displayImageKey = this,
+            displayImage = LocalImage.None,
+            discountPercentageText = "",
+            discountedAmountText = "",
+            displayName = "",
+            costText = "",
+            costImageKey = this,
+            costImage = LocalImage.None,
+            showLoading = false,
+            requireRefresh = false,
+            refresh = {},
+        )
     }
 }

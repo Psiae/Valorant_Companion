@@ -4,6 +4,7 @@ import dev.flammky.valorantcompanion.base.UNSET
 import dev.flammky.valorantcompanion.base.time.ISO8601
 import dev.flammky.valorantcompanion.pvp.store.currency.StoreCost
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
 import kotlin.time.Duration
 
 data class BonusStore(
@@ -12,19 +13,19 @@ data class BonusStore(
 ): UNSET<BonusStore> by Companion {
 
     data class Offer(
-        val offerID: String,
         val offers: ImmutableList<ItemOffer>,
         val remainingDuration: Duration
     )
 
     data class ItemOffer(
+        val bonusOfferID: String,
         val offerID: String,
         val isDirectPurchase: Boolean,
         val startDate: ISO8601,
         val cost: StoreCost,
-        val discountPercent: Float,
-        val discountCost: StoreCost,
-        val reward: ItemOfferReward,
+        val discountPercent: Int,
+        val discountedCost: StoreCost,
+        val rewards: ImmutableMap<String, ItemOfferReward>,
         val isSeen: Boolean
     )
 

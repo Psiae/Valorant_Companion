@@ -15,6 +15,7 @@ import dev.flammky.valorantcompanion.pvp.store.currency.ofID
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.serialization.json.JsonObject
+import kotlin.math.floor
 import kotlin.time.Duration.Companion.seconds
 
 class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
@@ -874,13 +875,6 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
     ): BonusStore.Offer {
 
         return BonusStore.Offer(
-            offerID = run {
-                obj
-                    .expectJsonProperty("BonusOfferID")
-                    .expectJsonPrimitive("BonusStore;BonusOfferID")
-                    .expectNonBlankJsonString("BonusStore;BonusOfferID")
-                    .content
-            },
             offers = run {
                 obj
                     .expectJsonProperty("BonusStoreOffers")
@@ -888,22 +882,32 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                     .mapTo(persistentListOf<BonusStore.ItemOffer>().builder()) { element ->
                         val elementObj = element
                             .expectJsonObjectAsJsonArrayElement("BonusStore;BonusStoreOffers[]")
+                        val offerObj = elementObj
+                            .expectJsonProperty("Offer")
+                            .expectJsonObject("Offer")
                         BonusStore.ItemOffer(
-                            offerID = run {
+                            bonusOfferID = run {
                                 elementObj
+                                    .expectJsonProperty("BonusOfferID")
+                                    .expectJsonPrimitive("BonusStore;BonusOfferID")
+                                    .expectNonBlankJsonString("BonusStore;BonusOfferID")
+                                    .content
+                            },
+                            offerID = run {
+                                offerObj
                                     .expectJsonProperty("OfferID")
                                     .expectJsonPrimitive("BonusStore;BonusStoreOffers[];OfferID")
                                     .expectNonBlankJsonString("BonusStore;BonusStoreOffers[];OfferID")
                                     .content
                             },
                             isDirectPurchase = run {
-                                elementObj
+                                offerObj
                                     .expectJsonProperty("IsDirectPurchase")
                                     .expectJsonPrimitive("BonusStore;BonusStoreOffers[];IsDirectPurchase")
                                     .expectJsonBooleanParseBoolean("BonusStore;BonusStoreOffers[];IsDirectPurchase")
                             },
                             startDate = run {
-                                elementObj
+                                offerObj
                                     .expectJsonProperty("StartDate")
                                     .expectJsonPrimitive("BonusStore;BonusStoreOffers[];StartDate")
                                     .expectNonBlankJsonString("BonusStore;BonusStoreOffers[];StartDate")
@@ -911,7 +915,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                                     .let { ISO8601.fromISOString(it) }
                             },
                             cost = run {
-                                elementObj
+                                offerObj
                                     .expectJsonProperty("Cost")
                                     .expectJsonObject("BonusStore;BonusStoreOffers[];Cost")
                                     .entries
@@ -935,42 +939,50 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                                         )
                                     }
                             },
-                            reward = run {
-                                val itemRewardsObj = elementObj
+                            rewards = run {
+                                offerObj
                                     .expectJsonProperty("Rewards")
-                                    .expectJsonObject("BonusStore;BonusStoreOffers[];Rewards")
-                                BonusStore.ItemOfferReward(
-                                    itemType = run {
-                                        val itemTypeID = itemRewardsObj
-                                            .expectJsonProperty("ItemTypeID")
-                                            .expectJsonPrimitive("BonusStore;BonusStoreOffers[];Rewards;ItemTypeID")
-                                            .expectNonBlankJsonString("BonusStore;BonusStoreOffers[];Rewards;ItemTypeID")
-                                            .content
-                                        ItemType.OBJECTS.find { it.id == itemTypeID }
-                                            ?: ItemType.Other("", itemTypeID)
-                                    },
-                                    itemID = run {
-                                        itemRewardsObj
-                                            .expectJsonProperty("ItemID")
-                                            .expectJsonPrimitive("BonusStore;BonusStoreOffers[];Rewards;ItemID")
-                                            .expectNonBlankJsonString("BonusStore;BonusStoreOffers[];Rewards;ItemID")
-                                            .content
-                                    },
-                                    quantity = run {
-                                        itemRewardsObj
-                                            .expectJsonProperty("Quantity")
-                                            .expectJsonPrimitive("BonusStore;BonusStoreOffers[];Rewards;Quantity")
-                                            .expectJsonNumberParseLong("BonusStore;BonusStoreOffers[]s;Rewards;Quantity")
-                                    }
-                                )
+                                    .expectJsonArray("BonusStore;BonusStoreOffers[];Rewards[]")
+                                    .associateTo(
+                                        persistentMapOf<String, BonusStore.ItemOfferReward>()
+                                            .builder(),
+                                        transform = { itemRewardsObj ->
+                                            itemRewardsObj.expectJsonObject("BonusStore;BonusStoreOffers[];Rewards[];_")
+                                            val itemId = itemRewardsObj
+                                                .expectJsonProperty("ItemID")
+                                                .expectJsonPrimitive("BonusStore;BonusStoreOffers[];Rewards;ItemID")
+                                                .expectNonBlankJsonString("BonusStore;BonusStoreOffers[];Rewards;ItemID")
+                                                .content
+                                            itemId to BonusStore.ItemOfferReward(
+                                                itemType = run {
+                                                    val itemTypeID = itemRewardsObj
+                                                        .expectJsonProperty("ItemTypeID")
+                                                        .expectJsonPrimitive("BonusStore;BonusStoreOffers[];Rewards;ItemTypeID")
+                                                        .expectNonBlankJsonString("BonusStore;BonusStoreOffers[];Rewards;ItemTypeID")
+                                                        .content
+                                                    ItemType.OBJECTS.find { it.id == itemTypeID }
+                                                        ?: ItemType.Other("", itemTypeID)
+                                                },
+                                                itemID = itemId,
+                                                quantity = run {
+                                                    itemRewardsObj
+                                                        .expectJsonProperty("Quantity")
+                                                        .expectJsonPrimitive("BonusStore;BonusStoreOffers[];Rewards;Quantity")
+                                                        .expectJsonNumberParseLong("BonusStore;BonusStoreOffers[]s;Rewards;Quantity")
+                                                }
+                                            )
+                                        }
+                                    )
+                                    .build()
                             },
                             discountPercent = run {
                                 elementObj
                                     .expectJsonProperty("DiscountPercent")
                                     .expectJsonPrimitive("BonusStore;BonusStoreOffers[];DiscountPercent")
                                     .expectJsonNumberParseFloat("BonusStore;BonusStoreOffers[];DiscountPercent")
+                                    .toInt()
                             },
-                            discountCost = run {
+                            discountedCost = run {
                                 elementObj
                                     .expectJsonProperty("DiscountCosts")
                                     .expectJsonObject("BonusStore;BonusStoreOffers[];DiscountCosts")
@@ -988,7 +1000,7 @@ class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {
                                     .first()
                                     .let { currencyEntry ->
                                         StoreCost(
-                                            currency = StoreCurrency.ofID("BonusStore;BonusStoreOffers[];" + currencyEntry.key),
+                                            currency = StoreCurrency.ofID(currencyEntry.key),
                                             amount = currencyEntry.value
                                                 .expectJsonPrimitive("BonusStore;BonusStoreOffers[];" + currencyEntry.key)
                                                 .expectJsonNumberParseLong("BonusStore;BonusStoreOffers[];" + currencyEntry.key)

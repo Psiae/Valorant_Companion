@@ -44,7 +44,8 @@ internal class DisposableValorantAssetsLoaderClient(
 
     override fun loadMemoryCachedAgentIcon(agentId: String): LocalImage<*>? {
         // TODO: decide on whether agent icon should be packaged with the app (likely yes)
-       return DebugValorantAssetService.AGENT_ICON_MAPPING[agentId]
+        // UUID is not case-sensitive
+       return DebugValorantAssetService.AGENT_ICON_MAPPING[agentId.lowercase()]
     }
 
     override fun loadMemoryCachedRoleIcon(roleId: String): LocalImage<*>? {
@@ -116,7 +117,7 @@ internal class DisposableValorantAssetsLoaderClient(
                 return CompletableDeferred(Result.success(it))
             }
         return CompletableDeferred(
-            value = Result.failure(AssetNotFoundException())
+            value = Result.failure(AssetNotFoundException("currencyImage=$id was not found"))
         )
     }
 

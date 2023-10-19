@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.live.main
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
@@ -33,6 +34,18 @@ internal fun LiveMainContent() {
                 visibleScreenState.removeAll { it.first == key }
             }
 
+            fun dismissAll() {
+                if (!visibleScreenState.isEmpty()) {
+                    visibleScreenState.clear()
+                }
+            }
+
+            fun pop() {
+                if (!visibleScreenState.isEmpty()) {
+                    visibleScreenState.removeAt(visibleScreenState.lastIndex)
+                }
+            }
+
             fun show(key: String, content: @Composable LiveMainScreenScope.() -> Unit) {
                 dismiss(key)
                 visibleScreenState.add(
@@ -64,6 +77,11 @@ internal fun LiveMainContent() {
                 }
             }
         }
+    }
+    BackHandler(
+        enabled = screenHost.hasVisibleScreen
+    ) {
+        screenHost.pop()
     }
     LiveMainContentPlacement(
         topTab = {
@@ -114,7 +132,7 @@ internal fun LiveMainContent() {
                         .zIndex(if (selectedTabIndex.value == 2) 1f else 0f)
                         .fillMaxSize()
                         .localMaterial3Surface(),
-                    isVisibleToUser = visible && !screenHost.hasVisibleScreen,
+                    isVisibleToUser = visible,
                     openScreen = { content ->
                         val key = 2.toString()
                         screenHost.show(

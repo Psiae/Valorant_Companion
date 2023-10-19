@@ -159,6 +159,21 @@ fun NightMarketOfferCard(
                 Icon(
                     modifier = Modifier
                         .size(24.dp)
+                        .align(Alignment.Bottom),
+                    painter = rememberAsyncImagePainter(
+                        model = remember(ctx, tierImageKey) {
+                            ImageRequest.Builder(ctx)
+                                .data(tierImage.value)
+                                .build()
+                        }
+                    ),
+                    contentDescription = null,
+                    tint = Color.Unspecified
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    modifier = Modifier
+                        .size(24.dp)
                         .interactiveUiElementAlphaEnforcement(true, canOpenDetail)
                     ,
                     painter = painterResource(id = R_ASSET_DRAWABLE.right_arrow_100),
@@ -191,20 +206,6 @@ fun NightMarketOfferCard(
                     .weight(1f)
                     .align(Alignment.Bottom)
             ) {
-                Icon(
-                    modifier = Modifier
-                        .size(24.dp),
-                    painter = rememberAsyncImagePainter(
-                        model = remember(ctx, tierImageKey) {
-                            ImageRequest.Builder(ctx)
-                                .data(tierImage.value)
-                                .build()
-                        }
-                    ),
-                    contentDescription = null,
-                    tint = Color.Unspecified
-                )
-                Spacer(modifier = Modifier.width(8.dp))
                 Box(
                 ) {
                     BasicText(
@@ -236,6 +237,7 @@ fun NightMarketOfferCard(
                     )
                     Spacer(modifier = Modifier.width(Material3Theme.dpPaddingIncrementsOf(1) / 2))
                     BasicText(
+                        modifier = Modifier.align(Alignment.End),
                         text = discountedCostText,
                         style = MaterialTheme3.typography.labelLarge.copy(
                             color = Material3Theme.blackOrWhiteContent(),
@@ -252,7 +254,7 @@ fun NightMarketOfferCard(
                     }
                 }
                 if (imageModel != null) {
-                    Spacer(modifier = Modifier.width(Material3Theme.dpPaddingIncrementsOf(2)))
+                    Spacer(modifier = Modifier.width(Material3Theme.dpPaddingIncrementsOf(1)))
                     Icon(
                         modifier = Modifier
                             .size(24.dp)
@@ -280,7 +282,7 @@ fun NightMarketOfferCard(
                         }
                         BasicText(
                             modifier = Modifier,
-                            text = discountPercentageText.take(3),
+                            text = discountPercentageText.take("-100%".length),
                             style = textStyle
                         )
                     }
@@ -348,7 +350,7 @@ private fun NightMarketOfferCardPreview(
                 tierImage = LocalImage.Resource(R_ASSET_RAW.contenttier_exclusive_displayicon),
                 displayImageKey = Any(),
                 displayImage = LocalImage.Resource(R_ASSET_RAW.debug_wpn_skn_exclusive_neofrontier_melee_displayicon),
-                discountPercentageText = "35%",
+                discountPercentageText = "-35%",
                 discountedAmountText = ceil(((100 - 35) / 100f * 4350f)).toInt().let { cost ->
                     val amountStr = cost.toString()
                     if (amountStr.isEmpty() || amountStr.length == 1) return@let amountStr

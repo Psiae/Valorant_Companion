@@ -22,7 +22,7 @@ sealed class StoreCurrency(
     }
 
     override fun toString(): String {
-        return "StoreCurrency(uuid=$uuid)"
+        return "StoreCurrency(uuid=$uuid, singularDisplayName=$singularDisplayName)"
     }
 
     companion object {
@@ -36,7 +36,7 @@ sealed class StoreCurrency(
 fun StoreCurrency.Companion.ofID(
     id: String
 ): StoreCurrency {
-    return OBJECTS.find { it.uuid == id || it.uuid.lowercase() == id || it.uuid.uppercase() == id }
+    return OBJECTS.find { it.uuid == id || it.uuid == id.lowercase() }
         ?: OtherStoreCurrency(id, "UNKNOWN Points", "UNKNOWN Point")
 }
 

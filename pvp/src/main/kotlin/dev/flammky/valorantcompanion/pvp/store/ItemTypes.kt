@@ -33,7 +33,7 @@ sealed class ItemType(
         id = "3f296c07-64c3-494c-923b-fe692a4fa1bd"
     )
 
-    object Skin : ItemType(
+    object WeaponSkin : ItemType(
         name = "skin",
         id = "e7c63390-eda7-46e0-bb7a-a6abdacd2433"
     )

@@ -1,6 +1,7 @@
 package dev.flammky.valorantcompanion.live.store.presentation.nightmarket
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
@@ -12,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.flammky.valorantcompanion.assets.R_ASSET_DRAWABLE
 import dev.flammky.valorantcompanion.base.MaterialTheme3
+import dev.flammky.valorantcompanion.base.di.compose.LocalDependencyInjector
 import dev.flammky.valorantcompanion.base.theme.material3.*
 import dev.flammky.valorantcompanion.pvp.store.BonusStore
 import dev.flammky.valorantcompanion.pvp.store.FeaturedBundleStore
@@ -103,5 +105,21 @@ private fun NightMarketScreenContentHeader(
 private fun NightMarketScreenContentOffer(
     offer: BonusStore.Offer
 ) {
-
+    offer.offers.forEachIndexed { i, itemOffer ->
+        val state = rememberNightMarketOfferCardPresenter(
+            dependencyInjector = LocalDependencyInjector.current
+        ).present(itemOffer = itemOffer)
+        NightMarketOfferCard(
+            modifier = Modifier.height(180.dp),
+            state = state,
+            canOpenDetail = /* TODO */ false,
+            openDetail = /* TODO */ {},
+            shape = RoundedCornerShape(12.dp)
+        )
+        if (offer.offers.size > 1) {
+            if (i != offer.offers.lastIndex) {
+                Spacer(modifier = Modifier.height(Material3Theme.dpPaddingIncrementsOf(3)))
+            }
+        }
+    }
 }

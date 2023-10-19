@@ -1,9 +1,8 @@
-package dev.flammky.valorantcompanion.live.store.presentation.dailyoffer
+package dev.flammky.valorantcompanion.live.store.presentation.nightmarket
 
 import android.os.SystemClock
 import android.util.Log
 import androidx.compose.runtime.*
-import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
 import dev.flammky.valorantcompanion.assets.ValorantAssetsService
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
@@ -15,8 +14,8 @@ import dev.flammky.valorantcompanion.base.di.requireInject
 import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
 import dev.flammky.valorantcompanion.base.loop
 import dev.flammky.valorantcompanion.live.BuildConfig
-import dev.flammky.valorantcompanion.pvp.store.ValorantStoreClient
-import dev.flammky.valorantcompanion.pvp.store.ValorantStoreService
+import dev.flammky.valorantcompanion.pvp.store.BonusStore
+import dev.flammky.valorantcompanion.pvp.store.ItemType
 import dev.flammky.valorantcompanion.pvp.store.currency.StoreCost
 import dev.flammky.valorantcompanion.pvp.store.currency.StoreCurrency
 import dev.flammky.valorantcompanion.pvp.store.weapon.skin.WeaponSkinTier
@@ -24,57 +23,89 @@ import kotlinx.coroutines.*
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 
-interface WeaponSkinOfferCardPresenter {
+interface NightMarketOfferCardPresenter {
 
-    @Composable
-    fun present(
-        id: String,
-        cost: StoreCost
-    ): WeaponSkinOfferCardState
 }
 
 @Composable
-fun rememberWeaponSkinOfferCardPresenter(
-    di: DependencyInjector
-): WeaponSkinOfferCardPresenter {
-    return rememberWeaponSkinOfferCardPresenter(
-        storeService = di.requireInject(),
-        assetService = di.requireInject()
+fun rememberNightMarketOfferCardPresenter(
+    dependencyInjector: DependencyInjector
+): NightMarketOfferCardPresenter {
+    return remember(dependencyInjector) {
+        NightMarketOfferCardPresenterImpl(
+            assetsService = dependencyInjector.requireInject()
+        )
+    }
+}
+
+@Composable
+fun NightMarketOfferCardPresenter.present(
+    itemOffer: BonusStore.ItemOffer
+): NightMarketOfferCardState {
+    val impl = this as NightMarketOfferCardPresenterImpl
+    val reward = itemOffer.rewards.entries.firstOrNull()?.value
+        ?: return NightMarketOfferCardState.UNSET
+    return impl.present(
+        rewardItemID = reward.itemID,
+        rewardItemType = reward.itemType,
+        discountPercent = itemOffer.discountPercent,
+        basePrice = itemOffer.cost,
+        discountedPrice = itemOffer.discountedCost
     )
 }
 
-@Composable
-fun rememberWeaponSkinOfferCardPresenter(
-    storeService: ValorantStoreService,
-    assetService: ValorantAssetsService
-): WeaponSkinOfferCardPresenter {
-    return remember(storeService, assetService) { WeaponSkinOfferCardPresenterImpl(storeService, assetService) }
-}
-
-private class WeaponSkinOfferCardPresenterImpl(
-    private val storeService: ValorantStoreService,
-    private val assetService: ValorantAssetsService
-) : WeaponSkinOfferCardPresenter {
+private class NightMarketOfferCardPresenterImpl(
+    private val assetsService: ValorantAssetsService
+) : NightMarketOfferCardPresenter {
 
     @Composable
-    override fun present(id: String, cost: StoreCost): WeaponSkinOfferCardState {
-        val producer = remember(this, id) {
-            StateProducer(id)
-        }.apply {
-            SideEffect {
-                produceParams(cost)
-            }
-        }
+    fun present(
+        rewardItemID: String,
+        rewardItemType: ItemType,
+        discountPercent: Int,
+        basePrice: StoreCost,
+        discountedPrice: StoreCost
+    ): NightMarketOfferCardState {
+        val producer = producer(
+            rewardItemID = rewardItemID,
+            rewardItemType = rewardItemType,
+            discountPercent = discountPercent,
+            basePrice = basePrice,
+            discountedPrice = discountedPrice
+        )
         return producer.readSnapshot()
     }
 
+    @Composable
+    private fun producer(
+        rewardItemID: String,
+        rewardItemType: ItemType,
+        discountPercent: Int,
+        basePrice: StoreCost,
+        discountedPrice: StoreCost
+    ): StateProducer {
+        return remember(rewardItemID, rewardItemType) {
+            StateProducer(rewardItemID, rewardItemType)
+        }.apply {
+            SideEffect {
+                produceParams(
+                    discountPercent,
+                    basePrice,
+                    discountedPrice
+                )
+            }
+        }
+    }
 
-    // TODO: change mutateState with stageState grouping instead
     private inner class StateProducer(
-        private val id: String
-    ) : RememberObserver {
+        private val itemID: String,
+        private val itemType: ItemType
+    ): RememberObserver {
 
-        private val _state = mutableStateOf<WeaponSkinOfferCardState?>(null)
+        private val _state = mutableStateOf<NightMarketOfferCardState?>(
+            value = null,
+            policy = neverEqualPolicy()
+        )
 
         private var remembered = false
         private var forgotten = false
@@ -82,8 +113,9 @@ private class WeaponSkinOfferCardPresenterImpl(
         private var initialProduce = true
         private val lifetime = SupervisorJob()
         private var _coroutineScope: CoroutineScope? = null
-        private var _storeClient: ValorantStoreClient? = null
-        private var _assetClient: ValorantAssetsLoaderClient? = null
+        private var _assetLoader: ValorantAssetsLoaderClient? = null
+
+        private var pendingRefreshContinuations = mutableListOf<Continuation<Unit>>()
 
         private var producer: Job? = null
 
@@ -93,17 +125,13 @@ private class WeaponSkinOfferCardPresenterImpl(
         private val coroutineScope
             get() = _coroutineScope!!
 
-        private val storeClient
-            get() = _storeClient!!
+        private val assetLoader
+            get() = _assetLoader!!
 
-        private val assetClient
-            get() = _assetClient!!
-
-        private var _cost: StoreCost? = null
-
-        private var currentLoadCurrencyJob: Job? = null
-
-        private var pendingRefreshContinuations = mutableListOf<Continuation<Unit>>()
+        private var _discountedPrice: Int? = null
+        private var _discountedPriceCurrency: StoreCurrency? = null
+        private var _discountPercent: Int? = null
+        private var _basePrice: Int? = null
 
         override fun onAbandoned() {
             super.onAbandoned()
@@ -121,8 +149,7 @@ private class WeaponSkinOfferCardPresenterImpl(
             forgotten = true
             lifetime.cancel()
             coroutineScope.cancel()
-            storeClient.dispose()
-            assetClient.dispose()
+            assetLoader.dispose()
         }
 
         override fun onRemembered() {
@@ -132,11 +159,14 @@ private class WeaponSkinOfferCardPresenterImpl(
             check(!abandoned)
             remembered = true
             _coroutineScope = CoroutineScope(Dispatchers.Main + lifetime)
-            _storeClient = storeService.createClient("")
-            _assetClient = assetService.createLoaderClient()
+            _assetLoader = assetsService.createLoaderClient()
         }
 
-        fun produceParams(cost: StoreCost) {
+        fun produceParams(
+            discountPercent: Int,
+            basePrice: StoreCost,
+            discountedPrice: StoreCost
+        ) {
             checkInMainLooper() {
                 "produce must be called on the MainThread, " +
                         "make sure this function is called within a side-effect block"
@@ -154,116 +184,25 @@ private class WeaponSkinOfferCardPresenterImpl(
                 onInitialProduce()
             }
             invalidateParams(
-                cost
+                discountPercent = discountPercent,
+                basePrice = basePrice,
+                discountedPrice = discountedPrice
             )
         }
 
-        fun readSnapshot() : WeaponSkinOfferCardState {
-            return stateValueOrUnset()
+        fun readSnapshot(): NightMarketOfferCardState {
+            return snapshotOrUnset()
         }
 
-        private fun stateValueOrUnset(): WeaponSkinOfferCardState {
-            return _state.value ?: WeaponSkinOfferCardState.UNSET
+        private fun snapshotOrUnset(): NightMarketOfferCardState {
+            return _state.value ?: NightMarketOfferCardState.UNSET
         }
-
-        private fun invalidateParams(
-            cost: StoreCost
-        ) {
-            invalidateCostParam(cost)
-        }
-
-        private fun invalidateCostParam(
-            cost: StoreCost
-        ) {
-            if (cost != this._cost) {
-                val currentCost = this._cost
-                this._cost = cost
-                onNewCostParam(currentCost, cost)
-            }
-        }
-
-        private fun onNewCostParam(
-            old: StoreCost?,
-            new: StoreCost?
-        ) {
-            if (new == null) {
-                mutateState("onNewCostParam()") { state ->
-                    state.copy(costText = "", costImageKey = Any(), costImage = LocalImage.None)
-                }
-                return
-            }
-            val text = costText(new)
-            mutateState("onNewCostParam()") { state ->
-                if (state.costText == text) return@mutateState state
-                state.copy(costText = text)
-            }
-            if (new.currency != old?.currency) {
-                onNewCostCurrencyParam(old?.currency, new.currency)
-            }
-        }
-
-        private fun onNewCostCurrencyParam(
-            old: StoreCurrency?,
-            new: StoreCurrency
-        ) {
-            mutateState("onNewCostCurrencyParam") { state ->
-                state.copy(
-                    costImageKey = Any(),
-                    costImage = LocalImage.None
-                )
-            }
-            loadCurrencyImage(new)
-        }
-
-        private fun loadCurrencyImage(
-            currency: StoreCurrency
-        ) {
-            currentLoadCurrencyJob?.cancel()
-            currentLoadCurrencyJob = coroutineScope.launch {
-                var stamp: Long
-                loop {
-                    assetClient
-                        .loadCurrencyImageAsync(currency.uuid)
-                        .awaitOrCancelOnException()
-                        .fold(
-                            onSuccess = { data ->
-                                mutateState("loadCurrencyImage(${currency.uuid})") { state ->
-                                    state.copy(
-                                        costImageKey = Any(),
-                                        costImage = data
-                                    )
-                                }
-                                LOOP_BREAK()
-                            },
-                            onFailure = { ex ->
-                                stamp = SystemClock.elapsedRealtime()
-                                suspendCancellableCoroutine<Unit> { cont ->
-                                    newPendingRefreshContinuation(cont)
-                                }
-                                val elapsed = SystemClock.elapsedRealtime() - stamp
-                                delay(1000 - elapsed)
-                                LOOP_CONTINUE()
-                            }
-                        )
-                }
-            }
-        }
-
-        private fun costText(
-            cost: StoreCost
-        ): String {
-            val amountStr = cost.amount.toString()
-            if (amountStr.length <= 3) return amountStr
-            return amountStr
-                .first()
-                .plus(amountStr.drop(1).chunked(3).joinToString(prefix = ",", separator = ","))
-        }
-
 
         private fun onInitialProduce() {
             mutateState("onInitialProduce") { state ->
                 state.UNSET
             }
+            check(!producing)
             producer = produceState()
         }
 
@@ -280,8 +219,8 @@ private class WeaponSkinOfferCardPresenterImpl(
             return coroutineScope.launch {
                 var stamp = 0L
                 loop {
-                    assetClient
-                        .loadWeaponSkinIdentityAsync(id)
+                    assetLoader
+                        .loadWeaponSkinIdentityAsync(itemID)
                         .awaitOrCancelOnException()
                         .fold(
                             onSuccess = {
@@ -316,7 +255,7 @@ private class WeaponSkinOfferCardPresenterImpl(
         ) {
             var stamp = 0L
             loop {
-                assetClient.loadWeaponSkinTierImageAsync(tier.uuid).awaitOrCancelOnException()
+                assetLoader.loadWeaponSkinTierImageAsync(tier.uuid).awaitOrCancelOnException()
                     .fold(
                         onSuccess = { data ->
                             mutateState("produceWeaponSkinTierImage_success") { state ->
@@ -328,7 +267,6 @@ private class WeaponSkinOfferCardPresenterImpl(
                             LOOP_BREAK()
                         },
                         onFailure = {
-                            Log.d("DEBUG", "produceWeaponSkinTierImage_failure=$it")
                             stamp = SystemClock.elapsedRealtime()
                             onProduceWeaponSkinTierFailure(it as Exception)
                             val elapsed = SystemClock.elapsedRealtime() - stamp
@@ -359,8 +297,8 @@ private class WeaponSkinOfferCardPresenterImpl(
             return coroutineScope.launch {
                 var stamp = 0L
                 loop {
-                    assetClient
-                        .loadWeaponSkinImageAsync(id)
+                    assetLoader
+                        .loadWeaponSkinImageAsync(itemID)
                         .awaitOrCancelOnException()
                         .fold(
                             onSuccess = { data ->
@@ -386,16 +324,102 @@ private class WeaponSkinOfferCardPresenterImpl(
             }
         }
 
+
+        private fun invalidateParams(
+            discountPercent: Int,
+            basePrice: StoreCost,
+            discountedPrice: StoreCost
+        ) {
+            if (discountPercent != _discountPercent) {
+                this._discountPercent = discountPercent
+                mutateState("invalidateParams_discountPercentChanged") { state ->
+                    state.copy(
+                        discountPercentageText = discountPercentageText(discountPercent),
+                    )
+                }
+            }
+            if (basePrice.amount.toInt() != _basePrice) {
+                this._basePrice = basePrice.amount.toInt()
+                mutateState("invalidateParams_basePriceChanged") { state ->
+                    state.copy(
+                        costText = costText(basePrice.amount.toInt()),
+                    )
+                }
+            }
+            if (discountedPrice.amount.toInt() != _discountedPrice) {
+                this._discountedPrice = discountedPrice.amount.toInt()
+                mutateState("invalidateParams_discountedPriceChanged") { state ->
+                    state.copy(
+                        discountedAmountText = costText(discountedPrice.amount.toInt()),
+                    )
+                }
+            }
+            if (discountedPrice.currency != _discountedPriceCurrency) {
+                this._discountedPriceCurrency = discountedPrice.currency
+                mutateState("invalidateParams_discountedCurrencyChanged") { state ->
+                    state.copy(
+                        costImageKey = Any(),
+                        costImage = state.UNSET.costImage,
+                    )
+                }
+                newDiscountedPriceCurrency(discountedPrice.currency)
+            }
+        }
+
+        private var discountedPriceCurrencyImageLoader: Job? = null
+        private fun newDiscountedPriceCurrency(
+            currency: StoreCurrency
+        ) {
+            discountedPriceCurrencyImageLoader?.cancel()
+            discountedPriceCurrencyImageLoader = coroutineScope.launch {
+                assetLoader
+                    .loadCurrencyImageAsync(
+                        id = currency.uuid,
+                    )
+                    .awaitOrCancelOnException()
+                    .fold(
+                        onSuccess = { localImage ->
+                            mutateState("loadDiscountedPriceCurrency") { state ->
+                                state.copy(
+                                    costImageKey = Any(),
+                                    costImage = localImage
+                                )
+                            }
+                        },
+                        onFailure = {
+                            Log.d("DEBUG", "costImage=${it}")
+                        }
+                    )
+            }
+        }
+
+        private fun discountPercentageText(
+            percentage: Int
+        ): String {
+            val coerced = percentage.toString().take(3)
+            return "-${coerced}%"
+        }
+
+        private fun costText(
+            cost: Int
+        ): String {
+            val amountStr = cost.toString()
+            if (amountStr.length <= 3) return amountStr
+            return amountStr
+                .first()
+                .plus(amountStr.drop(1).chunked(3).joinToString(prefix = ",", separator = ","))
+        }
+
         private fun mutateState(
             action: String,
-            mutate: (WeaponSkinOfferCardState) -> WeaponSkinOfferCardState
+            mutate: (NightMarketOfferCardState) -> NightMarketOfferCardState
         ) {
             checkInMainLooper()
-            val current = stateValueOrUnset()
+            val current = snapshotOrUnset()
             val new = mutate(current)
             Log.d(
                 BuildConfig.LIBRARY_PACKAGE_NAME,
-                "${ProjectTree.packageName}.WeaponSkinOfferCardPresenterKt: StateProducer_mutateState($action), result=$new"
+                "${ProjectTree.packageName}.NightMarketOfferCardPresenterKt: StateProducer_mutateState($action), result=$new"
             )
             if (current === new) return
             _state.value = new

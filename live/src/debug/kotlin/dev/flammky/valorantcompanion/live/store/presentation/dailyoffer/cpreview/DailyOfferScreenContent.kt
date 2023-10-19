@@ -122,7 +122,7 @@ private fun DailyOfferScreenContentPreview() {
                                                                         ),
                                                                         rewards = persistentListOf(
                                                                             SkinsPanelStore.Reward(
-                                                                                ItemType.Skin,
+                                                                                ItemType.WeaponSkin,
                                                                                 itemID = "dbg_wpn_skn_exc_neofrontier_melee",
                                                                                 quantity = 1
                                                                             )
@@ -141,7 +141,7 @@ private fun DailyOfferScreenContentPreview() {
                                                                         ),
                                                                         rewards = persistentListOf(
                                                                             SkinsPanelStore.Reward(
-                                                                                ItemType.Skin,
+                                                                                ItemType.WeaponSkin,
                                                                                 itemID = "dbg_wpn_skn_ult_spectrum_phantom",
                                                                                 quantity = 1
                                                                             )
@@ -160,7 +160,7 @@ private fun DailyOfferScreenContentPreview() {
                                                                         ),
                                                                         rewards = persistentListOf(
                                                                             SkinsPanelStore.Reward(
-                                                                                ItemType.Skin,
+                                                                                ItemType.WeaponSkin,
                                                                                 itemID = "dbg_wpn_skn_prmm_oni_shorty",
                                                                                 quantity = 1
                                                                             )
