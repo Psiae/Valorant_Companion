@@ -143,19 +143,19 @@ class DebugValorantAssetService : ValorantAssetsService {
             persistentMapOf<String, LocalImage<*>>().builder().apply {
                 put(
                     ValorantAgentRole.Controller.uuid,
-                    LocalImage.Resource(dev.flammky.valorantcompanion.assets.R.raw.role_controller_displayicon)
+                    LocalImage.Resource(dev.flammky.valorantcompanion.assets.R.raw.agentrole_controller_displayicon)
                 )
                 put(
                     ValorantAgentRole.Duelist.uuid,
-                    LocalImage.Resource(dev.flammky.valorantcompanion.assets.R.raw.role_duelist_displayicon)
+                    LocalImage.Resource(dev.flammky.valorantcompanion.assets.R.raw.agentrole_dueslist_displayicon)
                 )
                 put(
                     ValorantAgentRole.Initiator.uuid,
-                    LocalImage.Resource(dev.flammky.valorantcompanion.assets.R.raw.role_initiator_displayicon)
+                    LocalImage.Resource(dev.flammky.valorantcompanion.assets.R.raw.agentrole_initiator_displayicon)
                 )
                 put(
                     ValorantAgentRole.Sentinel.uuid,
-                    LocalImage.Resource(dev.flammky.valorantcompanion.assets.R.raw.role_sentinel_displayicon)
+                    LocalImage.Resource(dev.flammky.valorantcompanion.assets.R.raw.agentrole_sentinel_displayicon)
                 )
             }.build()
         }

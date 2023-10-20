@@ -33,6 +33,10 @@ interface ValorantAssetsLoaderClient {
         agentId: String
     ): Deferred<Result<LocalImage<*>>>
 
+    fun loadAgentRoleIconAsync(
+        roleUUID: String
+    ): Deferred<Result<LocalImage<*>>>
+
     fun loadUserPlayerCardImageAsync(
         req: LoadPlayerCardRequest
     ): Deferred<Result<LocalImage<*>>>

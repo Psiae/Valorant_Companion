@@ -421,10 +421,10 @@ private fun agentDisplayIcon(agentName: String): Int {
 
 private fun agentRoleIconForName(name: String): Int {
     return when(name.lowercase()) {
-        "controller" -> R_ASSET.raw.role_controller_displayicon
-        "duelist" -> R_ASSET.raw.role_duelist_displayicon
-        "initiator" -> R_ASSET.raw.role_initiator_displayicon
-        "sentinel" -> R_ASSET.raw.role_sentinel_displayicon
+        "controller" -> R_ASSET.raw.agentrole_controller_displayicon
+        "duelist" -> R_ASSET.raw.agentrole_dueslist_displayicon
+        "initiator" -> R_ASSET.raw.agentrole_initiator_displayicon
+        "sentinel" -> R_ASSET.raw.agentrole_sentinel_displayicon
         else -> 0
     }
 }

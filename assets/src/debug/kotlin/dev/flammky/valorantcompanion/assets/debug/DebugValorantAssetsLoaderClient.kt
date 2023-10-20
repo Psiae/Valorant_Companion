@@ -65,6 +65,14 @@ class DebugValorantAssetsLoaderClient(
         )
     }
 
+    override fun loadAgentRoleIconAsync(roleUUID: String): Deferred<Result<LocalImage<*>>> {
+        return CompletableDeferred(
+            value = loadMemoryCachedRoleIcon(roleUUID)
+                ?.let { Result.success(it) }
+                ?: Result.failure(AssetNotFoundException())
+        )
+    }
+
     override fun loadUserPlayerCardImageAsync(req: LoadPlayerCardRequest): Deferred<Result<LocalImage<*>>> {
         req.acceptableTypes.forEach { type ->
             playerCardMapping[PlayerCardIdentifier(req.uuid, type)]

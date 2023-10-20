@@ -24,7 +24,7 @@ private fun AgentSelectionPlayerCardPreviewWithNeon() {
             selectedAgentIcon = LocalImage.Resource(AssetResource.raw.agent_neon_displayicon),
             selectedAgentIconKey = Unit,
             selectedAgentRoleName = "Duelist",
-            selectedAgentRoleIcon = LocalImage.Resource(AssetResource.raw.role_duelist_displayicon),
+            selectedAgentRoleIcon = LocalImage.Resource(AssetResource.raw.agentrole_dueslist_displayicon),
             selectedAgentRoleIconKey = Unit,
             isLockedIn = false,
             competitiveTierName = "Ascendant 1",

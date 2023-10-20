@@ -67,6 +67,15 @@ internal class DisposableValorantAssetsLoaderClient(
         return CompletableDeferred(Result.failure(AssetNotFoundException()))
     }
 
+    override fun loadAgentRoleIconAsync(roleUUID: String): Deferred<Result<LocalImage<*>>> {
+        // TODO: impl
+        loadMemoryCachedRoleIcon(roleUUID)
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
+        return CompletableDeferred(Result.failure(AssetNotFoundException()))
+    }
+
     override fun loadCompetitiveRankIconAsync(rank: CompetitiveRank): Deferred<Result<LocalImage<*>>> {
         loadMemoryCachedCompetitiveRankIcon(rank)
             ?.let {
