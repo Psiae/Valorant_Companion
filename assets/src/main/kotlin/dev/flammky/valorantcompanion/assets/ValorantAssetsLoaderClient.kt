@@ -1,15 +1,20 @@
 package dev.flammky.valorantcompanion.assets
 
+import dev.flammky.valorantcompanion.assets.agent.ValorantAgentAssetLoader
 import dev.flammky.valorantcompanion.assets.bundle.LoadBundleImageRequest
 import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
+import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
+import kotlinx.collections.immutable.PersistentMap
 import kotlinx.coroutines.Deferred
 
 interface ValorantAssetsLoaderClient {
+
+    val agentAssetLoader: ValorantAgentAssetLoader
 
     // TODO: wrap async request to better convey error message
 

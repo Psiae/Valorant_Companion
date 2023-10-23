@@ -2,6 +2,7 @@ package dev.flammky.valorantcompanion.assets.debug
 
 import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
+import dev.flammky.valorantcompanion.assets.agent.ValorantAgentAssetLoader
 import dev.flammky.valorantcompanion.assets.bundle.BundleImageIdentifier
 import dev.flammky.valorantcompanion.assets.bundle.LoadBundleImageRequest
 import dev.flammky.valorantcompanion.assets.ex.AssetNotFoundException
@@ -16,8 +17,13 @@ import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageIdentifier
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageType
+import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.store.weapon.skin.WeaponSkinTier
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.PersistentSet
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
 
@@ -36,6 +42,20 @@ class DebugValorantAssetsLoaderClient(
     private val weaponSkinTierImageMapping: Map<String, LocalImage<*>>,
     private val gunBuddyImageMapping: Map<String, LocalImage<*>>
 ): ValorantAssetsLoaderClient {
+
+    override val agentAssetLoader: ValorantAgentAssetLoader = object : ValorantAgentAssetLoader {
+
+        override fun loadLiveAgentsUUIDsAsync(): Deferred<Result<PersistentSet<String>>> {
+            return CompletableDeferred(
+                value = runCatching {
+                    ValorantAgentIdentity
+                        .iterable()
+                        .mapTo(persistentSetOf<String>().builder()) { it.uuid }
+                        .build()
+                }
+            )
+        }
+    }
 
     override fun loadMemoryCachedAgentIcon(agentId: String): LocalImage<*>? {
         return agentIconMapping[agentId]

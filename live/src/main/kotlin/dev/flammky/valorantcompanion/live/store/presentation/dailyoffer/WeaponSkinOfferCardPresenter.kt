@@ -15,7 +15,7 @@ import dev.flammky.valorantcompanion.base.di.requireInject
 import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
 import dev.flammky.valorantcompanion.base.loop
 import dev.flammky.valorantcompanion.live.BuildConfig
-import dev.flammky.valorantcompanion.pvp.store.ValorantStoreClient
+import dev.flammky.valorantcompanion.pvp.store.ValorantUserStoreClient
 import dev.flammky.valorantcompanion.pvp.store.ValorantStoreService
 import dev.flammky.valorantcompanion.pvp.store.currency.StoreCost
 import dev.flammky.valorantcompanion.pvp.store.currency.StoreCurrency
@@ -82,7 +82,7 @@ private class WeaponSkinOfferCardPresenterImpl(
         private var initialProduce = true
         private val lifetime = SupervisorJob()
         private var _coroutineScope: CoroutineScope? = null
-        private var _storeClient: ValorantStoreClient? = null
+        private var _storeClient: ValorantUserStoreClient? = null
         private var _assetClient: ValorantAssetsLoaderClient? = null
 
         private var producer: Job? = null

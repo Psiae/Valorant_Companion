@@ -14,7 +14,7 @@ import dev.flammky.valorantcompanion.base.di.requireInject
 import dev.flammky.valorantcompanion.base.loop
 import dev.flammky.valorantcompanion.live.BuildConfig
 import dev.flammky.valorantcompanion.pvp.store.StoreFrontData
-import dev.flammky.valorantcompanion.pvp.store.ValorantStoreClient
+import dev.flammky.valorantcompanion.pvp.store.ValorantUserStoreClient
 import dev.flammky.valorantcompanion.pvp.store.ValorantStoreService
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -64,7 +64,7 @@ internal class LiveStorePresenter(
         private var initialProduce = true
         private val lifetime = SupervisorJob()
         private var _coroutineScope: CoroutineScope? = null
-        private var _storeClient: ValorantStoreClient? = null
+        private var _storeClient: ValorantUserStoreClient? = null
 
         private var producer: Job? = null
 

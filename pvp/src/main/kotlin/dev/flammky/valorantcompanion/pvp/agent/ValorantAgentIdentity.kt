@@ -306,6 +306,7 @@ sealed class ValorantAgentIdentity(
         }
 
         fun iter(): Iterator<ValorantAgentIdentity> = SUBCLASSES.iterator()
+        fun iterable(): Iterable<ValorantAgentIdentity> = SUBCLASSES
         fun asList(): List<ValorantAgentIdentity> = SUBCLASSES
     }
 }

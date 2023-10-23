@@ -19,18 +19,13 @@ import dev.flammky.valorantcompanion.base.loop
 import dev.flammky.valorantcompanion.live.BuildConfig
 import dev.flammky.valorantcompanion.pvp.store.FeaturedBundleDisplayData
 import dev.flammky.valorantcompanion.pvp.store.FeaturedBundleStore
-import dev.flammky.valorantcompanion.pvp.store.ValorantStoreClient
+import dev.flammky.valorantcompanion.pvp.store.ValorantUserStoreClient
 import dev.flammky.valorantcompanion.pvp.store.ValorantStoreService
 import dev.flammky.valorantcompanion.pvp.store.currency.StoreCost
 import dev.flammky.valorantcompanion.pvp.store.currency.StoreCurrency
 import dev.flammky.valorantcompanion.pvp.store.currency.ofID
-import dev.flammky.valorantcompanion.pvp.store.weapon.skin.WeaponSkinTier
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
-import kotlin.coroutines.coroutineContext
-import kotlin.time.Duration
 
 interface FeaturedBundleDisplayPresenter {
 
@@ -90,7 +85,7 @@ private class FeaturedBundleDisplayPresenterImpl(
         private var initialProduce = true
         private val lifetime = SupervisorJob()
         private var _coroutineScope: CoroutineScope? = null
-        private var _storeClient: ValorantStoreClient? = null
+        private var _storeClient: ValorantUserStoreClient? = null
         private var _assetClient: ValorantAssetsLoaderClient? = null
 
 

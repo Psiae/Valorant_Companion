@@ -4,6 +4,7 @@ import dev.flammky.valorantcompanion.assets.http.AssetHttpClient
 import dev.flammky.valorantcompanion.assets.http.AssetHttpSession
 import dev.flammky.valorantcompanion.assets.http.AssetHttpSessionHandler
 import dev.flammky.valorantcompanion.base.loop
+import io.ktor.client.plugins.cookies.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*

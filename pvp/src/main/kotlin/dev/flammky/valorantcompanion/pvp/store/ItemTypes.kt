@@ -78,5 +78,15 @@ sealed class ItemType(
         val OBJECTS by lazy {
             ItemType::class.mapSealedObjectInstancesToPersistentList()
         }
+
+
+        fun ofUUID(
+            uuid: String
+        ): ItemType? {
+            return OBJECTS.find {
+                // UUID is NOT case-sensitive
+                it.id.equals(other = uuid, ignoreCase = true)
+            }
+        }
     }
 }

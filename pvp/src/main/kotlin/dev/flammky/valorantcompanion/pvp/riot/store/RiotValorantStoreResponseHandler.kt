@@ -1,4 +1,4 @@
-package dev.flammky.valorantcompanion.pvp.store.internal
+package dev.flammky.valorantcompanion.pvp.riot.store
 
 import dev.flammky.valorantcompanion.base.time.ISO8601
 import dev.flammky.valorantcompanion.pvp.http.JsonHttpResponse
@@ -12,10 +12,10 @@ import dev.flammky.valorantcompanion.pvp.store.*
 import dev.flammky.valorantcompanion.pvp.store.currency.StoreCost
 import dev.flammky.valorantcompanion.pvp.store.currency.StoreCurrency
 import dev.flammky.valorantcompanion.pvp.store.currency.ofID
+import dev.flammky.valorantcompanion.pvp.store.internal.ValorantStoreResponseHandler
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.serialization.json.JsonObject
-import kotlin.math.floor
 import kotlin.time.Duration.Companion.seconds
 
 class RiotValorantStoreResponseHandler : ValorantStoreResponseHandler {

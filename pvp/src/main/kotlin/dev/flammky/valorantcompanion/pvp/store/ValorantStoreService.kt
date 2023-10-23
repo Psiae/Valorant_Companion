@@ -4,5 +4,5 @@ interface ValorantStoreService {
 
     fun createClient(
         user: String
-    ): ValorantStoreClient
+    ): ValorantUserStoreClient
 }

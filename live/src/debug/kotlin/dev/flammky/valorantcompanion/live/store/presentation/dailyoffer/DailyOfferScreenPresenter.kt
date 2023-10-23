@@ -5,7 +5,6 @@ import androidx.compose.runtime.*
 import dev.flammky.valorantcompanion.auth.AuthenticatedAccount
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
-import dev.flammky.valorantcompanion.auth.riot.RiotAuthService
 import dev.flammky.valorantcompanion.base.checkInMainLooper
 import dev.flammky.valorantcompanion.base.compose.RememberObserver
 import dev.flammky.valorantcompanion.base.compose.state.SnapshotRead
@@ -15,9 +14,8 @@ import dev.flammky.valorantcompanion.base.kt.cast
 import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
 import dev.flammky.valorantcompanion.base.loop
 import dev.flammky.valorantcompanion.live.BuildConfig
-import dev.flammky.valorantcompanion.live.store.presentation.root.LiveStoreState
 import dev.flammky.valorantcompanion.pvp.store.StoreFrontData
-import dev.flammky.valorantcompanion.pvp.store.ValorantStoreClient
+import dev.flammky.valorantcompanion.pvp.store.ValorantUserStoreClient
 import dev.flammky.valorantcompanion.pvp.store.ValorantStoreService
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -79,7 +77,7 @@ private class DailyOfferScreenPresenterImpl(
         private var initialProduce = true
         private val lifetime = SupervisorJob()
         private var _coroutineScope: CoroutineScope? = null
-        private var _storeClient: ValorantStoreClient? = null
+        private var _storeClient: ValorantUserStoreClient? = null
 
         private var producer: Job? = null
 

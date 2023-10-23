@@ -12,6 +12,7 @@ import dev.flammky.valorantcompanion.base.di.requireInject
 import dev.flammky.valorantcompanion.base.referentialEqualityFun
 import dev.flammky.valorantcompanion.base.rememberWithEquality
 import dev.flammky.valorantcompanion.live.main.LiveMainScreenScope
+import dev.flammky.valorantcompanion.live.store.presentation.agent.AgentStoreScreen
 import dev.flammky.valorantcompanion.live.store.presentation.dailyoffer.DailyOfferScreen
 import dev.flammky.valorantcompanion.live.store.presentation.nightmarket.NightMarketScreen
 import dev.flammky.valorantcompanion.live.store.presentation.nightmarket.NightMarketScreenState
@@ -61,7 +62,13 @@ fun LiveStore(
                     }
                 },
                 agentEnabled = state.agentsEnabled,
-                openAgent = {}
+                openAgent = {
+                    openScreen.invoke {
+                        AgentStoreScreen(
+                            isVisibleToUser = hasFocus
+                        )
+                    }
+                }
             )
         }
     )

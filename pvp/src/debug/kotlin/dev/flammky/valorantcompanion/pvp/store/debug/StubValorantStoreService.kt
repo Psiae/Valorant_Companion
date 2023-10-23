@@ -1,28 +1,28 @@
 package dev.flammky.valorantcompanion.pvp.store.debug
 
-import dev.flammky.valorantcompanion.pvp.store.FeaturedBundleDisplayData
-import dev.flammky.valorantcompanion.pvp.store.StoreFrontData
-import dev.flammky.valorantcompanion.pvp.store.ValorantStoreClient
-import dev.flammky.valorantcompanion.pvp.store.ValorantStoreService
+import dev.flammky.valorantcompanion.pvp.store.*
 import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Job
 
 typealias StubStoreFrontProvider = (puuid: String) -> StoreFrontData?
 typealias StubFeaturedBundleDataProvider = (uuid: String) -> FeaturedBundleDisplayData?
+typealias StubEntitledItemProvider = (uuid: String, itemType: ItemType) -> Set<String>?
 
 class StubValorantStoreService(
-    private val storeFrontProvider: StubStoreFrontProvider,
-    private val bundleDataProvider: StubFeaturedBundleDataProvider
+    private val storeFrontProvider: StubStoreFrontProvider = { null },
+    private val bundleDataProvider: StubFeaturedBundleDataProvider = { null },
+    private val entitledItemProvider: StubEntitledItemProvider = { _, _ -> null }
 ): ValorantStoreService {
 
-    override fun createClient(user: String): ValorantStoreClient {
-       return StubValorantStoreClient(user)
+    override fun createClient(user: String): ValorantUserStoreClient {
+       return StubValorantUserStoreClient(user)
     }
 
-    private inner class StubValorantStoreClient(
+    private inner class StubValorantUserStoreClient(
         private val user: String
-    ) : ValorantStoreClient {
+    ) : ValorantUserStoreClient {
 
         private val _disposed = atomic(false)
 
@@ -48,6 +48,27 @@ class StubValorantStoreService(
             }
 
             return def
+        }
+
+        override fun fetchEntitledAgent(): FetchEntitledItemSession {
+            val completion = CompletableDeferred<Result<Set<String>>>()
+            return object : FetchEntitledItemSession {
+
+                override val type: ItemType
+                    get() = ItemType.Agent
+
+                override fun asDeferred(): Deferred<Result<Set<String>>> {
+                    return completion
+                }
+
+                override fun init(): Boolean {
+                    return if (_disposed.value) {
+                        completion.complete(Result.failure(IllegalStateException("Disposed")))
+                    } else {
+                        completion.complete(runCatching { entitledItemProvider.invoke(user, ItemType.Agent) ?: error("StubStoreService entitledAgents data returns null") })
+                    }
+                }
+            }
         }
 
         override fun dispose() {

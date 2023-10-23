@@ -22,8 +22,10 @@ import dev.flammky.valorantcompanion.pvp.player.internal.RealValorantNameService
 import dev.flammky.valorantcompanion.pvp.pregame.PreGameService
 import dev.flammky.valorantcompanion.pvp.pregame.internal.RealPreGameService
 import dev.flammky.valorantcompanion.pvp.store.ValorantStoreService
-import dev.flammky.valorantcompanion.pvp.store.internal.RiotValorantStoreEndpoint
-import dev.flammky.valorantcompanion.pvp.store.internal.RiotValorantStoreResponseHandler
+import dev.flammky.valorantcompanion.pvp.riot.store.RiotValorantStoreEndpointService
+import dev.flammky.valorantcompanion.pvp.riot.store.RiotValorantStoreResponseHandler
+import dev.flammky.valorantcompanion.pvp.store.ValorantStoreEndpointResolver
+import dev.flammky.valorantcompanion.pvp.store.ValorantStoreEndpointResolverImpl
 import dev.flammky.valorantcompanion.pvp.store.internal.ValorantStoreServiceImpl
 import kotlinx.atomicfu.atomic
 import org.koin.dsl.module
@@ -101,13 +103,17 @@ val KoinPvpModule = module {
             httpClientFactory = httpClientFactory
         )
     }
+    single<ValorantStoreEndpointResolver> {
+        ValorantStoreEndpointResolverImpl()
+    }
     single<ValorantStoreService> {
         ValorantStoreServiceImpl(
             auth = AuthProviderImpl(get()),
             geo = GeoProviderImpl(get()),
-            endpoint = RiotValorantStoreEndpoint(),
+            endpoint = RiotValorantStoreEndpointService(),
             responseHandler = RiotValorantStoreResponseHandler(),
-            httpClientFactory = httpClientFactory
+            httpClientFactory = httpClientFactory,
+            endpointResolver = get()
         )
     }
 }

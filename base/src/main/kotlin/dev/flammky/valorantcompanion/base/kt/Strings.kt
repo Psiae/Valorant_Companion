@@ -7,5 +7,7 @@ fun String.substringAfterOrNull(
     return if (index == -1) null else substring(index + delimiter.length, length)
 }
 
-fun String.suffix(str: String, ignoreCase: Boolean) = if (!endsWith(str, ignoreCase)) this + str else this
-fun String.prefix(str: String, ignoreCase: Boolean) = if (!startsWith(str, ignoreCase)) this + str else this
+fun String.suffix(str: String, ignoreCase: Boolean = false) = if (!endsWith(str, ignoreCase)) this + str else this
+fun String.prefix(str: String, ignoreCase: Boolean = false) = if (!startsWith(str, ignoreCase)) str + this else this
+
+fun String.prefix(char: Char, ignoreCase: Boolean = false) = if (!startsWith(char, ignoreCase)) char + this else this

@@ -5,6 +5,8 @@ import dev.flammky.valorantcompanion.assets.BuildConfig
 import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
+import dev.flammky.valorantcompanion.assets.agent.ValorantAgentAssetLoader
+import dev.flammky.valorantcompanion.assets.agent.ValorantAgentAssetLoaderImpl
 import dev.flammky.valorantcompanion.assets.bundle.LoadBundleImageRequest
 import dev.flammky.valorantcompanion.assets.bundle.ValorantBundleAssetDownloader
 import dev.flammky.valorantcompanion.assets.debug.DebugValorantAssetService
@@ -23,7 +25,9 @@ import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageType
 import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
 import dev.flammky.valorantcompanion.base.kt.coroutines.initAsParentCompleter
+import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
+import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.*
 import kotlin.coroutines.resume
@@ -41,6 +45,11 @@ internal class DisposableValorantAssetsLoaderClient(
 
     private val lifetime = SupervisorJob()
     private val coroutineScope = CoroutineScope(lifetime)
+
+    override val agentAssetLoader = ValorantAgentAssetLoaderImpl(
+        coroutineScope,
+        repository
+    )
 
     override fun loadMemoryCachedAgentIcon(agentId: String): LocalImage<*>? {
         // TODO: decide on whether agent icon should be packaged with the app (likely yes)
