@@ -25,6 +25,8 @@ internal class UserAccountRegistry() {
 
     private val _accessTokens = mutableMapOf<String, String>()
 
+    private val _ssid = mutableMapOf<String, String>()
+
     private val _coroutineScope = CoroutineScope(SupervisorJob())
 
     // should use channel instead
@@ -108,6 +110,16 @@ internal class UserAccountRegistry() {
         }
     }
 
+    fun updateSSID(
+        id: String,
+        ssid: String
+    ) {
+        synchronized(lock) {
+            if (map[id] == null) return
+            _ssid[id] = ssid
+        }
+    }
+
     fun getEntitlementToken(id: String): String? {
         return synchronized(lock) {
             _entitlements[id]
@@ -123,6 +135,12 @@ internal class UserAccountRegistry() {
     fun getAccessToken(id: String): String? {
         return synchronized(lock) {
             _accessTokens[id]
+        }
+    }
+
+    fun getSSID(id: String): String? {
+        return synchronized(lock) {
+            _ssid[id]
         }
     }
 }

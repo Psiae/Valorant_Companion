@@ -17,7 +17,7 @@ val KoinAuthModule = module {
     }
     single<RiotAuthService> {
         RiotAuthServiceImpl(
-            auth = get<RiotAuthRepository>() as RiotAuthRepositoryImpl,
+            authRepo = get<RiotAuthRepository>() as RiotAuthRepositoryImpl,
             geo = get<RiotGeoRepository>() as RiotGeoRepositoryImpl
         )
     }

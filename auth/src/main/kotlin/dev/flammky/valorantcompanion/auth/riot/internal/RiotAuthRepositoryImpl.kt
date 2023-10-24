@@ -43,6 +43,10 @@ internal class RiotAuthRepositoryImpl() : RiotAuthRepository {
         registry.updateAccessToken(id, token)
     }
 
+    fun updateSSID(id: String, ssid: String) {
+        registry.updateSSID(id, ssid)
+    }
+
     fun getEntitlementToken(id: String): String? {
         return registry.getEntitlementToken(id)
     }
@@ -53,5 +57,9 @@ internal class RiotAuthRepositoryImpl() : RiotAuthRepository {
 
     fun getAccessToken(id: String): String? {
         return registry.getAccessToken(id)
+    }
+
+    fun getSSID(id: String): String? {
+        return registry.getSSID(id)
     }
 }

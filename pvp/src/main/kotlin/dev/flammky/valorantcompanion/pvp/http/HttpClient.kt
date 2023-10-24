@@ -5,5 +5,7 @@ internal abstract class HttpClient {
     abstract suspend fun jsonRequest(request: JsonHttpRequest): JsonHttpResponse
 
     abstract fun dispose()
+
+    abstract fun hasCapability(capability: String): Boolean
 }
 

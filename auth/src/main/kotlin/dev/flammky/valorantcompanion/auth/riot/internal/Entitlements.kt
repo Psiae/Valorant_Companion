@@ -11,7 +11,9 @@ import dev.flammky.valorantcompanion.auth.riot.EntitlementRequestResponseData
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.util.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -95,4 +97,110 @@ internal suspend fun retrieveEntitlementToken(
     }
 
     session.onParse(EntitlementRequestResponseData(entitlementToken))
+}
+
+internal suspend fun retrieveReAuthEntitlementToken(
+    httpClient: HttpClient,
+    session: RiotReauthorizeSessionImpl
+) {
+    val access_token = session._reAuthAccessToken
+        ?: run {
+            return
+        }
+    val httpRequest = HttpRequestBuilder()
+        .apply {
+            method = HttpMethod.Post
+            url("https://entitlements.auth.riotgames.com/api/token/v1")
+            headers {
+                append("Content-Type", "application/json")
+                append("Authorization", "Bearer $access_token")
+            }
+        }
+
+    val httpResponse = runCatching {
+        httpClient.request(httpRequest)
+    }.getOrElse {
+        session.retrieveEntitlementTokenRequestError("Unexpected Error while executing entitlement token request")
+        return
+    }
+
+    if (httpResponse.status.value !in 200..299) {
+        session.retrieveEntitlementUnexpectedHttpStatusCode(
+            httpStatusCode = httpResponse.status.value
+        )
+        return
+    }
+
+    val body = runCatching {
+        httpResponse
+            .bodyAsChannel()
+            .toByteArray()
+    }.getOrElse {
+        session.retrieveEntitlementTokenBodyResponseError(
+            msg = "Unexpected Error while consuming entitlement response body packets"
+        )
+        return
+    }
+
+    val str = runCatching {
+        String(body)
+    }.getOrElse {
+        session.retrieveAuthAccessTokenUnexpectedResponseBody(
+            "Unexpected Error while deserializing entitlement response body to Java String (UTF-8)"
+        )
+        return
+    }
+
+    val element = runCatching {
+        Json.decodeFromString<JsonElement>(str)
+    }.getOrElse {
+        session.retrieveAuthAccessTokenUnexpectedResponseBody(
+            "Unexpected Error while deserializing entitlement response body, body is not a JSON"
+        )
+        return
+    }
+
+    val obj = element.jsonObjectOrNull
+        ?: run {
+            session.retrieveAuthAccessTokenUnexpectedResponseBody(
+                "Expected entitlement response body to be a Json Object, but got ${element::class::simpleName} instead"
+            )
+            return
+        }
+
+    runCatching {
+        when(val code = obj["errorCode"]?.jsonPrimitiveOrNull?.content) {
+            null, "" -> Unit
+            "BAD_AUTHORIZATION_PARAM" -> {
+                val msg = obj["message"]?.jsonPrimitiveOrNull?.toString()
+                val ex = BadAuthorizationParamException(msg)
+                session.retrieveEntitlementAuthDenied("BAD_AUTHORIZATION_PARAM")
+                return
+            }
+            "CREDENTIALS_EXPIRED" -> {
+                val msg = obj["message"]?.jsonPrimitiveOrNull?.toString()
+                val ex = CredentialExpiredException(msg)
+                session.retrieveEntitlementAuthDenied("CREDENTIALS_EXPIRED")
+                return
+            }
+            else -> {
+                session.retrieveEntitlementAuthDenied("UNKNOWN_ERROR_CODE")
+                return
+            }
+        }
+
+        val entitlementToken = obj["entitlements_token"]
+            ?.jsonPrimitiveOrNull
+            ?.takeIf { it.isString }
+            ?.content
+
+        if (entitlementToken.isNullOrBlank()) {
+            session.retrieveAuthAccessTokenUnexpectedResponseBody(
+                "entitlements_token not found"
+            )
+            return
+        }
+
+        session.entitlement(entitlementToken)
+    }
 }

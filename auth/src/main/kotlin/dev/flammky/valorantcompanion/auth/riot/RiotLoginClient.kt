@@ -6,4 +6,8 @@ interface RiotLoginClient {
         request: RiotLoginRequest,
         setActive: Boolean
     ): RiotLoginSession
+
+    fun reauthorize(
+        puuid: String
+    ): RiotReauthorizeSession
 }

@@ -13,10 +13,11 @@ import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.*
 
-internal suspend fun retrieveAccessToken(
+internal suspend fun retrieveAuthAccessToken(
     httpClient: HttpClient,
     username: String,
     password: String,
@@ -122,5 +123,103 @@ internal suspend fun retrieveAccessToken(
 
     session.parsedData(
         AuthRequestResponseData(access_token, id_token)
+    )
+}
+
+internal suspend fun retrieveReAuthAccessToken(
+    session: RiotReauthorizeSessionImpl
+) {
+    val statusCode = session._reAuthStatusCode.value
+    val responseBody = session._reAuthResponseBody.value
+    if (statusCode == null) {
+        return
+    }
+    if (statusCode !in 200..299) {
+        session.retrieveAuthAccessTokenUnexpectedHttpStatusCode(
+            statusCode
+        )
+        return
+    }
+    if (responseBody == null) {
+        session.retrieveAuthAccessTokenUnexpectedResponseBody(
+            "Body is null"
+        )
+        return
+    }
+    val element = runCatching {
+        Json.parseToJsonElement(String(responseBody))
+    }.fold(
+        onFailure = { ex ->
+            if (ex is SerializationException) {
+                session.retrieveAuthAccessTokenUnexpectedResponseBody("Body is not a JSON")
+            }
+            session.retrieveAuthAccessTokenUnexpectedException(
+                "Exception while deserializing ReAuth Response Body"
+            )
+            return
+        },
+        onSuccess = { it }
+    )
+    val obj = element.jsonObjectOrNull
+        ?: run {
+            session.retrieveAuthAccessTokenUnexpectedResponseBody(
+                "expected JSON object, but got ${element::class::simpleName} instead"
+            )
+            return
+        }
+
+    if (obj["error"]?.jsonPrimitive?.content == "auth_failure") {
+        session.retrieveAuthAccessTokenAuthError(
+            "AuthFailure"
+        )
+        return
+    }
+
+    if (obj["error"]?.jsonPrimitive?.content == "invalid_session_id") {
+        session.retrieveAuthAccessTokenSessionError(
+            "invalid_session_id"
+        )
+        return
+    }
+
+    val uriString = obj["response"]
+        ?.jsonObjectOrNull?.get("parameters")
+        ?.jsonObjectOrNull?.get("uri")
+        ?.jsonPrimitiveOrNull
+        ?.takeIf { it.isString }
+        ?.content
+
+    if (uriString == null) {
+        session.retrieveAuthAccessTokenUnexpectedResponseBody(
+            "uri not found"
+        )
+        return
+    }
+
+    val access_token = uriString
+        .substringAfterOrNull("access_token=")
+        ?.takeWhile { it != '&' }
+
+    if (access_token == null || access_token.isBlank()) {
+        session.retrieveAuthAccessTokenUnexpectedResponseBody(
+            "access_token not found"
+        )
+        return
+    }
+
+    val id_token = uriString
+        .substringAfterOrNull("id_token=")
+        ?.takeWhile { it != '&' }
+
+    if (id_token == null || id_token.isBlank()) {
+        session.retrieveAuthAccessTokenUnexpectedResponseBody(
+            "id_token not found"
+        )
+        return
+    }
+
+    session.reAuthCookieResponseParsed(
+        access_token = access_token,
+        id_token = id_token
     )
 }

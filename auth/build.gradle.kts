@@ -40,4 +40,5 @@ dependencies {
     implementation(libs.io.ktor.ktor.client.content.negotiation)
     implementation(libs.io.ktor.ktor.serialization)
     implementation(libs.io.ktor.ktor.serialization.kotlinx.json)
+    implementation(libs.org.jetbrains.kotlinx.atomicfu.jvm)
 }

@@ -4,6 +4,7 @@ import android.util.Log
 import dev.flammky.valorantcompanion.auth.BuildConfig
 import dev.flammky.valorantcompanion.pvp.http.*
 import dev.flammky.valorantcompanion.pvp.http.HttpClient
+import dev.flammky.valorantcompanion.pvp.sync
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.cookies.*
@@ -15,6 +16,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.*
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.serialization.decodeFromString
@@ -24,6 +26,8 @@ import io.ktor.client.HttpClient as KtorHttpClient
 internal class KtorWrappedHttpClient(
     lifetime: Job? = null
 ) : HttpClient() {
+
+    private val disposableHandles = mutableListOf<DisposableHandle>()
 
     private val self: KtorHttpClient = KtorHttpClient(PVPOkHttpEngineFactory) {
         install(ContentNegotiation) {
@@ -48,14 +52,16 @@ internal class KtorWrappedHttpClient(
     }
 
     init {
-        lifetime?.invokeOnCompletion { ex ->
-            self.cancel(
-                CancellationException(
-                    message = "Lifetime Completed",
-                    cause = ex
+        lifetime
+            ?.invokeOnCompletion { ex ->
+                self.cancel(
+                    CancellationException(
+                        message = "Lifetime Completed",
+                        cause = ex
+                    )
                 )
-            )
-        }
+            }
+            ?.also { disposableHandles.add(it) }
     }
 
     // TODO: rethrow ktor module exceptions
@@ -87,5 +93,10 @@ internal class KtorWrappedHttpClient(
 
     override fun dispose() {
         self.close()
+        disposableHandles.sync { forEach { it.dispose() } ; clear() }
+    }
+
+    override fun hasCapability(capability: String): Boolean {
+        return true
     }
 }
