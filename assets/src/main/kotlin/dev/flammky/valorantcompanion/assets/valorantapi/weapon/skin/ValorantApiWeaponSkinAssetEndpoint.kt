@@ -12,6 +12,7 @@ import io.ktor.util.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import java.io.IOException
 import java.nio.ByteBuffer
 
 class ValorantApiWeaponSkinAssetEndpoint(
@@ -39,40 +40,21 @@ class ValorantApiWeaponSkinAssetEndpoint(
 
     suspend fun active(): Boolean {
         var active = false
-        httpClient.get(
-            ENDPOINT_STATUS_URL,
-            sessionHandler = {
-                if (httpStatusCode == 404) {
-                    val bb = ByteBuffer.allocate(1.kiloByteUnit().bytes().toInt())
-                    consume(bb)
-                    if (bb.position() < 1) return@get
-                    runCatching {
-                        val json = Json
-                            .decodeFromString<JsonElement>(
-                                string = String(bb.apply { flip() }.moveToByteArray())
-                            )
-                        json
-                            .expectJsonObject("VALORANT_API_WEAPON_SKIN_ENDPOINT_STATUS_RESPONSE")
-                        json
-                            .expectJsonProperty("status")
-                            .expectJsonPrimitive("")
-                            .content
-                            .also { status ->
-                                if (status != "404") return@get
-                            }
-                        json.expectJsonProperty("error")
-                            .expectJsonPrimitive("")
-                            .content
-                            .also { str ->
-                                if (str != "the requested uuid was not found") return@get
-                            }
-                        active = true
-                    }.onFailure {
-                        if (BuildConfig.DEBUG) it.printStackTrace()
+        try {
+            httpClient.get(
+                ENDPOINT_STATUS_URL,
+                sessionHandler = {
+                    if (httpStatusCode == 200) {
+                        if (contentType.equals("application", true) &&
+                            contentSubType.equals("json", true)) {
+                            active = true
+                        }
                     }
                 }
-            }
-        )
+            )
+        } catch (io: IOException) {
+
+        }
         return active
     }
 
@@ -89,7 +71,7 @@ class ValorantApiWeaponSkinAssetEndpoint(
         val SKINLEVELS_URL = "$BASE_URL/v1/weapons/skinlevels"
         val SKINLEVELS_IMAGE_URL = "$BASE_MEDIA_URL/weaponskinlevels"
 
-        val ENDPOINT_STATUS_URL = "$SKINLEVELS_URL/%7BweaponSkinUuid%7D"
+        val ENDPOINT_STATUS_URL = "https://valorant-api.com/v1/version"
 
         val ID = "valorant-api"
     }

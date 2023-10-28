@@ -5,7 +5,6 @@ import dev.flammky.valorantcompanion.assets.BuildConfig
 import dev.flammky.valorantcompanion.assets.LocalImage
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.assets.ValorantAssetsLoaderClient
-import dev.flammky.valorantcompanion.assets.agent.ValorantAgentAssetLoader
 import dev.flammky.valorantcompanion.assets.agent.ValorantAgentAssetLoaderImpl
 import dev.flammky.valorantcompanion.assets.bundle.LoadBundleImageRequest
 import dev.flammky.valorantcompanion.assets.bundle.ValorantBundleAssetDownloader
@@ -14,6 +13,8 @@ import dev.flammky.valorantcompanion.assets.ex.AssetNotFoundException
 import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.map.ValorantMapAssetDownloader
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardAssetDownloader
+import dev.flammky.valorantcompanion.assets.player_title.PlayerTitleIdentity
+import dev.flammky.valorantcompanion.assets.player_title.ValorantTitleAssetLoader
 import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetDownloader
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
@@ -25,9 +26,7 @@ import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageType
 import dev.flammky.valorantcompanion.base.kt.coroutines.awaitOrCancelOnException
 import dev.flammky.valorantcompanion.base.kt.coroutines.initAsParentCompleter
-import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
-import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.*
 import kotlin.coroutines.resume
@@ -40,7 +39,8 @@ internal class DisposableValorantAssetsLoaderClient(
     private val spray_asset_downloader: ValorantSprayAssetDownloader,
     private val bundle_asset_downloader: ValorantBundleAssetDownloader,
     private val gunBuddyAssetLoader: ValorantGunBuddyAssetLoader,
-    private val weaponSkinAssetLoader: ValorantWeaponSkinAssetLoader
+    private val weaponSkinAssetLoader: ValorantWeaponSkinAssetLoader,
+    private val tittleAssetLoader: ValorantTitleAssetLoader
 ) : ValorantAssetsLoaderClient {
 
     private val lifetime = SupervisorJob()
@@ -159,6 +159,10 @@ internal class DisposableValorantAssetsLoaderClient(
 
     override fun loadGunBuddyImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
         return gunBuddyAssetLoader.loadImageAsync(id, persistentSetOf(GunBuddyImageType.DISPLAY_ICON))
+    }
+
+    override fun loadTitleIdentityAsync(id: String): Deferred<Result<PlayerTitleIdentity>> {
+        return tittleAssetLoader.loadTitleIdentityAsync(id)
     }
 
     override fun dispose() {

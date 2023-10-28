@@ -10,7 +10,9 @@ data class AccessoryOfferPanelState(
     val getCurrencyImage: (Int) -> LocalImage<*>,
     val offerCount: Int,
     val getOfferDisplayImageKey: (Int) -> Any,
-    val getOfferDisplayImage: (Int) -> LocalImage<*>,
+    val getOfferDisplayImage: (Int) -> LocalImage<*>?,
+    val getOfferDisplayTextKey: (Int) -> Any,
+    val getOfferDisplayText: (Int) -> String?,
     val durationLeft: Duration,
 ): UNSET<AccessoryOfferPanelState> by Companion {
 
@@ -23,8 +25,12 @@ data class AccessoryOfferPanelState(
         return other.currencyCount == currencyCount &&
                 other.getCurrencyImageKey == getCurrencyImageKey &&
                 other.getCurrencyImage == getCurrencyImage &&
-                other.offerCount == offerCount && other.getOfferDisplayImageKey == getOfferDisplayImageKey &&
-                other.getOfferDisplayImage == getOfferDisplayImage && other.durationLeft == durationLeft
+                other.offerCount == offerCount &&
+                other.getOfferDisplayImageKey == getOfferDisplayImageKey &&
+                other.getOfferDisplayImage == getOfferDisplayImage &&
+                other.getOfferDisplayTextKey == getOfferDisplayTextKey &&
+                other.getOfferDisplayText == getOfferDisplayText &&
+                other.durationLeft == durationLeft
     }
 
     override fun hashCode(): Int {
@@ -53,6 +59,8 @@ data class AccessoryOfferPanelState(
             offerCount = 0,
             getOfferDisplayImageKey = {},
             getOfferDisplayImage = { LocalImage.None },
+            getOfferDisplayTextKey = {},
+            getOfferDisplayText = { null },
             durationLeft = Duration.ZERO
         )
     }

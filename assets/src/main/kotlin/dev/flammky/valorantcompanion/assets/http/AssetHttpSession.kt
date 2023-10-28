@@ -14,8 +14,9 @@ interface AssetHttpSession {
 
     val closed: Boolean
     val consumed: Boolean
-
     suspend fun consume(byteBuffer: ByteBuffer)
+
+    suspend fun consumeToByteArray(limit: Int): ByteArray
 
     fun reject()
 }

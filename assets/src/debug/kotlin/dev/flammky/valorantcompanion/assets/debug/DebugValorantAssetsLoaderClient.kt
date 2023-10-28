@@ -10,6 +10,7 @@ import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.map.MapImageIdentifier
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardIdentifier
+import dev.flammky.valorantcompanion.assets.player_title.PlayerTitleIdentity
 import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
 import dev.flammky.valorantcompanion.assets.spray.SprayImageIdentifier
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
@@ -18,11 +19,8 @@ import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageIdentifier
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinImageType
 import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
-import dev.flammky.valorantcompanion.pvp.store.weapon.skin.WeaponSkinTier
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
-import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.PersistentSet
-import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Deferred
@@ -40,7 +38,8 @@ class DebugValorantAssetsLoaderClient(
     private val weaponSkinIdentityMapping: Map<String, WeaponSkinIdentity>,
     private val weaponSkinImageMapping: Map<WeaponSkinImageIdentifier, LocalImage<*>>,
     private val weaponSkinTierImageMapping: Map<String, LocalImage<*>>,
-    private val gunBuddyImageMapping: Map<String, LocalImage<*>>
+    private val gunBuddyImageMapping: Map<String, LocalImage<*>>,
+    private val titleIdentityMapping: Map<String, PlayerTitleIdentity>
 ): ValorantAssetsLoaderClient {
 
     override val agentAssetLoader: ValorantAgentAssetLoader = object : ValorantAgentAssetLoader {
@@ -203,6 +202,16 @@ class DebugValorantAssetsLoaderClient(
 
     override fun loadGunBuddyImageAsync(id: String): Deferred<Result<LocalImage<*>>> {
         gunBuddyImageMapping[id]
+            ?.let {
+                return CompletableDeferred(Result.success(it))
+            }
+        return CompletableDeferred(
+            value = Result.failure(AssetNotFoundException())
+        )
+    }
+
+    override fun loadTitleIdentityAsync(id: String): Deferred<Result<PlayerTitleIdentity>> {
+        titleIdentityMapping[id]
             ?.let {
                 return CompletableDeferred(Result.success(it))
             }

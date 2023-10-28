@@ -58,6 +58,10 @@ val KoinPvpModule = module {
                     }
                     disposed.value = true
                 }
+
+                override fun hasCapability(capability: String): Boolean {
+                    return true
+                }
             }
         }
     }

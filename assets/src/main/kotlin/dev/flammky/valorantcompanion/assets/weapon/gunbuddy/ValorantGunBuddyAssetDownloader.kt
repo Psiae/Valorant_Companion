@@ -236,16 +236,13 @@ internal class ValorantGunBuddyAssetDownloaderImpl(
                         ) return@handler reject()
 
                         val contentLength = contentLength
-                        val bb = when {
-                            contentLength == null -> return@handler reject()
-                            contentLength <= contentSizeLimit -> {
-                                ByteBuffer.allocate(contentLength.toInt())
-                            }
-                            // TODO: ask for confirmation
+                        val limit = when {
+                            contentLength == null -> contentSizeLimit
+                            contentSizeLimit >= contentLength -> contentLength.toInt()
                             else -> return@handler reject()
                         }
-                        consume(bb)
-                        result = bb.apply { flip() }.moveToByteArray()
+
+                        result = consumeToByteArray(limit)
                     }
                 )
 

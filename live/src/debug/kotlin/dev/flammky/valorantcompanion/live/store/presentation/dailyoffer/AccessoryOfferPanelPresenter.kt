@@ -109,10 +109,13 @@ private class AccessoryOfferPanelPresenterImpl(
         private val _currenciesImageMap = mutableMapOf<String, LocalImage<*>>()
         private val _currenciesImageWorkers = mutableMapOf<String, Job>()
 
-        private val _rewardItemTypeSnapshots = mutableMapOf<String, MutableState<ItemType>>()
+        private val _rewardItemTypeSnapshots = mutableMapOf<String, MutableState<ItemType?>>()
         private val _rewardImageKeySnapshots = mutableMapOf<String, MutableState<Any>>()
-        private val _rewardImageMap = mutableMapOf<String, LocalImage<*>>()
+        private val _rewardTextKeySnapshots = mutableMapOf<String, MutableState<Any>>()
+        private val _rewardImageMap = mutableMapOf<String, LocalImage<*>?>()
+        private val _rewardTextMap = mutableMapOf<String, String?>()
         private val _rewardImageWorkers = mutableMapOf<String, Job>()
+        private val _rewardTextWorkers = mutableMapOf<String, Job>()
 
         override fun onAbandoned() {
             super.onAbandoned()
@@ -340,8 +343,21 @@ private class AccessoryOfferPanelPresenterImpl(
                         _rewardImageKeySnapshots[rewards[i]]!!.value
                     },
                     getOfferDisplayImage = { i ->
-                        _rewardImageMap[rewards[i]]
-                            ?: state.UNSET.getCurrencyImage(i)
+                        if (_rewardImageMap.containsKey(rewards[i])) {
+                            _rewardImageMap.get(rewards[i])
+                        } else {
+                            state.UNSET.getOfferDisplayImage(i)
+                        }
+                    },
+                    getOfferDisplayTextKey = { i ->
+                        _rewardTextKeySnapshots[rewards[i]]!!.value
+                    },
+                    getOfferDisplayText = { i ->
+                        if (_rewardTextMap.containsKey(rewards[i])) {
+                            _rewardTextMap.get(rewards[i])
+                        } else {
+                            state.UNSET.getOfferDisplayText(i)
+                        }
                     }
                 )
             }
@@ -352,6 +368,21 @@ private class AccessoryOfferPanelPresenterImpl(
         ) {
             val rewards = this._offerRewards
                 ?: return
+
+            mutableMapOf<String, MutableState<ItemType?>>()
+                .apply {
+                    types.forEach { type ->
+                        val snapshot = _rewardItemTypeSnapshots[type.key]
+                            ?.apply { value = type.value }
+                            ?: mutableStateOf<ItemType?>(type.value)
+                        put(type.key, snapshot)
+                    }
+                }
+                .run {
+                    _rewardItemTypeSnapshots.clear()
+                    _rewardItemTypeSnapshots.putAll(this)
+                }
+
             mutableMapOf<String, MutableState<Any>>()
                 .apply {
                     val initKey = Any()
@@ -374,18 +405,26 @@ private class AccessoryOfferPanelPresenterImpl(
                     _rewardImageKeySnapshots.putAll(this)
                 }
 
-            mutableMapOf<String, MutableState<ItemType>>()
+            mutableMapOf<String, MutableState<Any>>()
                 .apply {
-                    types.forEach { type ->
-                        val snapshot = _rewardItemTypeSnapshots[type.key]
-                            ?.apply { value = type.value }
-                            ?: mutableStateOf(type.value)
-                        put(type.key, snapshot)
+                    val initKey = Any()
+                    rewards.forEach { item ->
+                        val snapshot = _rewardTextKeySnapshots[item] ?: mutableStateOf<Any>(initKey)
+                        put(item, snapshot)
                     }
                 }
                 .run {
-                    _rewardItemTypeSnapshots.clear()
-                    _rewardItemTypeSnapshots.putAll(this)
+                    _rewardTextKeySnapshots.forEach { entry ->
+                        if (!containsKey(entry.key)) {
+                            _rewardTextMap.remove(entry.key)
+                            _rewardTextWorkers.remove(entry.key)
+                                ?.apply {
+                                    cancel()
+                                }
+                        }
+                    }
+                    _rewardTextKeySnapshots.clear()
+                    _rewardTextKeySnapshots.putAll(this)
                 }
         }
 
@@ -395,6 +434,14 @@ private class AccessoryOfferPanelPresenterImpl(
                     .apply {
                         if (!containsKey(entry.key)) {
                             put(entry.key, rewardImageWorker(entry.key))
+                        }
+                    }
+            }
+            _rewardTextKeySnapshots.forEach { entry ->
+                _rewardTextWorkers
+                    .apply {
+                        if (!containsKey(entry.key)) {
+                            put(entry.key, rewardTextWorker(entry.key))
                         }
                     }
             }
@@ -426,8 +473,8 @@ private class AccessoryOfferPanelPresenterImpl(
                                 )
                                 else -> {
                                     _rewardImageKeySnapshots[rewardID]?.apply {
-                                        _rewardImageMap[rewardID] = LocalImage.None
-                                        value = LocalImage.None
+                                        _rewardImageMap[rewardID] = null
+                                        value = Any()
                                     }
                                     return@launch
                                 }
@@ -441,6 +488,45 @@ private class AccessoryOfferPanelPresenterImpl(
                                 },
                                 onFailure = { ex ->
                                     Log.d("DBG", "rewardImageWorker($rewardID)_failure($ex)")
+                                    // TODO
+                                }
+                            )
+                        }
+                    }
+            }
+        }
+
+        private fun rewardTextWorker(
+            rewardID: String
+        ): Job {
+            return coroutineScope.launch {
+                var task: Job? = null
+                snapshotFlow { _rewardItemTypeSnapshots[rewardID]!!.value }
+                    .distinctUntilChanged()
+                    .collect { type ->
+                        Log.d("DEBUG", "rewardTextWorker, rewardID=$rewardID, type=$type")
+                        task?.cancel()
+                        task = launch {
+                            // TODO
+                            when(type) {
+                                ItemType.Title -> assetClient.loadTitleIdentityAsync(rewardID)
+                                else -> {
+                                    _rewardTextKeySnapshots[rewardID]?.apply {
+                                        _rewardTextMap[rewardID] = null
+                                        value = Any()
+                                    }
+                                    return@launch
+                                }
+                            }.awaitOrCancelOnException().fold(
+                                onSuccess = { data ->
+                                    Log.d("DEBUG", "rewardTextWorker($rewardID)_success($data)")
+                                    _rewardTextKeySnapshots[rewardID]?.apply {
+                                        _rewardTextMap[rewardID] = data.titleText
+                                        value = Any()
+                                    }
+                                },
+                                onFailure = { ex ->
+                                    Log.d("DEBUG", "rewardTextWorker($rewardID)_failure($ex)")
                                     // TODO
                                 }
                             )

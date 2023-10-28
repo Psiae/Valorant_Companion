@@ -1,5 +1,6 @@
 package dev.flammky.valorantcompanion.auth.riot.internal
 
+import android.util.Log
 import dev.flammky.valorantcompanion.auth.*
 import dev.flammky.valorantcompanion.auth.riot.ActiveAccountListener
 import dev.flammky.valorantcompanion.auth.riot.RiotAuthRepository
@@ -44,6 +45,7 @@ internal class RiotAuthRepositoryImpl() : RiotAuthRepository {
     }
 
     fun updateSSID(id: String, ssid: String) {
+        Log.d("ValorantCompanion_DEBUG", "updateSSID($id, $ssid)")
         registry.updateSSID(id, ssid)
     }
 

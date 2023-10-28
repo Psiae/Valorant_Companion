@@ -8,10 +8,13 @@ import io.ktor.client.plugins.cookies.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.util.cio.*
 import io.ktor.utils.io.*
 import kotlinx.atomicfu.atomic
 import java.nio.ByteBuffer
 import io.ktor.client.HttpClient as KtorHttpClient
+
+typealias KtorHttpClient = KtorHttpClient
 
 class KtorWrappedHttpClient(
     private val self: KtorHttpClient
@@ -56,6 +59,17 @@ class KtorWrappedHttpClient(
                     }
                     try {
                         loop { if (channel.readAvailable(byteBuffer) <= 0) LOOP_BREAK() }
+                    } finally {
+                        tryClose()
+                    }
+                }
+
+                override suspend fun consumeToByteArray(limit: Int): ByteArray {
+                    if (!consumed.compareAndSet(expect = false, update = true)) {
+                        error("AssetHttpSession is already consumed")
+                    }
+                    return try {
+                        channel.toByteArray(limit)
                     } finally {
                         tryClose()
                     }

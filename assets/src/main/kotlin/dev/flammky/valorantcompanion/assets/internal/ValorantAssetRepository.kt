@@ -10,6 +10,8 @@ import dev.flammky.valorantcompanion.assets.conflate.ConflatedCacheWriteMutex
 import dev.flammky.valorantcompanion.assets.filesystem.PlatformFileSystem
 import dev.flammky.valorantcompanion.assets.map.ValorantMapImageType
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardArtType
+import dev.flammky.valorantcompanion.assets.player_title.PlayerTitleAssetSerializer
+import dev.flammky.valorantcompanion.assets.player_title.PlayerTitleIdentity
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetSerializer
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
@@ -34,7 +36,8 @@ import java.io.File as jioFile
 class ValorantAssetRepository(
     private val platformFS: PlatformFileSystem,
     private val sprayAssetSerializer: ValorantSprayAssetSerializer,
-    private val weaponSkinAssetSerializer: WeaponSkinAssetSerializer
+    private val weaponSkinAssetSerializer: WeaponSkinAssetSerializer,
+    private val playerTitleAssetSerializer: PlayerTitleAssetSerializer
 ) {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
@@ -138,6 +141,22 @@ class ValorantAssetRepository(
         with(platformFS) {
             valorantWeaponSkinFolderPath
                 .appendFolder("image")
+        }
+    }
+
+    private val valorantPlayerTitleFolderPath by lazy {
+        with(platformFS) {
+            internalCacheFolder
+                .absolutePath
+                .appendFolder("assets")
+                .appendFolder("playertitle")
+        }
+    }
+
+    private val valorantPlayerTitleIdentityFolderPath by lazy {
+        with(platformFS) {
+            valorantPlayerTitleFolderPath
+                .appendFolder("identity")
         }
     }
 
@@ -845,6 +864,77 @@ class ValorantAssetRepository(
         // TODO: notify
     }.apply {
         if (BuildConfig.DEBUG) onFailure { it.printStackTrace() }
+    }
+
+    suspend fun loadPlayerTitleIdentity(
+        uuid: String,
+    ): Result<PlayerTitleIdentity?> {
+        return runCatching {
+            val fileName = uuid + "_" + "identity"
+            val folderPath = valorantPlayerTitleIdentityFolderPath
+            val file = with(platformFS) { jioFile(folderPath.appendFile("v01_$fileName")) }
+                .takeIf {
+                    synchronized(cacheWriteMutexes) {
+                        cacheWriteMutexes["playertitle_identity_v01_$fileName"]
+                    }?.awaitUnlock()
+                    Log.d("ValorantAssetRepository", "loadPlayerTitleIdentity($uuid), resolving $it, exist=${it.exists()}")
+                    it.exists()
+                }
+            file?.inputStream()?.use { inStream ->
+                if (inStream.available() <= 0 || inStream.available() > 5 * ByteUnit.MB) {
+                    //TODO: notify that the said file is unexpected and delete it
+                    error("Unexpected File")
+                }
+                playerTitleAssetSerializer
+                    .deserializeIdentity(String(inStream.readBytes()))
+                    .getOrThrow()
+            }
+        }
+    }
+
+    suspend fun cachePlayerTitleIdentity(
+        uuid: String,
+        data: ByteArray
+    ): Result<jioFile> {
+        return runCatching {
+            val fileName = uuid + "_" + "identity"
+            val folder = jioFile(valorantPlayerTitleIdentityFolderPath)
+            val file = with(platformFS) {
+                jioFile(folder.absolutePath.appendFile("v01_$fileName"))
+            }
+            // use channel and single writer instead ?
+            val mutex = synchronized(cacheWriteMutexes) {
+                cacheWriteMutexes.getOrPut("playertitle_identity_v01_$fileName") { ConflatedCacheWriteMutex() }
+            }
+            Log.d(
+                BuildConfig.LIBRARY_PACKAGE_NAME,
+                "cachePlayerTitleIdentity, file=$file"
+            )
+            mutex.write { _ ->
+                if (file.isDirectory) file.delete()
+                folder.mkdirs()
+                val fileOutputStream = FileOutputStream(file)
+                try {
+                    fileOutputStream.use { fos ->
+                        val lock = fos.channel.lock()
+                            ?: error("Could not lock FileChannel")
+                        try {
+                            playerTitleAssetSerializer.deserializeIdentity(String(data))
+                            fos.write(data)
+                        } finally {
+                            lock.release()
+                        }
+                    }
+                } catch (e: Exception) {
+                    file.delete()
+                    throw e
+                }
+            }
+            file
+            // TODO: notify
+        }.apply {
+            if (BuildConfig.DEBUG) onFailure { it.printStackTrace() }
+        }
     }
 
     private fun notifyUpdatedProfileCard(

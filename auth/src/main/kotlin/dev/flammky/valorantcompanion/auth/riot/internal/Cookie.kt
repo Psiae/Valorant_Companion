@@ -57,7 +57,7 @@ internal suspend fun initiateAuthCookie(
 
 internal suspend fun initiateReAuthCookie(
     httpClient: KtorHttpClient,
-    session: RiotReauthorizeSessionImpl,
+    session: RiotJointReauthorizeSessionImpl,
     // TODO: Cookie class
     ssid: String
 ) {

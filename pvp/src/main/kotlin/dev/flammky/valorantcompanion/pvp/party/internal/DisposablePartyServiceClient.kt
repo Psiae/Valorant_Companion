@@ -37,7 +37,7 @@ internal class DisposablePartyServiceClient(
         coroutineScope.launch(Dispatchers.IO) {
             def.completeWith(
                 runCatching {
-                    val partyId = getPartyId(puuid).getOrThrow()
+                    val partyId = getPartyId(puuid, allowLimitedRecursiveAuthRetry = true).getOrThrow()
                     getPlayerPartyData(puuid, partyId).getOrThrow()
                 }
             )
@@ -73,7 +73,8 @@ internal class DisposablePartyServiceClient(
     }
 
     private suspend fun getPartyId(
-        puuid: String
+        puuid: String,
+        allowLimitedRecursiveAuthRetry: Boolean = false
     ): Result<String> {
         return runCatching {
             val geo = geoRepository
@@ -100,38 +101,52 @@ internal class DisposablePartyServiceClient(
             )
 
             when(response.statusCode) {
-                200 -> runCatching {
+                200 -> return@runCatching runCatching {
                     val obj = response.body.getOrThrow().jsonObject
                     val str = obj["CurrentPartyID"]?.jsonPrimitive?.toString()
                     if (str.isNullOrBlank()) {
                         unexpectedResponse("CurrentPartyID not found")
                     }
                     str.removeSurrounding("\"")
-                }.onSuccess { data ->
-                    return Result.success(data)
-                }.onFailure { ex ->
-                    return Result.failure(ex)
-                }
-                404 -> runCatching<Result<String>> {
-                    response.body.getOrThrow().jsonObject
-                        .get("errorCode")
+                }.getOrThrow()
+                404 -> return@runCatching run {
+                    runCatching {
+                        response.body.getOrThrow().jsonObject
+                    }.onSuccess { obj ->
+                        obj["errorCode"]
                         ?.jsonPrimitiveOrNull
-                        ?.toString()
-                        ?.removeSurrounding("\"")
+                        ?.content
                         ?.let { code ->
                             if (code == "RESOURCE_NOT_FOUND") {
-                                return@runCatching Result.failure(PlayerPartyNotFoundException())
+                                throw PlayerPartyNotFoundException()
                             }
                             if (code == "PLAYER_DOES_NOT_EXIST") {
-                                return@runCatching Result.failure(PlayerNotFoundException())
+                                throw PlayerNotFoundException()
                             }
                         }
+                    }
                     unexpectedResponse("UNEXPECTED PARTY INFO RESPONSE (404)")
-                }.onSuccess { result ->
-                    return result
-                }.onFailure { ex ->
-                    return Result.failure(ex)
                 }
+                400 -> return@runCatching runCatching {
+                    if (allowLimitedRecursiveAuthRetry) {
+                        val client = authService.createLoginClient()
+                        val get = runCatching {
+                            val session = client.reauthorize(puuid)
+                                .apply {
+                                    asCoroutineJob().join()
+                                }
+                            if (session.success) {
+                                getPartyId(puuid = puuid, allowLimitedRecursiveAuthRetry = false)
+                            } else {
+                                error("Unable to reAuthorize")
+                            }
+                        }
+                        client.dispose()
+                        get.onSuccess { retryResult -> return@runCatching retryResult.getOrThrow() }
+                        unexpectedResponse("BAD_CLAIMS (400), unable to reauthorize")
+                    }
+                    unexpectedResponse("BAD_CLAIMS (400)")
+                }.getOrThrow()
             }
 
             error("Unhandled HTTP response Code (${response.statusCode})")

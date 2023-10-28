@@ -101,7 +101,7 @@ internal suspend fun retrieveEntitlementToken(
 
 internal suspend fun retrieveReAuthEntitlementToken(
     httpClient: HttpClient,
-    session: RiotReauthorizeSessionImpl
+    session: RiotJointReauthorizeSessionImpl
 ) {
     val access_token = session._reAuthAccessToken
         ?: run {

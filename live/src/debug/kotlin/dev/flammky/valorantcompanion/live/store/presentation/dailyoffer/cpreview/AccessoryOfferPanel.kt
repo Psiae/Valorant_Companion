@@ -98,6 +98,9 @@ private fun AccessoryOfferPanelPreview() {
                 offerCount = offers.size,
                 getOfferDisplayImageKey = { i -> offers[i].displayImageKey },
                 getOfferDisplayImage = { i -> offers[i].displayImage },
+                // TODO: Find Longest battle-pass title
+                getOfferDisplayTextKey = {  },
+                getOfferDisplayText = { null },
                 durationLeft = 4.days + 6.hours + 20.minutes,
                 canOpenDetail = true,
                 openDetail = {},
@@ -143,6 +146,8 @@ fun AccessoryOfferPanel(
         offerCount = state.offerCount,
         getOfferDisplayImageKey = state.getOfferDisplayImageKey,
         getOfferDisplayImage = state.getOfferDisplayImage,
+        getOfferDisplayTextKey = state.getOfferDisplayTextKey,
+        getOfferDisplayText = state.getOfferDisplayText,
         durationLeft = state.durationLeft,
         canOpenDetail = canOpenDetail, openDetail = openDetail, shape = shape
     )
@@ -156,7 +161,9 @@ private fun AccessoryOfferPanel(
     getCurrencyImage: (Int) -> LocalImage<*>,
     offerCount: Int,
     getOfferDisplayImageKey: (Int) -> Any,
-    getOfferDisplayImage: (Int) -> LocalImage<*>,
+    getOfferDisplayImage: (Int) -> LocalImage<*>?,
+    getOfferDisplayTextKey: (Int) -> Any,
+    getOfferDisplayText: (Int) -> String?,
     durationLeft: Duration,
     canOpenDetail: Boolean,
     openDetail: () -> Unit,
@@ -293,18 +300,39 @@ private fun AccessoryOfferPanel(
 
                 repeat(offerCount) { i ->
                     val key = getOfferDisplayImageKey(i)
-                    AsyncImage(
-                        modifier = Modifier
-                            .size(70.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        model = remember(key, ctx) {
-                            ImageRequest.Builder(ctx)
-                                .data(getOfferDisplayImage(i).value)
-                                .build()
-                        },
-                        contentDescription = null
-                    )
-
+                    val image = remember(key) {
+                        getOfferDisplayImage(i)
+                    }
+                    if (image != null) {
+                        AsyncImage(
+                            modifier = Modifier
+                                .size(70.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            model = remember(key, ctx) {
+                                ImageRequest.Builder(ctx)
+                                    .data(getOfferDisplayImage(i)?.value)
+                                    .build()
+                            },
+                            contentDescription = null
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(70.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                        ) {
+                            val textKey = getOfferDisplayTextKey(i)
+                            val text = remember(textKey) {
+                                getOfferDisplayText(i)
+                            }
+                            BasicText(
+                                modifier = Modifier.align(Alignment.Center),
+                                text = text ?: "",
+                                style = MaterialTheme3.typography.labelSmall
+                                    .copy(color = Material3Theme.blackOrWhiteContent())
+                            )
+                        }
+                    }
                     if (i < offerCount - 1) {
                         Spacer(modifier = Modifier.width(Material3Theme.dpPaddingIncrementsOf(2)))
                     }

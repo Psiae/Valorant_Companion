@@ -6,6 +6,7 @@ import dev.flammky.valorantcompanion.auth.ex.UnexpectedResponseException
 import dev.flammky.valorantcompanion.auth.riot.region.RiotRegion
 import dev.flammky.valorantcompanion.auth.riot.region.RiotShard
 import dev.flammky.valorantcompanion.auth.riot.*
+import dev.flammky.valorantcompanion.base.kt.cast
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.auth.*
@@ -13,16 +14,19 @@ import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.cookies.*
 import io.ktor.client.plugins.logging.*
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.*
 
 internal class KtorRiotLoginClient(
     private val auth: RiotAuthRepositoryImpl,
-    private val geo: RiotGeoRepositoryImpl
+    private val geo: RiotGeoRepositoryImpl,
+    private val initJointReauthorizeSession: (puuid: String) -> RiotJointReauthorizeSessionImpl
 ) : RiotLoginClient {
 
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
+    // TODO: check disposal before side-effects
     override fun login(
         request: RiotLoginRequest,
         setActive: Boolean
@@ -36,7 +40,21 @@ internal class KtorRiotLoginClient(
                     json()
                 }
                 install(HttpCookies) {
+                    storage = object : CookiesStorage {
+                        val impl = AcceptAllCookiesStorage()
+                        override suspend fun addCookie(requestUrl: Url, cookie: Cookie) {
+                            Log.d("ValorantCompanion_DEBUG", "requestUrl=$requestUrl, cookie=$cookie")
+                            impl.addCookie(requestUrl, cookie)
+                        }
 
+                        override fun close() {
+                            impl.close()
+                        }
+
+                        override suspend fun get(requestUrl: Url): List<Cookie> {
+                            return impl.get(requestUrl)
+                        }
+                    }
                 }
                 install(Auth) {
                     bearer {
@@ -130,8 +148,9 @@ internal class KtorRiotLoginClient(
                         session.entitlement.data!!.entitlements_token
                     )
                     httpClient
-                        .cookies("auth.riotgames.com")
+                        .cookies("https://auth.riotgames.com")
                         .find { cookie ->
+                            Log.d("ValorantCompanion_DEBUG", "cookie=$cookie")
                             cookie.name == "ssid"
                         }
                         ?.let { cookie ->
@@ -165,81 +184,38 @@ internal class KtorRiotLoginClient(
         puuid: String
     ): RiotReauthorizeSession {
 
-        val session = RiotReauthorizeSessionImpl()
+        val jointSession = initJointReauthorizeSession(
+            puuid
+        )
 
-        coroutineScope.launch(Dispatchers.IO) {
-            val ssid = auth.getSSID(puuid)
-                ?: run {
-                    session.unknownSSID()
-                    return@launch
-                }
-            val httpClient = HttpClient(OkHttp) {
-                install(ContentNegotiation) {
-                    json()
-                }
-                install(HttpCookies) {
+        val completion = Job()
 
-                }
-                install(Auth) {
-                    bearer {
-                        sendWithoutRequest { true }
-                    }
-                }
-                if (BuildConfig.DEBUG) {
-                    install(Logging) {
-                        logger = object : Logger {
-                            override fun log(message: String) {
-                                Log.i("auth.KtorHttpClient", message)
-                            }
-                        }
-                        level = LogLevel.ALL
-                    }
+        val session = object : RiotReauthorizeSession {
+
+            override val success: Boolean
+                get() = !completion.isCancelled && jointSession.success
+
+            override fun asCoroutineJob(): Job {
+                return completion
+            }
+        }
+
+        jointSession
+            .apply {
+                addWaiter(completion)
+                asCoroutineJob().invokeOnCompletion { ex ->
+                    if (ex == null) completion.complete() else completion.cancel()
                 }
             }
-            runCatching {
-                initiateReAuthCookie(
-                    httpClient = httpClient,
-                    session = session,
-                    ssid = ssid
-                )
-                if (session._reAuthStatusCode.value !in 200 until 300) {
-                    return@runCatching
-                }
-                retrieveReAuthAccessToken(
-                    session = session
-                )
-                if (session._reAuthAccessToken.value == null) {
-                    return@runCatching
-                }
-                retrieveReAuthEntitlementToken(
-                    httpClient = httpClient,
-                    session = session
-                )
-                auth.apply {
-                    session._reAuthAccessToken.value?.let { token ->
-                        updateAccessToken(
-                            id = puuid,
-                            token = token
-                        )
-                    }
-                    session._reAuthIdToken.value?.let { token ->
-                        updateIdToken(
-                            id = puuid,
-                            token = token
-                        )
-                    }
-                    session._entitlementToken.value?.let { token ->
-                        updateEntitlement(
-                            id = puuid,
-                            token = token
-                        )
-                    }
-                }
-            }
-            httpClient.close()
-            session.end()
+
+        completion.apply {
+           invokeOnCompletion { jointSession.removeWaiter(completion) }
         }
 
         return session
+    }
+
+    override fun dispose() {
+        coroutineScope.cancel()
     }
 }

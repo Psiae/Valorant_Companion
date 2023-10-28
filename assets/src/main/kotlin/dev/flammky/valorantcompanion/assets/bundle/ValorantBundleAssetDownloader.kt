@@ -73,13 +73,13 @@ class ValorantBundleAssetDownloader(
 
                             val contentLength = contentLength
 
-                            val bb = when {
-                                contentLength == null -> ByteBuffer.allocate(contentSizeLimit)
-                                contentSizeLimit >= contentLength -> ByteBuffer.allocate(contentLength.toInt())
+                            val limit = when {
+                                contentLength == null -> contentSizeLimit
+                                contentSizeLimit >= contentLength -> contentLength.toInt()
                                 else -> return@handler reject()
                             }
-                            consume(bb)
-                            result = bb.apply { flip() }.moveToByteArray()
+
+                            result = consumeToByteArray(limit)
                         }
                     )
 

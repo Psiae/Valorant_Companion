@@ -127,7 +127,7 @@ internal suspend fun retrieveAuthAccessToken(
 }
 
 internal suspend fun retrieveReAuthAccessToken(
-    session: RiotReauthorizeSessionImpl
+    session: RiotJointReauthorizeSessionImpl
 ) {
     val statusCode = session._reAuthStatusCode.value
     val responseBody = session._reAuthResponseBody.value

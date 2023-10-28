@@ -4,12 +4,11 @@ import dev.flammky.valorantcompanion.assets.agent.ValorantAgentAssetLoader
 import dev.flammky.valorantcompanion.assets.bundle.LoadBundleImageRequest
 import dev.flammky.valorantcompanion.assets.map.LoadMapImageRequest
 import dev.flammky.valorantcompanion.assets.player_card.LoadPlayerCardRequest
+import dev.flammky.valorantcompanion.assets.player_title.PlayerTitleIdentity
 import dev.flammky.valorantcompanion.assets.spray.LoadSprayImageRequest
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinIdentity
-import dev.flammky.valorantcompanion.pvp.agent.ValorantAgentIdentity
 import dev.flammky.valorantcompanion.pvp.tier.CompetitiveRank
-import kotlinx.collections.immutable.PersistentMap
 import kotlinx.coroutines.Deferred
 
 interface ValorantAssetsLoaderClient {
@@ -85,6 +84,10 @@ interface ValorantAssetsLoaderClient {
     fun loadGunBuddyImageAsync(
         id: String
     ): Deferred<Result<LocalImage<*>>>
+
+    fun loadTitleIdentityAsync(
+        id: String
+    ): Deferred<Result<PlayerTitleIdentity>>
 
     fun dispose()
 }

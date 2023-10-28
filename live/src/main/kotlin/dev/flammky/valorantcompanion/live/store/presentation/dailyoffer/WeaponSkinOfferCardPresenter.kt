@@ -350,6 +350,8 @@ private class WeaponSkinOfferCardPresenterImpl(
         private suspend fun onProduceWeaponSkinIdentityFailure(
             ex: Exception
         ) {
+            Log.d(BuildConfig.LIBRARY_PACKAGE_NAME,
+                "${ProjectTree.packageName}.WeaponSkinOfferCardPresenterKt: StateProducer_onProduceWeaponSkinIdentityFailure=$ex")
             suspendCancellableCoroutine<Unit> { cont ->
                 newPendingRefreshContinuation(cont)
             }

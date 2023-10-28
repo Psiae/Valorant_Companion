@@ -10,18 +10,25 @@ import dev.flammky.valorantcompanion.assets.map.ValorantApiMapAssetEndpoint
 import dev.flammky.valorantcompanion.assets.map.ValorantMapAssetDownloader
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardAssetDownloader
 import dev.flammky.valorantcompanion.assets.player_card.ValorantApiPlayerCardAssetEndpoint
+import dev.flammky.valorantcompanion.assets.player_title.ConflatingValorantTitleAssetLoader
+import dev.flammky.valorantcompanion.assets.player_title.DelegatedValorantTitleAssetLoader
+import dev.flammky.valorantcompanion.assets.player_title.PlayerTitleAssetDownloaderImpl
+import dev.flammky.valorantcompanion.assets.player_title.PlayerTitleAssetEndpointResolverImpl
 import dev.flammky.valorantcompanion.assets.spray.KtxValorantSprayAssetSerializer
 import dev.flammky.valorantcompanion.assets.spray.ValorantApiSprayAssetEndpoint
 import dev.flammky.valorantcompanion.assets.spray.ValorantApiSprayResponseParser
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetDownloader
+import dev.flammky.valorantcompanion.assets.valcom.playertitle.ValComPlayerTitleAssetDownloader
+import dev.flammky.valorantcompanion.assets.valcom.playertitle.ValComPlayerTitleAssetEndpoint
 import dev.flammky.valorantcompanion.assets.valorantapi.bundle.ValorantApiBundleAssetEndpoint
 import dev.flammky.valorantcompanion.assets.valorantapi.bundle.ValorantApiBundleAssetParser
 import dev.flammky.valorantcompanion.assets.valorantapi.gunbuddy.ValorantApiGunBuddyAssetEndpoint
+import dev.flammky.valorantcompanion.assets.valorantapi.playertitle.ValorantApiTitleAssetDownloader
+import dev.flammky.valorantcompanion.assets.valorantapi.playertitle.ValorantApiTitleAssetEndpoint
 import dev.flammky.valorantcompanion.assets.weapon.gunbuddy.ValorantGunBuddyAssetDownloaderImpl
 import dev.flammky.valorantcompanion.assets.weapon.gunbuddy.ValorantGunBuddyAssetLoaderImpl
 import dev.flammky.valorantcompanion.assets.weapon.skin.ValorantWeaponSkinAssetDownloaderImpl
 import dev.flammky.valorantcompanion.assets.weapon.skin.ValorantWeaponSkinAssetLoaderImpl
-import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinAssetEndpointResolver
 import dev.flammky.valorantcompanion.assets.weapon.skin.WeaponSkinAssetEndpointResolverImpl
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
@@ -47,6 +54,20 @@ class ValorantAssetsServiceImpl(
             }
         )
     }
+
+    private val conflatingTitleAssetLoader = ConflatingValorantTitleAssetLoader(
+        repository = repo,
+        downloader = PlayerTitleAssetDownloaderImpl(
+            endpointResolver = PlayerTitleAssetEndpointResolverImpl(::httpClient::get),
+            endpointDownloader = { endpoint ->
+                when(endpoint) {
+                    is ValComPlayerTitleAssetEndpoint -> ValComPlayerTitleAssetDownloader(::httpClient::get)
+                    is ValorantApiTitleAssetEndpoint -> ValorantApiTitleAssetDownloader(::httpClient::get)
+                    else -> null
+                }
+            }
+        )
+    )
 
     override fun createLoaderClient(): ValorantAssetsLoaderClient {
         return DisposableValorantAssetsLoaderClient(
@@ -84,7 +105,8 @@ class ValorantAssetsServiceImpl(
                     ),
                     httpClientFactory = { httpClient }
                 )
-            )
+            ),
+            tittleAssetLoader = DelegatedValorantTitleAssetLoader(conflatingTitleAssetLoader)
         )
     }
 }

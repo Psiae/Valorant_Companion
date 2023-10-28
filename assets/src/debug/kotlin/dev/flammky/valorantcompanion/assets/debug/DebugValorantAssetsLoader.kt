@@ -7,6 +7,7 @@ import dev.flammky.valorantcompanion.assets.map.MapImageIdentifier
 import dev.flammky.valorantcompanion.assets.map.ValorantMapImageType
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardArtType
 import dev.flammky.valorantcompanion.assets.player_card.PlayerCardIdentifier
+import dev.flammky.valorantcompanion.assets.player_title.PlayerTitleIdentity
 import dev.flammky.valorantcompanion.assets.spray.SprayImageIdentifier
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayAssetIdentity
 import dev.flammky.valorantcompanion.assets.spray.ValorantSprayImageType
@@ -44,7 +45,8 @@ class DebugValorantAssetService : ValorantAssetsService {
             weaponSkinIdentityMapping = WEAPON_SKIN_IDENTITY_MAPPING,
             weaponSkinImageMapping = WEAPON_SKIN_IMAGE_MAPPING,
             weaponSkinTierImageMapping = WEAPON_SKIN_TIER_IMAGE_MAPPING,
-            gunBuddyImageMapping = WEAPON_GUNBUDDY_IMAGE_MAPPING
+            gunBuddyImageMapping = WEAPON_GUNBUDDY_IMAGE_MAPPING,
+            titleIdentityMapping = TITTLE_IDENTITY_MAPPING
         )
     }
 
@@ -519,6 +521,15 @@ class DebugValorantAssetService : ValorantAssetsService {
             persistentMapOf<String, LocalImage<*>>()
                 .builder()
                 .apply {
+                }
+                .build()
+        }
+
+        val TITTLE_IDENTITY_MAPPING = debugBlock {
+            persistentMapOf<String, PlayerTitleIdentity>()
+                .builder()
+                .apply {
+
                 }
                 .build()
         }
